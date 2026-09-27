@@ -70,6 +70,7 @@ import ./proofs/batch.bend as Ba
 import ./index/store.bend as St
 import ./query/eval.bend as Qe
 import ./proofs/machine.bend as Ma
+import ./proofs/traverse.bend as Tv
 import ./proofs/extensive.bend as Ex3
 import ./cli/main.bend as Cm
 import ./proofs/inventory.bend as Iv2
@@ -1838,3 +1839,50 @@ law the_evaluator_machine_computes_the_fold:
   for +e: A.SetExpr
   for +good: {Qe.Val.ok(Qe.Ev.set(src, e)) == True{} : Bool}
   {Qe.Val.set(Qe.Ev.set(src, e)) == Ma.Ev.direct(src, e) : S.PSet}
+
+# ===========================================================================
+# C-02, in part -- the traversal never loses a vertex.
+#
+# The production traversal is a frontier walk with a `seen` set: a vertex
+# enters the next frontier only when it was absent from `seen`, and `seen`
+# only grows. "Only grows" is the invariant the whole refinement argument
+# rests on -- it is why each vertex is expanded at most once, which is why
+# the budget suffices, and it is what makes the answer at least the closure.
+#
+# It is also the half of C-02 that can be proved without relating the
+# traversal to the specification iteration. That relation needs the induction
+# to carry "this round is inside the specification's round" as a reusable
+# hypothesis, which runs into the same wall as C-01's leastness -- see
+# LAWS.pending.bend.
+#
+# What these say is unconditional: whatever the traversal has seen it keeps,
+# so every root it started from is in the answer it returns. An answer that
+# dropped a requested root would be wrong in the direction that matters --
+# it would report an object as unreachable that is reachable by definition.
+# ===========================================================================
+
+law the_traversal_keeps_every_vertex_it_has_seen:
+  for +fuel: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +seen: S.PSet
+  for +front: List<&2, U32>
+  for +next: List<&2, U32>
+  for +levels: Re.Levels()
+  for +rounds: Nat
+  for +x: U32
+  for +v: {Sh.PSet.wf(20n, seen, True{}) == True{} : Bool}
+  for +ok: {S.PSet.member(20n, seen, x) == True{} : Bool}
+  {S.PSet.member(20n, Re.Reach.seen(20n,
+      Re.Reach.go(fuel, td, g, 20n, seen, front, next, levels, rounds)), x)
+    == True{} : Bool}
+
+law the_traversal_returns_every_root_it_was_given:
+  for +n: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +r: U32
+  for +ok: {List.contains(~U32, ~U32.is_eq, roots, r) == True{} : Bool}
+  {S.PSet.member(20n, Re.Reach.seen(20n,
+      Re.Reach.closure(n, td, g, 20n, roots)), r) == True{} : Bool}

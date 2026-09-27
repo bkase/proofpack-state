@@ -52,6 +52,7 @@
 #   proofs/batch.bend     the matrix restores the caller's positions
 #   proofs/store.bend     what accepting a stored generation means
 #   proofs/machine.bend   a failure the evaluator notices is one it reports
+#   proofs/traverse.bend  the traversal never loses a vertex
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -72,6 +73,7 @@ import ./proofs/subset.bend as PSb
 import ./proofs/batch.bend as PBa
 import ./proofs/store.bend as PSt
 import ./proofs/machine.bend as PMa
+import ./proofs/traverse.bend as PTv
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -482,3 +484,12 @@ def Laws.an_unfinished_traversal_is_never_reported_as_complete(fuel, src, c,
 
 def Laws.the_evaluator_machine_computes_the_fold(src, e, good):
   PMa.Mach.set_computes(src, e, good)
+
+def Laws.the_traversal_keeps_every_vertex_it_has_seen(fuel, td, g, seen,
+  front, next, levels, rounds, x, v, ok):
+  PTv.Reach.go_keeps(fuel, td, g, seen, front, next, levels, rounds, x, v,
+    ok)
+
+def Laws.the_traversal_returns_every_root_it_was_given(n, td, g, roots, r,
+  ok):
+  PTv.Reach.closure_keeps_its_roots(n, td, g, roots, r, ok)

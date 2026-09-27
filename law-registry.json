@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project": "ProofPack State",
-  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 7 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 3 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 9 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 1 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
   "laws": [
     {
       "id": "U-01",
@@ -147,11 +147,13 @@
         "C-01",
         "S-01"
       ],
-      "status": "specified_checked_at_runtime",
+      "status": "partially_proved",
       "production_symbol": null,
-      "proof_symbol": null,
-      "stated_in": "LAWS.pending.bend",
-      "backed_by": "the closure certificate (C-04) per query, plus the five-graph differential against the specification closure in tests.bend, plus tools/differential.sh against `git rev-list --objects`."
+      "proof_symbol": "Reach.go_keeps and Reach.closure_keeps_its_roots (proofs/traverse.bend)",
+      "stated_in": "LAWS.bend (the traversal keeps what it has seen) and LAWS.pending.bend (the refinement)",
+      "backed_by": "the closure certificate (C-04) per query, plus the five-graph differential against the specification closure in tests.bend, plus tools/differential.sh against `git rev-list --objects`.",
+      "proved_part": "The traversal never loses a vertex: whatever is in `seen` stays in `seen`, through the frontier push and through every level rotation -- so every root it was given is in the answer it returns. That is the invariant the whole refinement argument rests on, and it rules out the failure that matters: reporting an object unreachable that is reachable by definition.",
+      "gap": "That the traversal returns exactly the specification closure. The induction has to carry \"this round is inside the specification round\" from round to round, so that hypothesis must be reusable, so it must be PSet.is_subset -- and establishing is_subset of the next round needs the converse of the bridge this release proves, which quantifies over ordinals and cannot be used twice under Bend affine discipline. The closure certificate (C-04) establishes exactness per query instead, which is why it exists."
     },
     {
       "id": "C-03",
