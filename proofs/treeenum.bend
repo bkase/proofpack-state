@@ -25,9 +25,56 @@ import ./lastord.bend as Ld
 import ./halves.bend as Hv
 import ./maskwidth.bend as Mw
 import ./childtest.bend as Ct
+import ./tilefit.bend as Tf
+import ../core/words.bend as Wo
 import ../core/count.bend as C
 import ../core/word.bend as W
 import ../core/set.bend as S
+
+# What the enumeration needs of a leaf: its members fit in the twelve bits a
+# leaf covers. Stated per shape rather than over `PSet.leaf_members`, so that
+# a full leaf's 4096-element list never has to be built to check the
+# condition -- the kernel runs out of fuel normalising it.
+def PSet.fits.leaf(+s: S.PSet) -> Bool:
+  match s:
+    case S.PZero{}:
+      True{}
+    case S.PFull{}:
+      True{}
+    case S.PSparse{offs}:
+      Sf.Ords.all_fit(offs, 12n)
+    case S.PDense{ws}:
+      Sf.Ords.all_fit(Wo.Words.members(ws, 0), 12n)
+    case S.PBranch{l, h}:
+      True{}
+
+law PSet.full_leaf_members:
+  {S.PSet.leaf_members(S.PFull{})
+    == S.PSet.range(4096n, 4095, Nil{}) : List<&2, U32>}
+
+def PSet.full_leaf_members():
+  {==}
+
+law PSet.leaf_members_fit:
+  for +s: S.PSet
+  for +f: {PSet.fits.leaf(s) == True{} : Bool}
+  {Sf.Ords.all_fit(S.PSet.leaf_members(s), 12n) == True{} : Bool}
+
+def PSet.leaf_members_fit(s, f):
+  match s:
+    case S.PZero{}:
+      {==}
+    case S.PFull{}:
+      %Equal.sym(List<&2, U32>, S.PSet.leaf_members(S.PFull{}),
+        S.PSet.range(4096n, 4095, Nil{}), PSet.full_leaf_members())
+        : {Sf.Ords.all_fit(_, 12n) == True{} : Bool}
+      Tf.Ords.all_fit_full_leaf()
+    case S.PSparse{offs}:
+      f
+    case S.PDense{ws}:
+      f
+    case S.PBranch{l, h}:
+      {==}
 
 # The shape a node must have for the two walks to agree: leaves are the
 # leaf shapes, with members that fit in a leaf; above the leaf level only
@@ -35,8 +82,7 @@ import ../core/set.bend as S
 def PSet.ok(+d: Nat, +s: S.PSet) -> Bool:
   match d:
     case 0n:
-      Bool.and(Le.PSet.ok.leaf(s),
-        Sf.Ords.all_fit(S.PSet.leaf_members(s), 12n))
+      Bool.and(Le.PSet.ok.leaf(s), PSet.fits.leaf(s))
     case 1n+p:
       match s:
         case S.PZero{}:
@@ -115,8 +161,9 @@ def PSet.members_contains.leaf(+s: S.PSet, +base: U32, +x: U32,
       U32.is_eq(base, W.U32.diff(x, W.U32.mask(12n))),
       Sf.Ords.head_low_eq(S.PSet.leaf_members(s), x, 12n),
       base, x, 12n, {==}, {==}, {==},
-      E.Bool.and_r(Le.PSet.ok.leaf(s),
-        Sf.Ords.all_fit(S.PSet.leaf_members(s), 12n), ok), lz))
+      PSet.leaf_members_fit(s,
+        E.Bool.and_r(Le.PSet.ok.leaf(s), PSet.fits.leaf(s), ok)),
+      lz))
     : {Bool.or(_, List.contains(~U32, ~U32.is_eq, tail, x))
       == Bool.or(
         Bool.and(U32.is_eq(base, W.U32.diff(x, W.U32.mask(12n))),
@@ -127,8 +174,7 @@ def PSet.members_contains.leaf(+s: S.PSet, +base: U32, +x: U32,
     S.PSet.mem.leaf(s, U32.and(x, W.U32.mask(12n))),
     Le.PSet.leaf_members_mem(s, U32.and(x, W.U32.mask(12n)),
       Sa.U32.hi_zero_low(x, 12n),
-      E.Bool.and_l(Le.PSet.ok.leaf(s),
-        Sf.Ords.all_fit(S.PSet.leaf_members(s), 12n), ok)))
+      E.Bool.and_l(Le.PSet.ok.leaf(s), PSet.fits.leaf(s), ok)))
     : {Bool.or(Bool.and(
         U32.is_eq(base, W.U32.diff(x, W.U32.mask(12n))), _),
         List.contains(~U32, ~U32.is_eq, tail, x))

@@ -77,6 +77,8 @@ import ./proofs/decr.bend as De
 import ./proofs/span.bend as Sn
 import ./proofs/leafenum.bend as Le
 import ./proofs/treeenum.bend as Te
+import ./proofs/validshape.bend as Vs
+import ./proofs/shift.bend as Sh2
 import ./proofs/shift.bend as Sf
 import ./adapters/git/bytes.bend as By
 import ./adapters/git/parse.bend as Gp
@@ -2186,3 +2188,25 @@ law enumerating_a_set_lists_exactly_its_members:
   for +inr: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
   {List.contains(~U32, ~U32.is_eq, S.PSet.to_list(d, s), x)
     == S.PSet.member(d, s, x) : Bool}
+
+law a_valid_set_has_the_shape_the_enumeration_needs:
+  for +d: Nat
+  for +s: S.PSet
+  for +v: {S.PSet.valid(d, s, True{}) == True{} : Bool}
+  {Te.PSet.ok(d, s) == True{} : Bool}
+
+law a_valid_set_lists_exactly_its_members:
+  for +d: Nat
+  for +s: S.PSet
+  for +x: U32
+  for +v: {S.PSet.valid(d, s, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, S.PSet.to_list(d, s), x)
+    == S.PSet.member(d, s, x) : Bool}
+
+law a_tile_walk_stays_inside_the_leaf:
+  for +ws: List<&2, U32>
+  for +len: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{}
+    : Bool}
+  {Sh2.Ords.all_fit(Wo.Words.members(ws, 0), 12n) == True{} : Bool}

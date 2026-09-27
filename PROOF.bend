@@ -65,6 +65,8 @@
 #   proofs/halves.bend    a node's two halves, as bases
 #   proofs/childtest.bend which half an ordinal is in
 #   proofs/treeenum.bend  the tree enumerates exactly its members
+#   proofs/tilefit.bend   the tile walk stays inside the leaf
+#   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
@@ -99,6 +101,8 @@ import ./proofs/lastord.bend as PLd
 import ./proofs/halves.bend as PHv
 import ./proofs/childtest.bend as PCh
 import ./proofs/treeenum.bend as PTe
+import ./proofs/validshape.bend as PVs
+import ./proofs/tilefit.bend as PTf
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
@@ -601,3 +605,12 @@ def Laws.the_list_a_node_contributes_is_its_interval_and_its_members(d,
 def Laws.enumerating_a_set_lists_exactly_its_members(d, s, x, ok, lt,
   inr):
   PTe.PSet.to_list_member(d, s, x, ok, lt, inr)
+
+def Laws.a_valid_set_has_the_shape_the_enumeration_needs(d, s, v):
+  PVs.PSet.ok_of_valid(d, s, v)
+
+def Laws.a_valid_set_lists_exactly_its_members(d, s, x, v, lt, inr):
+  PVs.PSet.to_list_member_of_valid(d, s, x, v, lt, inr)
+
+def Laws.a_tile_walk_stays_inside_the_leaf(ws, len):
+  PTf.Words.members_fit(ws, len)
