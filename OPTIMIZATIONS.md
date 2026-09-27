@@ -215,3 +215,41 @@ code:
 * CPU and Metal returned identical sums on every trial. That is the M0
   equality evidence; it is not a speed claim, and `auto` does not dispatch to
   Metal at the sizes this release handles.
+
+`docs/evidence/T06.md` has the acceptance workload of SPEC 11.4: one
+requirement against many inventories, `pp git matrix` against Git plumbing,
+on a 31,516-object repository.
+
+The result depends on the cell count, because the two sides have different
+shapes -- the baseline re-traverses the requirement per cell and has almost no
+fixed cost, while `pp` loads the generation once and then answers cheaply. So
+the honest report is two numbers per side rather than one ratio:
+
+| | fixed | per cell |
+|---|---:|---:|
+| baseline | 0.016 s | 0.1994 s |
+| pp, small inventories (~1k objects) | 1.034 s | 0.0363 s |
+| pp, near-full inventories (~30k objects) | 1.095 s | 0.2026 s |
+
+With small inventories -- a worker holding a slice, which is the case SPEC 1.1
+describes -- pp costs **81.8% less per cell**, crosses over between 4 and 8
+cells, and is **2.9x faster at 32 cells**, with a 0.1% A-vs-A noise floor.
+
+With near-full inventories pp is 21.2% cheaper per cell, which predicts a
+crossing near 20 cells, but only 8 receivers of that size were built and pp
+was behind at every cell count measured. **No speed claim is made there**, and
+`bench/repeated.sh` refuses to make one: it prints the prediction labelled as
+a prediction and says there is no result.
+
+The reason for the gap is that pp's advantage is precisely "do not re-traverse
+the requirement", worth 0.199 s per cell, while its cost is parsing each
+inventory's object ids, which grows with the inventory. The win is therefore
+large when inventories are small relative to the requirement and vanishes as
+they approach it.
+
+One further note on method, since it cost real time: the first version of this
+benchmark reported 1.59x, 1.70x and 0.47x on three consecutive runs. Nothing
+about the program had changed -- it rebuilt its receivers into a fresh temp
+directory each run, so each run measured a different page cache. SPEC 11.3's
+requirements are not ceremony; fixed inputs, warm-ups, interleaving in both
+orders and an A-vs-A control took the spread from 3x to 0.1%.

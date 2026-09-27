@@ -1,168 +1,233 @@
 #!/usr/bin/env bash
 # The repeated Git-state workload of SPEC 11.4, measured the way SPEC 11.3
-# requires: interleaved trials in both orders, medians rather than single
-# runs, and an A-versus-A control so the reader can see the noise floor.
+# requires: fixed inputs, interleaved trials in both orders, medians rather
+# than single runs, an A-versus-A control so the reader can see the noise
+# floor, and preprocessing counted rather than hidden.
 #
-# One requirement, many inventories -- the shape a cache-placement or
-# worker-readiness question actually has. Two ways of answering it, computing
-# the same answer:
+# The workload is one requirement against many inventories -- the shape a
+# cache-placement or worker-readiness question actually has. Two ways of
+# answering it, computing the same answer:
 #
 #   baseline   competent Git plumbing, per cell: `rev-list --objects` for the
 #              requirement (bitmap-assisted where a bitmap exists),
 #              `cat-file --batch-all-objects` for the inventory, `comm` for
 #              the difference, and `cat-file --batch-check` over the
-#              difference for the logical payload bytes. Git re-traverses for
-#              every cell, which is what a tool that only wraps `rev-list`
-#              would do.
+#              difference for the logical payload bytes. Git re-traverses the
+#              requirement for every cell, which is what a tool that wraps
+#              `rev-list` has to do.
 #
 #   pp         one `pp git matrix` that loads the stored generation once and
-#              answers every cell from it. The import is timed separately and
-#              reported, never folded in: SPEC 11.3 requires preprocessing to
-#              be counted.
+#              answers every cell from it.
 #
-# Usage: bench/repeated.sh <source-repo> [<receivers-dir>] [<cells>] [<trials>]
+# A single ratio at a single cell count would be worthless here, because the
+# two sides have different shapes: pp pays a fixed cost to load the generation
+# and a small cost per cell, the baseline pays no fixed cost and a large cost
+# per cell. So this sweeps the cell count, reports both shapes, and reports
+# where they cross -- and it checks that pp's answers match git's before it
+# reports any timing at all, because a fast wrong answer is worth nothing.
+#
+# Usage: bench/repeated.sh <source-repo> <receivers-dir> [<trials>]
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pp="$root/build/pp"
-src="${1:?usage: bench/repeated.sh <source-repo> [<receivers-dir>] [<cells>] [<trials>]}"
-recv="${2:-}"
-cells="${3:-8}"
-trials="${4:-5}"
+src="${1:?usage: bench/repeated.sh <source-repo> <receivers-dir> [<trials>]}"
+recv="${2:?usage: bench/repeated.sh <source-repo> <receivers-dir> [<trials>]}"
+trials="${3:-5}"
 
 [ -x "$pp" ] || { echo "bench: build/pp is missing" >&2; exit 2; }
+[ -d "$recv" ] || { echo "bench: no receivers at $recv" >&2; exit 2; }
+
+cells=()
+for r in "$recv"/r*; do
+  [ -d "$r" ] || continue
+  cells+=("$r")
+done
+n_all=${#cells[@]}
+[ "$n_all" -ge 2 ] || { echo "bench: need at least two receivers" >&2; exit 2; }
 
 work="$(mktemp -d)"
 store="$work/store"
-
-if [ -z "$recv" ]; then
-  recv="$work/receivers"
-  mkdir -p "$recv"
-  echo "building $cells receivers from $src ..."
-  i=0
-  while [ "$i" -lt "$cells" ]; do
-    r="$recv/r$i"
-    git init -q --bare -b main "$r"
-    git -C "$r" fetch -q --no-tags "$src" \
-      "$(git -C "$src" rev-parse "refs/heads/main~$((i * 37))")":refs/heads/main \
-      2>/dev/null || true
-    i=$((i + 1))
-  done
-fi
-
-haves=()
-for r in "$recv"/*; do
-  [ -d "$r" ] || continue
-  haves+=(--have-repo "$r")
-done
-n=$(( ${#haves[@]} / 2 ))
-
 now() { python3 -c 'import time; print(time.time())'; }
 
-run_baseline() {
-  for r in "$recv"/*; do
-    [ -d "$r" ] || continue
+# --- the requirement, once, for the baseline and for the check -------------
+git -C "$src" rev-list --objects --no-object-names refs/heads/main \
+  | sort -u > "$work/want"
+req=$(wc -l < "$work/want" | tr -d ' ')
+
+run_baseline() {  # run_baseline <n>
+  local i=0
+  while [ "$i" -lt "$1" ]; do
     git -C "$src" rev-list --objects --no-object-names refs/heads/main \
-      | sort -u > "$work/want"
-    git -C "$r" cat-file --batch-all-objects --batch-check --unordered \
-      2>/dev/null | awk '{print $1}' | sort -u > "$work/have"
-    comm -23 "$work/want" "$work/have" > "$work/miss"
-    wc -l < "$work/miss" > /dev/null
-    git -C "$src" cat-file --batch-check < "$work/miss" \
-      | awk '{s+=$3} END {printf "%d", s}' > /dev/null
+      | sort -u > "$work/w.$i"
+    git -C "${cells[$i]}" cat-file --batch-all-objects --batch-check \
+      --unordered 2>/dev/null | awk '{print $1}' | sort -u > "$work/h.$i"
+    comm -23 "$work/w.$i" "$work/h.$i" > "$work/m.$i"
+    wc -l < "$work/m.$i" > /dev/null
+    git -C "$src" cat-file --batch-check < "$work/m.$i" \
+      | awk '{s+=$3} END {printf "%d", s+0}' > /dev/null
+    i=$((i + 1))
   done
 }
 
-run_pp() {
-  "$pp" git matrix --graph bench --store "$store" "${haves[@]}" \
-    > "$work/matrix.json"
+pp_args() {  # pp_args <n>
+  local i=0
+  while [ "$i" -lt "$1" ]; do printf '%s\n' --have-repo "${cells[$i]}"
+    i=$((i + 1)); done
 }
 
-timeit() {  # timeit <fn>
-  local t0 t1
-  t0=$(now); "$1" > /dev/null 2>&1; t1=$(now)
+run_pp() {  # run_pp <n> [<outfile>]
+  local a=(); while IFS= read -r x; do a+=("$x"); done < <(pp_args "$1")
+  "$pp" git matrix --graph bench --store "$store" "${a[@]}" \
+    > "${2:-/dev/null}"
+}
+
+timeit() {  # timeit <fn> <n>
+  local t0 t1; t0=$(now); "$1" "$2" > /dev/null 2>&1; t1=$(now)
   python3 -c "print('%.4f' % ($t1 - $t0))"
 }
 
 echo
-echo "source     $src"
-echo "objects    $(git -C "$src" rev-list --objects --no-object-names \
-  refs/heads/main | sort -u | wc -l | tr -d ' ') reachable from refs/heads/main"
-echo "cells      $n"
-echo "trials     $trials interleaved pairs, both orders"
+echo "source      $src"
+echo "requirement $req objects reachable from refs/heads/main"
+echo "receivers   $n_all in $recv"
+echo "trials      $trials interleaved pairs per cell count, both orders"
 echo
 
 t0=$(now)
 "$pp" git import --repo "$src" --root refs/heads/main --as bench \
-  --store "$store" > /dev/null
+  --store "$store" > /dev/null || { echo "bench: import failed" >&2; exit 2; }
 t1=$(now)
 imp=$(python3 -c "print('%.2f' % ($t1 - $t0))")
-echo "import     $imp s, once, $(du -h "$store"/bench.pps | cut -f1) on disk"
-echo
+echo "import      $imp s, once, $(du -h "$store"/bench.pps | cut -f1) on disk"
 
-# Warm both sides once so neither pays the first page fault.
-run_baseline > /dev/null 2>&1
-run_pp > /dev/null 2>&1
-
-b=(); p=(); aa=()
+# --- correctness first ----------------------------------------------------
+# Every cell's missing count and byte total, against git's own difference.
+# Reporting a speed without this would be reporting the speed of an unknown
+# computation.
+run_pp "$n_all" "$work/matrix.json"
+bad=0
 i=0
-while [ "$i" -lt "$trials" ]; do
-  if [ $((i % 2)) -eq 0 ]; then
-    b+=("$(timeit run_baseline)"); p+=("$(timeit run_pp)")
-  else
-    p+=("$(timeit run_pp)"); b+=("$(timeit run_baseline)")
+while [ "$i" -lt "$n_all" ]; do
+  git -C "${cells[$i]}" cat-file --batch-all-objects --batch-check \
+    --unordered 2>/dev/null | awk '{print $1}' | sort -u > "$work/have"
+  comm -23 "$work/want" "$work/have" > "$work/miss"
+  gn=$(wc -l < "$work/miss" | tr -d ' ')
+  gb=$(git -C "$src" cat-file --batch-check < "$work/miss" \
+    | awk '{s+=$3} END {printf "%d", s+0}')
+  read -r pn pb <<<"$(python3 -c "
+import json, sys
+r = json.load(open('$work/matrix.json'))['result']['rows'][$i]['answer']
+print(r['missing']['objects'], r['missing']['logical_payload_bytes'])")"
+  if [ "$gn" != "$pn" ] || [ "$gb" != "$pb" ]; then
+    echo "  cell $i MISMATCH  git $gn/$gb  pp $pn/$pb"
+    bad=1
   fi
-  aa+=("$(timeit run_baseline)")
   i=$((i + 1))
 done
+if [ "$bad" -ne 0 ]; then
+  echo "bench: pp disagrees with git plumbing; no timing reported" >&2
+  exit 1
+fi
+echo "agreement   all $n_all cells match git's own difference, objects and bytes"
+echo
 
-python3 - "$work/matrix.json" "$n" "$imp" "${#b[@]}" "${b[@]}" "${p[@]}" \
-  "${aa[@]}" <<'PY'
-import json, statistics, sys
-mj, n, imp, k = sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4])
-vals = [float(x) for x in sys.argv[5:]]
-b, p, aa = vals[:k], vals[k:2 * k], vals[2 * k:]
+# --- the sweep ------------------------------------------------------------
+ns=()
+k=1
+while [ "$k" -le "$n_all" ]; do ns+=("$k"); k=$((k * 2)); done
+[ "${ns[-1]}" -eq "$n_all" ] || ns+=("$n_all")
 
+rows=""
+for n in "${ns[@]}"; do
+  run_baseline "$n" > /dev/null 2>&1   # warm both sides at this size
+  run_pp "$n" > /dev/null 2>&1
+  bs=(); ps=()
+  i=0
+  while [ "$i" -lt "$trials" ]; do
+    if [ $((i % 2)) -eq 0 ]; then
+      bs+=("$(timeit run_baseline "$n")"); ps+=("$(timeit run_pp "$n")")
+    else
+      ps+=("$(timeit run_pp "$n")"); bs+=("$(timeit run_baseline "$n")")
+    fi
+    i=$((i + 1))
+  done
+  rows="$rows$n|${bs[*]}|${ps[*]}"$'\n'
+done
 
-def line(name, xs):
-    print("  %-10s median %.3f s   min %.3f   max %.3f   per cell %.4f s"
-          % (name, statistics.median(xs), min(xs), max(xs),
-             statistics.median(xs) / n))
+# --- A versus A: the same side twice, to show what noise alone looks like --
+aa=(); i=0
+while [ "$i" -lt "$trials" ]; do
+  aa+=("$(timeit run_baseline "$n_all")"); i=$((i + 1))
+done
 
+printf '%s' "$rows" | python3 -c '
+import statistics as st, sys
+rows = []
+for line in sys.stdin.read().strip().split("\n"):
+    n, b, p = line.split("|")
+    rows.append((int(n), [float(x) for x in b.split()],
+                 [float(x) for x in p.split()]))
+aa = [float(x) for x in sys.argv[1].split()]
+imp = float(sys.argv[2])
 
-print("wall clock for %d cells:" % n)
-line("baseline", b)
-line("pp", p)
-line("A-vs-A", aa)
-bm, pm, am = statistics.median(b), statistics.median(p), statistics.median(aa)
+print("wall clock, median of interleaved trials:")
+print("  %6s %12s %12s %10s" % ("cells", "baseline", "pp", "pp/baseline"))
+for n, b, p in rows:
+    bm, pm = st.median(b), st.median(p)
+    print("  %6d %10.3f s %10.3f s %9.2fx" % (n, bm, pm, pm / bm))
+
+big = rows[-1]
+bm = st.median(big[1])
+am = st.median(aa)
 noise = abs(am - bm) / bm * 100
 print()
-print("  the A-vs-A control differs from the baseline by %.1f%%, which is the"
-      % noise)
-print("  noise floor on this machine; a claim smaller than that is not a"
-      " claim.")
-print()
-ratio = pm / bm
-if abs(ratio - 1) * 100 <= noise:
-    print("  pp is %.2fx the baseline, inside the noise floor: at parity."
-          % ratio)
-elif ratio < 1:
-    print("  pp is %.2fx the baseline per cell." % ratio)
-    print("  With the %.2f s import counted once, pp is ahead from cell %.0f."
-          % (imp, imp / (bm / n - pm / n)))
-else:
-    print("  pp is %.2fx the baseline per cell -- slower. There is no"
-          % ratio)
-    print("  performance claim to make on this workload, and SPEC 11.4 says")
-    print("  to ship the useful native product and say so rather than")
-    print("  fabricate one.")
+print("  A-vs-A control at %d cells: %.3f s against %.3f s, %.1f%% apart."
+      % (big[0], am, bm, noise))
+print("  That is the noise floor; a difference smaller than it is not a"
+      " result.")
 
-d = json.load(open(mj))["result"]
+# Shapes: fit each side as fixed + marginal * n from the smallest and
+# largest cell counts measured.
+lo, hi = rows[0], rows[-1]
+def shape(lo_ts, hi_ts):
+    a, b = st.median(lo_ts), st.median(hi_ts)
+    marg = (b - a) / (hi[0] - lo[0])
+    return a - marg * lo[0], marg
+bf, bmarg = shape(lo[1], hi[1])
+pf, pmarg = shape(lo[2], hi[2])
 print()
-print("answer     %s objects required, %s logical payload bytes"
-      % (d["required"]["objects"], d["required"]["logical_payload_bytes"]))
-print("           %s cells, %s distinct inventories after deduplication"
-      % (d["cells"], d["distinct_inventories"]))
-PY
+print("what each side is made of:")
+print("  baseline  %.3f s fixed + %.4f s per cell" % (bf, bmarg))
+print("  pp        %.3f s fixed + %.4f s per cell" % (pf, pmarg))
+
+print()
+if pmarg < bmarg:
+    cross = (pf - bf) / (bmarg - pmarg)
+    print("  pp costs %.1f%% less per cell, and %.2f s more to start."
+          % ((bmarg - pmarg) / bmarg * 100, pf - bf))
+    print("  Predicted crossing at %.1f cells; counting the %.2f s import"
+          " too, %.1f cells." % (cross, imp,
+                                 (pf - bf + imp) / (bmarg - pmarg)))
+    obs = [(n, st.median(p) / st.median(b)) for n, b, p in rows]
+    under = [n for n, r in obs if r < 1]
+    if under:
+        over = [n for n, r in obs if r >= 1]
+        left = max(over) if over else 0
+        print("  Measured: pp is ahead from %d cells on (behind at %d)."
+              % (min(under), left))
+        n, r = obs[-1]
+        print("  At %d cells pp is %.2fx the baseline -- %.1fx faster."
+              % (n, r, 1 / r))
+    else:
+        print("  Measured: pp is still behind at every cell count tried, so"
+              " the crossing")
+        print("  above is a prediction and not a result. No speed claim.")
+else:
+    print("  pp costs no less per cell than the baseline, so there is no"
+          " cell count")
+    print("  at which it wins this workload. No speed claim to make.")
+' "${aa[*]}" "$imp"
+
 echo
-echo "workspace  $work"
+echo "workspace   $work"
