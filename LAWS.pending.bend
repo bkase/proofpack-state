@@ -6,8 +6,10 @@
 # claim is worth more than a paragraph of prose -- but they are open claims,
 # and this file is deliberately *not* imported by `PROOF.bend`.
 #
-# `bend LAWS.pending.bend --check-only` typechecks the statements without
-# demanding proofs. `tools/gate.sh` does not run it as a gate.
+# `bend LAWS.pending.bend --check-only` typechecks every statement against the
+# production symbols it names and then reports one TODO per unproved law --
+# currently 14. That count is the point of the file, so the command "failing"
+# is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
 # mostly the closure certificate of SPEC 4.4, which `pp git verify` runs per
@@ -243,6 +245,22 @@ law the_evaluator_computes_the_denotation:
 # gitlink with no submodule present.
 # ===========================================================================
 
+# The row-level half of G-02 is now proved unconditionally and lives in
+# LAWS.bend as `a_filtered_row_drops_exactly_the_commit_targets`: an ordinal
+# survives `Idx.filter_succ` exactly when it was in the successor row and is
+# not itself a commit.
+#
+# What remains open is the lift from a row to `Graph.edge`. Both adjacency
+# tables are `Trie.of_list` over positionally parallel lists, so the lift
+# reduces to a single missing lemma -- that a trie built from a list answers,
+# at ordinal `x`, the element of that list at position `x`:
+#
+#     Trie.at(A, d, Trie.of_list(A, d, xs), x)  ==  the element of xs at x
+#
+# and that needs arithmetic this release has not proved: that `U32.is_lt`
+# agrees with the order on `U32.to_nat`, and that `U32.sub` is subtraction
+# when it does not borrow. Both are bit-vector facts about the descent, not
+# about the policy.
 law the_tree_data_policy_drops_exactly_the_parent_edges:
   for +src: Idx.Source
   for +u: U32
@@ -253,16 +271,34 @@ law the_tree_data_policy_drops_exactly_the_parent_edges:
            Idx.Idx.is_commit(Idx.Source.meta_of(src, v))))) : Bool}
 
 # ===========================================================================
-# D-01, I-02, I-03, U-02 -- the persistent store and incremental reuse.
+# D-01 -- the persistent store, and what is checked instead.
 #
-# Not stated here at all, because this release has no persistent derived
-# store: `pp` imports per invocation and every result reports
-# `"lineage": "ephemeral"`. Serialization (`D-01`), graph extension
-# (`I-02`), cache binding (`I-03`) and generation lifting (`U-02`) are M2 and
-# M4 obligations with nothing yet to constrain.
+# M2 shipped the derived store, so this obligation is live rather than
+# premature. `index/store.bend` validates a decoded generation structurally
+# before it answers anything: the magic line, the declared format, the
+# declared object count against the objects actually present, the hex width,
+# and every successor index in range. A file that fails any of those is
+# `CorruptIndex`, not a wrong answer. SPEC 6.5 requires exactly that and says
+# plainly that a checksum is not a substitute.
 #
-# `PSet.valid` in core/set.bend is the structural check `D-01` will be stated
-# over when there is a decoder to check: SPEC 6.5 requires bounds, node
-# references and universe bindings to be validated on load, and says plainly
-# that a checksum is not a substitute.
+# `PSet.valid` in core/set.bend is the structural check for the set
+# representation itself -- sparse and dense payloads only at a leaf, sparse
+# offsets ascending and in range, a dense leaf exactly 128 words. It is the
+# predicate D-01 would be stated over, and it is also the hypothesis the S-02
+# laws above need, because above the leaf level the node operations read a
+# stray sparse or dense payload as empty while `PSet.mem` reads it as a
+# member.
+#
+# What is not stated: that decode inverts encode. The differential checks the
+# round trip observationally -- a stored generation answers identically to the
+# import that produced it, on both policies -- and checks that four kinds of
+# corruption are rejected, each corruption derived from the file so that it
+# cannot silently become a no-op.
+#
+# ===========================================================================
+# I-02, I-03, U-02 -- incremental reuse.
+#
+# Still not applicable. `pp` re-imports a generation rather than extending
+# one: there is no graph append, no cache binding and no generation lifting in
+# this release, so there is nothing yet for these to constrain.
 # ===========================================================================

@@ -15,6 +15,8 @@
 #   proofs/words.bend     the tile kernel and the fused count
 #   proofs/stats.bend     the statistics monoid
 #   proofs/missing.bend   the least-additional-set theorem
+#   proofs/eq.bend        machine-word equality reflection
+#   proofs/policy.bend    the tree-data row filter
 
 import Base
 import ./LAWS.bend as Laws
@@ -25,6 +27,8 @@ import ./proofs/bits.bend as PB
 import ./proofs/words.bend as PWo
 import ./proofs/stats.bend as PS
 import ./proofs/missing.bend as PM
+import ./proofs/eq.bend as PE
+import ./proofs/policy.bend as PPol
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -115,3 +119,13 @@ def Laws.the_accumulator_adds_commutatively(a, b):
 
 def Laws.the_accumulator_adds_associatively(a, b, c):
   N.Nat.add_assoc(a, b, c)
+
+# --- G-02: the tree-data policy, at the row ---------------------------------
+
+def Laws.a_filtered_row_drops_exactly_the_commit_targets(mt, row, v):
+  PPol.Policy.filter_drops_commits(mt, row, v)
+
+# --- reflection -------------------------------------------------------------
+
+def Laws.word_equality_is_reflected(a, b, ok):
+  PE.U32.eq_reflect(a, b, ok)

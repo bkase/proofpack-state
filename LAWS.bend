@@ -36,6 +36,9 @@
 
 import Base
 import ./core/count.bend as C
+import ./core/trie.bend as Tr
+import ./adapters/git/import.bend as Im
+import ./index/source.bend as Sc
 import ./core/word.bend as W
 import ./core/words.bend as Wo
 import ./core/set.bend as S
@@ -295,3 +298,57 @@ law the_accumulator_adds_associatively:
   for +b: Nat
   for +c: Nat
   {Nat.add(Nat.add(a, b), c) == Nat.add(a, Nat.add(b, c)) : Nat}
+
+# ===========================================================================
+# G-02 -- the tree-data policy, at the row.
+#
+# SPEC 8.2: `tree-data` follows tag -> target, commit -> root tree, tree ->
+# subtree and tree -> blob, but not commit -> parent. The importer implements
+# that with no edge labels at all: it keeps the full successor rows, and for a
+# row belonging to a commit it drops the successors that are themselves
+# commits.
+#
+# This law says that filter drops *exactly* the commit targets and nothing
+# else -- an ordinal survives precisely when it was in the row and is not a
+# commit. It holds for any row and any metadata table, with no hypothesis.
+#
+# What it does not yet cover is stated in `LAWS.pending.bend`: lifting this
+# from a row to `Graph.edge` over the two assembled tries needs the positional
+# alignment of `Trie.of_list` with list position, which in turn needs
+# bit-vector arithmetic for the trie descent. So this is the semantic content
+# of G-02, proved, and the addressing around it is not.
+#
+# The one step here that is not Boolean algebra: `List.contains` decides
+# membership with `U32.is_eq` while the filter reads each element's metadata,
+# so the proof needs `U32.is_eq(w, v) == True{}` to give `w == v`. That is
+# `word_equality_is_reflected` below, and it is why that law exists.
+# ===========================================================================
+
+law a_filtered_row_drops_exactly_the_commit_targets:
+  for +mt: Tr.Trie<Im.Meta>
+  for +row: List<&2, U32>
+  for +v: U32
+  {Bool.and(List.contains(~U32, ~U32.is_eq, row, v),
+      Bool.not(Sc.Idx.is_commit(Sc.Source.meta_of.un(
+        Tr.Trie.at(Im.Meta, 32n, mt, v)))))
+    == List.contains(~U32, ~U32.is_eq,
+         Sc.Idx.filter_succ(mt, row), v) : Bool}
+
+# ===========================================================================
+# Machine-word equality reflects.
+#
+# Every law above this point is pointwise over `Bool`, and none of them needs
+# to know that two ordinals are *the same ordinal* -- which is the whole
+# reason the set algebra could be proved without it. The Git adapter is where
+# that stops being enough: a list membership test and a metadata lookup have
+# to be talking about the same object.
+#
+# `U32.is_eq` is `Word.cmp` on the 32-bit vector, so this is an induction on
+# the vector, and it is the bridge from a Boolean answer to an equality.
+# ===========================================================================
+
+law word_equality_is_reflected:
+  for +a: U32
+  for +b: U32
+  for +ok: {U32.is_eq(a, b) == True{} : Bool}
+  {a == b : U32}
