@@ -39,6 +39,7 @@ import ./core/count.bend as C
 import ./core/ords.bend as Or
 import ./proofs/descend.bend as Dc
 import ./proofs/split.bend as Sp
+import ./proofs/adder.bend as Ad
 import ./closure/graph.bend as Gr
 import ./closure/reach.bend as Re
 import ./closure/explain.bend as Ex
@@ -666,3 +667,27 @@ law a_tile_counting_zero_has_no_bit_set:
   for +b: Nat
   for +bok: {C.Nat.gt(32n, b) == True{} : Bool}
   {Wo.Words.at(ws, i, b) == False{} : Bool}
+
+# ===========================================================================
+# What `U32` addition computes.
+#
+# `Words.members` walks a tile building ordinals by `ord + 1` within a word
+# and `ord + 32` between words, and reading those ordinals back as tile
+# addresses -- which is what S-03's sparse arm needs -- means knowing that
+# `U32` addition is addition. That is a statement about the ripple adder
+# `Word.adc`, not about anything in the set algebra, and it holds as long as
+# neither operand needs the top bits: two values that fit in fewer than 32
+# bits cannot carry out of the top.
+#
+# `Dc.U32.hi_zero(x, k)` reads "x fits in k bits".
+# ===========================================================================
+
+law adding_two_small_ordinals_adds_their_values:
+  for +a: U32
+  for +b: U32
+  for +k: Nat
+  for +za: {Dc.U32.hi_zero(a, k) == True{} : Bool}
+  for +zb: {Dc.U32.hi_zero(b, k) == True{} : Bool}
+  for +ok: {C.Nat.gt(32n, k) == True{} : Bool}
+  {U32.to_nat(U32.add(a, b))
+    == Nat.add(U32.to_nat(a), U32.to_nat(b)) : Nat}

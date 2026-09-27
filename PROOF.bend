@@ -28,6 +28,7 @@
 #   proofs/split.bend     the division identity, and A3
 #   proofs/bridge.bend    a sparse leaf and its tile agree
 #   proofs/count.bend     what a bit count says about the bits
+#   proofs/adder.bend     what U32 addition computes
 
 import Base
 import ./LAWS.bend as Laws
@@ -51,6 +52,7 @@ import ./proofs/inject.bend as PIj
 import ./proofs/split.bend as PSp
 import ./proofs/bridge.bend as PBr
 import ./proofs/count.bend as PCt
+import ./proofs/adder.bend as PAdd
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -213,3 +215,6 @@ def Laws.a_tile_at_capacity_has_every_bit_set(ws, full, i, iok, b, bok):
 
 def Laws.a_tile_counting_zero_has_no_bit_set(ws, z, i, b, bok):
   PCt.Words.count_zero(ws, z, i, b, bok)
+
+def Laws.adding_two_small_ordinals_adds_their_values(a, b, k, za, zb, ok):
+  PAdd.U32.to_nat_add(a, b, k, za, zb, ok)

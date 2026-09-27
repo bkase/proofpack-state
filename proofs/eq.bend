@@ -46,6 +46,10 @@ def U32.sym(-a: U32, -b: U32, e: {a == b : U32}) -> {b == a : U32}:
 def Nat.sym(-a: Nat, -b: Nat, e: {a == b : Nat}) -> {b == a : Nat}:
   Equal.sym(Nat, a, b, e)
 
+def Word.sym(-n: Nat, -a: Word(n), -b: Word(n), e: {a == b : Word(n)})
+  -> {b == a : Word(n)}:
+  Equal.sym(Word(n), a, b, e)
+
 def Bool.empty(e: {False{} == True{} : Bool}) -> Empty:
   %Bool.sym(False{}, True{}, e) : Bool.code(_)
   Unit{}
