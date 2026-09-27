@@ -301,11 +301,10 @@ def Ords.diff_go_contains(fuel, a, b, c, x, ec, aa, ab, fu):
                       Ords.lt_all_head(ah, bh, bt,
                         Ol.U32.lt_of_cmp_lt(ah, bh,
                           E.Cmp.sym(LT{}, U32.cmp(ah, bh), ec)),
-                        E.Bool.and_l(Ol.Ords.lt_all(bh, bt),
-                          Ol.Ords.asc(bt), ab))),
+                        Ol.Ords.lt_all_of_asc(bt, bh, ab))),
                     Ords.diff_go_contains(f, at, Con{bh, bt},
                       O.Ords.head_cmp(at, Con{bh, bt}), x, {==},
-                      E.Bool.and_r(Ol.Ords.lt_all(ah, at),
+                      E.Bool.and_r(Ol.Ords.above(ah, at),
                         Ol.Ords.asc(at), aa), ab, fu))
                 case GT{}:
                   Ords.diff_gt_step(bh, x, U32.is_eq(bh, x),
@@ -318,11 +317,10 @@ def Ords.diff_go_contains(fuel, a, b, c, x, ec, aa, ab, fu):
                       Ords.lt_all_head(bh, ah, at,
                         Ol.U32.lt_of_cmp_gt(ah, bh,
                           E.Cmp.sym(GT{}, U32.cmp(ah, bh), ec)),
-                        E.Bool.and_l(Ol.Ords.lt_all(ah, at),
-                          Ol.Ords.asc(at), aa))),
+                        Ol.Ords.lt_all_of_asc(at, ah, aa))),
                     Ords.diff_go_contains(f, Con{ah, at}, bt,
                       O.Ords.head_cmp(Con{ah, at}, bt), x, {==}, aa,
-                      E.Bool.and_r(Ol.Ords.lt_all(bh, bt),
+                      E.Bool.and_r(Ol.Ords.above(bh, bt),
                         Ol.Ords.asc(bt), ab),
                       Ords.fuel_gt(at, bt, f, fu)))
                 case EQ{}:
@@ -335,13 +333,12 @@ def Ords.diff_go_contains(fuel, a, b, c, x, ec, aa, ab, fu):
                       E.Cmp.sym(EQ{}, U32.cmp(ah, bh), ec)),
                     {==},
                     Ol.Ords.not_contains_of_lt_all(at, ah,
-                      E.Bool.and_l(Ol.Ords.lt_all(ah, at),
-                        Ol.Ords.asc(at), aa)),
+                      Ol.Ords.lt_all_of_asc(at, ah, aa)),
                     Ords.diff_go_contains(f, at, bt,
                       O.Ords.head_cmp(at, bt), x, {==},
-                      E.Bool.and_r(Ol.Ords.lt_all(ah, at),
+                      E.Bool.and_r(Ol.Ords.above(ah, at),
                         Ol.Ords.asc(at), aa),
-                      E.Bool.and_r(Ol.Ords.lt_all(bh, bt),
+                      E.Bool.and_r(Ol.Ords.above(bh, bt),
                         Ol.Ords.asc(bt), ab),
                       Ords.fuel_eq(at, bt, f, fu)))
 

@@ -33,12 +33,23 @@ def Ords.gt_all(+h: U32, +xs: List<&2, U32>) -> Bool:
     case Con{y, t}:
       Bool.and(U32.is_lt(y, h), Ords.gt_all(h, t))
 
+# Ascending, compared one step at a time. The strong form -- the head is
+# below every ordinal in the tail -- follows by transitivity and is the
+# lemma below; the predicate itself stays linear, because a full leaf's
+# 4096 ordinals have to be checked by the kernel more than once.
+def Ords.above(+h: U32, +t: List<&2, U32>) -> Bool:
+  match t:
+    case Nil{}:
+      True{}
+    case Con{y, u}:
+      U32.is_lt(h, y)
+
 def Ords.asc(+xs: List<&2, U32>) -> Bool:
   match xs:
     case Nil{}:
       True{}
     case Con{h, t}:
-      Bool.and(Ords.lt_all(h, t), Ords.asc(t))
+      Bool.and(Ords.above(h, t), Ords.asc(t))
 
 def Ords.desc(+xs: List<&2, U32>) -> Bool:
   match xs:
@@ -138,21 +149,6 @@ law Ords.asc_reverse_go:
   for +ba: {Ords.below_all(l, acc) == True{} : Bool}
   {Ords.asc(List.reverse.go(&2, U32, l, acc)) == True{} : Bool}
 
-def Ords.asc_reverse_go(l, acc, dl, aa, ba):
-  match l:
-    case Nil{}:
-      aa
-    case Con{h, t}:
-      Ords.asc_reverse_go(t, Con{h, acc},
-        E.Bool.and_r(Ords.gt_all(h, t), Ords.desc(t), dl),
-        E.Bool.and_both(Ords.lt_all(h, acc), Ords.asc(acc),
-          E.Bool.and_l(Ords.lt_all(h, acc), Ords.below_all(t, acc),
-            ba), aa),
-        Ords.below_cons(t, h, acc,
-          E.Bool.and_l(Ords.gt_all(h, t), Ords.desc(t), dl),
-          E.Bool.and_r(Ords.lt_all(h, acc), Ords.below_all(t, acc),
-            ba)))
-
 law Ords.asc_reverse:
   for +l: List<&2, U32>
   for +dl: {Ords.desc(l) == True{} : Bool}
@@ -168,13 +164,6 @@ def Ords.below_nil(l):
       {==}
     case Con{x, t}:
       Ords.below_nil(t)
-
-def Ords.asc_reverse(l, dl):
-  Ords.asc_reverse_go(l, Nil{}, dl, {==}, Ords.below_nil(l))
-
-# ---------------------------------------------------------------------------
-# What a comparison tells the merge.
-# ---------------------------------------------------------------------------
 
 law Nat.cmp_lt_gt:
   for +m: Nat
@@ -413,3 +402,57 @@ def U32.is_eq_of_cmp(+x: U32, +y: U32,
 
 def U32.eq_of_cmp_eq(x, y, e):
   E.U32.eq_reflect(x, y, U32.is_eq_of_cmp(x, y, e))
+
+law Ords.lt_all_of_asc:
+  for +t: List<&2, U32>
+  for +h: U32
+  for +a: {Ords.asc(Con{h, t}) == True{} : Bool}
+  {Ords.lt_all(h, t) == True{} : Bool}
+
+def Ords.lt_all_of_asc(t, h, a):
+  match t:
+    case Nil{}:
+      {==}
+    case Con{y, u}:
+      E.Bool.and_both(U32.is_lt(h, y), Ords.lt_all(h, u),
+        E.Bool.and_l(U32.is_lt(h, y), Ords.asc(Con{y, u}), a),
+        Ords.lt_all_trans(u, h, y,
+          E.Bool.and_l(U32.is_lt(h, y), Ords.asc(Con{y, u}), a),
+          Ords.lt_all_of_asc(u, y,
+            E.Bool.and_r(U32.is_lt(h, y), Ords.asc(Con{y, u}), a))))
+
+law Ords.above_of_lt_all:
+  for +t: List<&2, U32>
+  for +h: U32
+  for +la: {Ords.lt_all(h, t) == True{} : Bool}
+  {Ords.above(h, t) == True{} : Bool}
+
+def Ords.above_of_lt_all(t, h, la):
+  match t:
+    case Nil{}:
+      {==}
+    case Con{y, u}:
+      E.Bool.and_l(U32.is_lt(h, y), Ords.lt_all(h, u), la)
+
+def Ords.asc_reverse_go(l, acc, dl, aa, ba):
+  match l:
+    case Nil{}:
+      aa
+    case Con{h, t}:
+      Ords.asc_reverse_go(t, Con{h, acc},
+        E.Bool.and_r(Ords.gt_all(h, t), Ords.desc(t), dl),
+        E.Bool.and_both(Ords.above(h, acc), Ords.asc(acc),
+          Ords.above_of_lt_all(acc, h,
+            E.Bool.and_l(Ords.lt_all(h, acc),
+              Ords.below_all(t, acc), ba)), aa),
+        Ords.below_cons(t, h, acc,
+          E.Bool.and_l(Ords.gt_all(h, t), Ords.desc(t), dl),
+          E.Bool.and_r(Ords.lt_all(h, acc), Ords.below_all(t, acc),
+            ba)))
+
+def Ords.asc_reverse(l, dl):
+  Ords.asc_reverse_go(l, Nil{}, dl, {==}, Ords.below_nil(l))
+
+# ---------------------------------------------------------------------------
+# What a comparison tells the merge.
+# ---------------------------------------------------------------------------

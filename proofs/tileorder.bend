@@ -22,6 +22,8 @@ import ./tilefit.bend as Tf
 import ./orderlist.bend as Ol
 import ./leaf.bend as Lf
 import ./adder.bend as Ad
+import ./decr.bend as De
+import ../core/set.bend as S
 import ../core/count.bend as C
 import ../core/word.bend as W
 import ../core/words.bend as Wo
@@ -365,3 +367,134 @@ def Ords.asc_members(ws, len):
   Ol.Ords.asc_reverse(Wo.Words.members.go(ws, 0, Nil{}),
     Ords.desc_members_go(ws, 0, Nil{}, {==}, {==},
       Tf.Words.tile_room(ws, len)))
+
+# ---------------------------------------------------------------------------
+# A count-down is ascending: it prepends the largest first.
+# ---------------------------------------------------------------------------
+
+law Ords.asc_range:
+  for +k: Nat
+  for +ord: U32
+  for +tail: List<&2, U32>
+  for +atail: {Ol.Ords.asc(tail) == True{} : Bool}
+  for +ltail: {Ol.Ords.lt_all(ord, tail) == True{} : Bool}
+  for +room: {C.Nat.upto(k, 1n+U32.to_nat(ord)) == True{} : Bool}
+  {Ol.Ords.asc(S.PSet.range(k, ord, tail)) == True{} : Bool}
+
+law Ords.lt_pred:
+  for +ord: U32
+  for +i: Nat
+  for +room: {C.Nat.upto(2n+i, 1n+U32.to_nat(ord)) == True{} : Bool}
+  {U32.is_lt(U32.sub(ord, 1), ord) == True{} : Bool}
+
+law Ords.gt_pred:
+  for +m: Nat
+  for +pos: {C.Nat.gt(m, 0n) == True{} : Bool}
+  {C.Nat.gt(m, Nat.sub(m, 1n)) == True{} : Bool}
+
+def Ords.gt_pred(m, pos):
+  match m:
+    case 0n:
+      E.Bool.noconf({C.Nat.gt(0n, Nat.sub(0n, 1n)) == True{} : Bool},
+        pos)
+    case 1n+q:
+      %E.Nat.sym(Nat.sub(q, 0n), q, De.Nat.sub_zero(q))
+        : {C.Nat.gt(1n+q, _) == True{} : Bool}
+      Ne.Nat.gt_succ_of_le(q, q, It.Nat.upto_refl(q))
+
+def Ords.lt_pred(ord, i, room):
+  Ol.U32.lt_of_nat(U32.sub(ord, 1), ord,
+    It.Nat.gt_cast(U32.to_nat(ord), U32.to_nat(ord),
+      Nat.sub(U32.to_nat(ord), 1n), U32.to_nat(U32.sub(ord, 1)),
+      {==},
+      E.Nat.sym(U32.to_nat(U32.sub(ord, 1)),
+        Nat.sub(U32.to_nat(ord), 1n),
+        De.U32.dec_spec(ord,
+          Tf.Nat.pos_of_le_succ(i, U32.to_nat(ord), room))),
+      Ords.gt_pred(U32.to_nat(ord),
+        Tf.Nat.pos_of_le_succ(i, U32.to_nat(ord), room))))
+
+law Ords.room_pred:
+  for +ord: U32
+  for +i: Nat
+  for +room: {C.Nat.upto(2n+i, 1n+U32.to_nat(ord)) == True{} : Bool}
+  {C.Nat.upto(1n+i, 1n+U32.to_nat(U32.sub(ord, 1))) == True{}
+    : Bool}
+
+def Ords.room_pred(ord, i, room):
+  It.Nat.upto_cast(i, i, Nat.sub(U32.to_nat(ord), 1n),
+    U32.to_nat(U32.sub(ord, 1)), {==},
+    E.Nat.sym(U32.to_nat(U32.sub(ord, 1)),
+      Nat.sub(U32.to_nat(ord), 1n),
+      De.U32.dec_spec(ord,
+        Tf.Nat.pos_of_le_succ(i, U32.to_nat(ord), room))),
+    Tf.Nat.le_pred_of_le_succ(i, U32.to_nat(ord), room))
+
+def Ords.asc_range(k, ord, tail, atail, ltail, room):
+  match k:
+    case 0n:
+      atail
+    case 1n+j:
+      match j:
+        case 0n:
+          E.Bool.and_both(Ol.Ords.above(ord, tail),
+            Ol.Ords.asc(tail),
+            Ol.Ords.above_of_lt_all(tail, ord, ltail), atail)
+        case 1n+i:
+          Ords.asc_range(1n+i, U32.sub(ord, 1), Con{ord, tail},
+            E.Bool.and_both(Ol.Ords.above(ord, tail),
+              Ol.Ords.asc(tail),
+              Ol.Ords.above_of_lt_all(tail, ord, ltail), atail),
+            E.Bool.and_both(U32.is_lt(U32.sub(ord, 1), ord),
+              Ol.Ords.lt_all(U32.sub(ord, 1), tail),
+              Ords.lt_pred(ord, i, room),
+              Ol.Ords.lt_all_trans(tail, U32.sub(ord, 1), ord,
+                Ords.lt_pred(ord, i, room), ltail)),
+            Ords.room_pred(ord, i, room))
+
+law Ords.asc_full_leaf:
+  {Ol.Ords.asc(S.PSet.range(4096n, 4095, Nil{})) == True{} : Bool}
+
+def Ords.asc_full_leaf():
+  Ords.asc_range(4096n, 4095, Nil{}, {==}, {==}, {==})
+
+# ---------------------------------------------------------------------------
+# The fused tile walk emits the members of the tile difference.
+# ---------------------------------------------------------------------------
+
+law Words.diff_members_go_is_members:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +ord: U32
+  for +acc: List<&2, U32>
+  {Wo.Words.diff_members.go(a, b, ord, acc)
+    == Wo.Words.members.go(Wo.Words.diff(a, b), ord, acc)
+    : List<&2, U32>}
+
+def Words.diff_members_go_is_members(a, b, ord, acc):
+  match a:
+    case Nil{}:
+      {==}
+    case Con{ah, at}:
+      match b:
+        case Nil{}:
+          {==}
+        case Con{bh, bt}:
+          Words.diff_members_go_is_members(at, bt, (ord + 32 : U32),
+            Wo.Words.bits_rev(32n, W.U32.diff(ah, bh), ord, acc))
+
+law Words.diff_members_is_members:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +base: U32
+  {Wo.Words.diff_members(a, b, base)
+    == Wo.Words.members(Wo.Words.diff(a, b), base) : List<&2, U32>}
+
+def Ords.rev(l: List<&2, U32>) -> List<&2, U32>:
+  List.reverse(&2, U32, l)
+
+def Words.diff_members_is_members(a, b, base):
+  Equal.cong(List<&2, U32>, List<&2, U32>, Ords.rev,
+    Wo.Words.diff_members.go(a, b, base, Nil{}),
+    Wo.Words.members.go(Wo.Words.diff(a, b), base, Nil{}),
+    Words.diff_members_go_is_members(a, b, base, Nil{}))
