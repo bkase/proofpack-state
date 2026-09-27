@@ -36,6 +36,7 @@
 
 import Base
 import ./core/count.bend as C
+import ./core/ords.bend as Or
 import ./core/trie.bend as Tr
 import ./adapters/git/import.bend as Im
 import ./index/source.bend as Sc
@@ -352,3 +353,58 @@ law word_equality_is_reflected:
   for +b: U32
   for +ok: {U32.is_eq(a, b) == True{} : Bool}
   {a == b : U32}
+
+# ===========================================================================
+# P-01 -- inserting into a leaf.
+#
+# P-01 says a persistent update leaves the ordinal it inserted present. As it
+# was first written in `LAWS.pending.bend` that claim was **false**, and the
+# counterexample is small enough to run: a `PDense` leaf that is not 128 words
+# wide silently loses the bit it was just given, because `Words.set` past the
+# end of a tile changes nothing. `tests.bend` keeps that counterexample.
+#
+# So the law says which leaves it is about, and it says it in the form that
+# carries the content: the leaf's tile has a word for the ordinal being
+# inserted. That is implied by the structural invariant every stored set is
+# checked against on load (`PSet.valid`, law D-01), and it is the only thing
+# the proof needs.
+#
+# This is the leaf. The same claim at a node is still open, and for a reason
+# that has nothing to do with insertion: a node's insert descends in exact
+# lockstep with a node's membership, both taking the same branch from the same
+# half-width, so the tree layer adds nothing but addressing -- and it is the
+# addressing that is unproved. `LAWS.pending.bend` says which facts are
+# missing.
+# ===========================================================================
+
+law inserting_into_a_leaf_keeps_that_ordinal:
+  for +s: S.PSet
+  for +x: U32
+  for +fits: {Wo.Words.has_word(S.PSet.leaf_words(s),
+    U32.to_nat(U32.shrn(x, 5n))) == True{} : Bool}
+  {S.PSet.mem.leaf(S.PSet.add.leaf(s, x), x) == True{} : Bool}
+
+# The sparse half of the same fact, which needs no hypothesis at all: a
+# sparse leaf is an ascending offset list, and inserting into one leaves the
+# ordinal in it, for any list of any length.
+law inserting_into_an_ordinal_list_keeps_that_ordinal:
+  for +xs: List<&2, U32>
+  for +x: U32
+  {Or.Ords.elem(Or.Ords.insert(xs, x), x) == True{} : Bool}
+
+# The dense half, at the tile. The right-hand side is not a hypothesis in
+# disguise -- it is the answer: setting a bit of a tile that has no such word
+# changes nothing, and reading it back gives `False{}`.
+law setting_a_bit_reads_it_back:
+  for ws: List<&2, U32>
+  for +x: U32
+  {Wo.Words.bit(Wo.Words.set(ws, x), x)
+    == Wo.Words.has_word(ws, U32.to_nat(U32.shrn(x, 5n))) : Bool}
+
+# Why that law needs no side condition on the bit index: masking an ordinal
+# with 31 always leaves a number below a word's width. `U32.shln(1, 32n)` is
+# zero, so without this the tile laws would be false for a bit index of 32 or
+# more.
+law a_bit_index_is_below_the_word_width:
+  for +x: U32
+  {C.Nat.gt(32n, U32.to_nat(U32.and(x, 31))) == True{} : Bool}

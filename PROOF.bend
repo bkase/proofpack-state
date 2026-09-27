@@ -17,6 +17,10 @@
 #   proofs/missing.bend   the least-additional-set theorem
 #   proofs/eq.bend        machine-word equality reflection
 #   proofs/policy.bend    the tree-data row filter
+#   proofs/addr.bend      how an ordinal addresses a tile
+#   proofs/ords.bend      the sparse leaf's offset list
+#   proofs/bitset.bend    setting a bit and reading it back
+#   proofs/leaf.bend      inserting into a leaf
 
 import Base
 import ./LAWS.bend as Laws
@@ -29,6 +33,10 @@ import ./proofs/stats.bend as PS
 import ./proofs/missing.bend as PM
 import ./proofs/eq.bend as PE
 import ./proofs/policy.bend as PPol
+import ./proofs/addr.bend as PAd
+import ./proofs/ords.bend as POr
+import ./proofs/bitset.bend as PBs
+import ./proofs/leaf.bend as PLf
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -129,3 +137,17 @@ def Laws.a_filtered_row_drops_exactly_the_commit_targets(mt, row, v):
 
 def Laws.word_equality_is_reflected(a, b, ok):
   PE.U32.eq_reflect(a, b, ok)
+
+# --- P-01: inserting into a leaf --------------------------------------------
+
+def Laws.inserting_into_a_leaf_keeps_that_ordinal(s, x, fits):
+  PLf.PSet.mem_add_leaf(s, x, fits)
+
+def Laws.inserting_into_an_ordinal_list_keeps_that_ordinal(xs, x):
+  POr.Ords.elem_insert(xs, x)
+
+def Laws.setting_a_bit_reads_it_back(ws, x):
+  PBs.Words.bit_set(ws, x)
+
+def Laws.a_bit_index_is_below_the_word_width(x):
+  PAd.U32.low_five_bound(x)

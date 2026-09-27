@@ -329,6 +329,51 @@ def Tests.witness_off_root() -> Case:
 # The runner.
 # ---------------------------------------------------------------------------
 
+# P-01: a dense leaf that is not 128 words wide loses the bit it was given,
+# because `Words.set` past the end of a tile changes nothing.
+def Tests.insert_needs_a_wide_enough_tile() -> Case:
+  +s = {S.PDense{Nil{}} : S.PSet}
+  +got = S.PSet.member(0n, S.PSet.insert(0n, s, 0), 0)
+  Case{"a narrow dense leaf loses an inserted ordinal (P-01 hypothesis)",
+    Bool.and(Bool.not(got),
+      Bool.not(S.PSet.valid(0n, {S.PDense{Nil{}} : S.PSet}, True{})))}
+
+# S-02: at a leaf, `PFull` means the leaf's own 4096 ordinals, but converting
+# it to words gives a tile that reads `False{}` past 4096. So the pointwise
+# difference law needs the ordinal to be inside the leaf.
+def Tests.leaf_difference_needs_an_in_range_ordinal() -> Case:
+  +a = {S.PFull{} : S.PSet}
+  +b = {S.PDense{Wo.Words.ones(128n)} : S.PSet}
+  +lhs = S.PSet.mem(0n, S.PSet.diff(0n, a, b), 0, 4096)
+  +rhs = Bool.and(S.PSet.mem(0n, {S.PFull{} : S.PSet}, 0, 4096),
+    Bool.not(S.PSet.mem(0n,
+      {S.PDense{Wo.Words.ones(128n)} : S.PSet}, 0, 4096)))
+  Case{"a leaf difference past 4096 is not pointwise (S-02 hypothesis)",
+    Bool.and(Bool.not(lhs), rhs)}
+
+# S-02 again, above the leaf: a sparse payload at a node is a shape
+# `PSet.valid` rejects, and the node operations read it as empty while
+# `PSet.mem` reads it as a member.
+def Tests.node_union_needs_a_valid_shape() -> Case:
+  +a = {S.PSparse{[5]} : S.PSet}
+  +h = S.PSet.half(1n)
+  +lhs = S.PSet.mem(1n, S.PSet.union(1n, a, {S.PZero{} : S.PSet}), h, 5)
+  +rhs = Bool.or(S.PSet.mem(1n, {S.PSparse{[5]} : S.PSet}, h, 5),
+    S.PSet.mem(1n, {S.PZero{} : S.PSet}, h, 5))
+  Case{"a sparse payload above a leaf breaks the union law (S-02 hypothesis)",
+    Bool.and(Bool.not(lhs),
+      Bool.and(rhs,
+        Bool.not(S.PSet.valid(1n, {S.PSparse{[5]} : S.PSet}, True{}))))}
+
+# S-03: compression to `PFull` says "the whole leaf", which disagrees with the
+# tile it came from past 4096.
+def Tests.compress_needs_an_in_range_ordinal() -> Case:
+  +lhs = S.PSet.mem(0n, S.PSet.compress(Wo.Words.ones(128n)), 0, 4096)
+  +rhs = S.PSet.mem(0n,
+    {S.PDense{Wo.Words.ones(128n)} : S.PSet}, 0, 4096)
+  Case{"compression past 4096 is not member-preserving (S-03 hypothesis)",
+    Bool.and(lhs, Bool.not(rhs))}
+
 def Tests.all() -> List<&2, Case>:
   [Tests.forbidden_intersection(), Tests.forbidden_difference(),
     Tests.union_preserved(), Tests.empty_closed(), Tests.extensive(),
@@ -338,7 +383,22 @@ def Tests.all() -> List<&2, Case>:
     Tests.reversed_difference(), Tests.differential(),
     Tests.cert_accepts(), Tests.cert_rejects_extra(),
     Tests.cert_rejects_missing(), Tests.witness(),
-    Tests.witness_skips_an_edge(), Tests.witness_off_root()]
+    Tests.witness_skips_an_edge(), Tests.witness_off_root(),
+    Tests.insert_needs_a_wide_enough_tile(),
+    Tests.leaf_difference_needs_an_in_range_ordinal(),
+    Tests.node_union_needs_a_valid_shape(),
+    Tests.compress_needs_an_in_range_ordinal()]
+
+# ---------------------------------------------------------------------------
+# Why the leaf laws carry hypotheses.
+#
+# Four of the obligations in LAWS.pending.bend were first written without
+# them, and were false. These run the counterexamples, so that anyone who
+# "strengthens" a law by deleting its hypothesis fails the build instead of
+# shipping a false claim. Each of these values is one `PSet.valid` rejects,
+# which is why the hypotheses are the structural invariant rather than an
+# invention.
+# ---------------------------------------------------------------------------
 
 def Tests.bump(ok: Bool, bad: Nat) -> Nat:
   match ok:

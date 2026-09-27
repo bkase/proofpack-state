@@ -50,6 +50,22 @@ def Words.at(ws: List<&2, U32>, i: Nat, b: Nat) -> Bool:
         case 1n+j:
           Words.at(t, j, b)
 
+# Does the tile have a word at index `i`? Proof-only, and the reason it
+# exists: `Words.set.at` past the end of a tile changes nothing and
+# `Words.at` past the end reads `False{}`, so "the bit survives being set" is
+# exactly "the tile has that word". A `PDense` leaf is 128 words for that
+# reason, and `PSet.valid` is what enforces it.
+def Words.has_word(ws: List<&2, U32>, i: Nat) -> Bool:
+  match ws:
+    case Nil{}:
+      False{}
+    case Con{w, t}:
+      match i:
+        case 0n:
+          True{}
+        case 1n+j:
+          Words.has_word(t, j)
+
 # Bit `x` of a tile: word x>>5, bit x&31.
 def Words.bit(ws: List<&2, U32>, +x: U32) -> Bool:
   Words.at(ws, U32.to_nat(U32.shrn(x, 5n)), U32.to_nat(U32.and(x, 31)))

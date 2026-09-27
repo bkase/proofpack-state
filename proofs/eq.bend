@@ -37,6 +37,12 @@ def Bool.code(b: Bool) -> Type:
 def Bool.sym(-a: Bool, -b: Bool, e: {a == b : Bool}) -> {b == a : Bool}:
   Equal.sym(Bool, a, b, e)
 
+def Cmp.sym(-a: Cmp, -b: Cmp, e: {a == b : Cmp}) -> {b == a : Cmp}:
+  Equal.sym(Cmp, a, b, e)
+
+def U32.sym(-a: U32, -b: U32, e: {a == b : U32}) -> {b == a : U32}:
+  Equal.sym(U32, a, b, e)
+
 def Bool.empty(e: {False{} == True{} : Bool}) -> Empty:
   %Bool.sym(False{}, True{}, e) : Bool.code(_)
   Unit{}
@@ -143,3 +149,43 @@ def U32.eq_reflect(a, b, ok):
       Equal.cong(Word(32n), U32, U32.pak, x, y,
         Word.eq_reflect(32n, x, y, ok))
 
+
+# ---------------------------------------------------------------------------
+# Reflexivity. `U32.cmp` answers `EQ{}` on a word and itself -- needed
+# wherever a proof inserts an ordinal and then looks it up.
+# ---------------------------------------------------------------------------
+
+law Word.cmp_refl:
+  for +n: Nat
+  for +w: Word(n)
+  {Word.cmp(n, w, w) == EQ{} : Cmp}
+
+def Word.cmp_refl(n, w):
+  match n:
+    case 0n:
+      match w:
+        case WNil{}:
+          {==}
+    case 1n+p:
+      match w:
+        case WCon{b, t}:
+          match b:
+            case False{}:
+              %Cmp.sym(Word.cmp(p, t, t), EQ{}, Word.cmp_refl(p, t))
+                : {Word.cmp.fin(False{}, False{}, _) == EQ{} : Cmp}
+              {==}
+            case True{}:
+              %Cmp.sym(Word.cmp(p, t, t), EQ{}, Word.cmp_refl(p, t))
+                : {Word.cmp.fin(True{}, True{}, _) == EQ{} : Cmp}
+              {==}
+
+law U32.is_eq_refl:
+  for +a: U32
+  {U32.is_eq(a, a) == True{} : Bool}
+
+def U32.is_eq_refl(a):
+  match a:
+    case U32{w}:
+      %Cmp.sym(Word.cmp(32n, w, w), EQ{}, Word.cmp_refl(32n, w))
+        : {Cmp.is_eq(_) == True{} : Bool}
+      {==}
