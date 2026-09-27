@@ -346,3 +346,15 @@ def Bool.and_r(a, b, ok):
       ok
     case False{}:
       Bool.noconf({b == True{} : Bool}, ok)
+
+# And the other way: both halves true makes the conjunction true.
+law Bool.and_both:
+  for +a: Bool
+  for +b: Bool
+  for +ea: {a == True{} : Bool}
+  for +eb: {b == True{} : Bool}
+  {Bool.and(a, b) == True{} : Bool}
+
+def Bool.and_both(a, b, ea, eb):
+  %Bool.sym(a, True{}, ea) : {Bool.and(_, b) == True{} : Bool}
+  eb

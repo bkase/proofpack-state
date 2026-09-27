@@ -62,6 +62,8 @@
 #   proofs/nodeenum.bend  a full node enumerates exactly its interval
 #   proofs/maskwidth.bend the same ordinal, masked at two adjacent widths
 #   proofs/lastord.bend   the last ordinal of a node's interval
+#   proofs/halves.bend    a node's two halves, as bases
+#   proofs/childtest.bend which half an ordinal is in
 #   proofs/sum.bend       addition that does not overflow is addition
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
@@ -93,6 +95,8 @@ import ./proofs/interval.bend as PIt
 import ./proofs/nodeenum.bend as PNe
 import ./proofs/maskwidth.bend as PMw
 import ./proofs/lastord.bend as PLd
+import ./proofs/halves.bend as PHv
+import ./proofs/childtest.bend as PCh
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
@@ -568,3 +572,22 @@ def Laws.the_last_ordinal_of_a_node_fills_its_low_bits(base, j, lz):
 def Laws.the_last_ordinal_of_a_node_is_one_below_the_next(base, j, lz,
   le):
   PLd.U32.last_ordinal_value(base, j, lz, le)
+
+def Laws.an_ordinal_below_the_half_is_the_low_childs(base, k, x, e, f,
+  lz, hz, ee, ef):
+  PCh.Test.low_matches(base, k, x, e, f, lz, hz, ee, ef)
+
+def Laws.an_ordinal_below_the_half_is_not_the_high_childs(base, k, x, f,
+  lz, lt, hz, ef):
+  PCh.Test.high_misses(base, k, x, f, lz, lt, hz, ef)
+
+def Laws.an_ordinal_at_the_half_is_the_high_childs(base, k, x, e, f, lz,
+  lt, nz, ee, ef):
+  PCh.Test.high_matches(base, k, x, e, f, lz, lt, nz, ee, ef)
+
+def Laws.an_ordinal_at_the_half_is_not_the_low_childs(base, k, x, f, lz,
+  nz, ef):
+  PCh.Test.low_misses(base, k, x, f, lz, nz, ef)
+
+def Laws.the_second_halfs_base_is_one_half_above(base, k, lz, lt):
+  PHv.U32.to_nat_half_base(base, k, lz, lt)

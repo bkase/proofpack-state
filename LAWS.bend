@@ -2094,3 +2094,67 @@ law the_last_ordinal_of_a_node_is_one_below_the_next:
   for +le: {C.Nat.upto(1n+j, 32n) == True{} : Bool}
   {U32.to_nat((base + U32.shln(1, j) + U32.shln(1, j) - 1 : U32))
     == Nat.sub(Nat.add(U32.to_nat(base), Dc.Nat.pow2(1n+j)), 1n) : Nat}
+
+law an_ordinal_below_the_half_is_the_low_childs:
+  for +base: U32
+  for +k: Nat
+  for +x: U32
+  for +e: Bool
+  for +f: Bool
+  for +lz: {Sa.U32.lo_zero(base, 1n+k) == True{} : Bool}
+  for +hz: {Dc.U32.hi_zero(U32.and(x, W.U32.mask(1n+k)), k)
+    == True{} : Bool}
+  for +ee: {e == U32.is_eq(base, W.U32.diff(x, W.U32.mask(1n+k)))
+    : Bool}
+  for +ef: {f == U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) : Bool}
+  {U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) == e : Bool}
+
+law an_ordinal_below_the_half_is_not_the_high_childs:
+  for +base: U32
+  for +k: Nat
+  for +x: U32
+  for +f: Bool
+  for +lz: {Sa.U32.lo_zero(base, 1n+k) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, k) == True{} : Bool}
+  for +hz: {Dc.U32.hi_zero(U32.and(x, W.U32.mask(1n+k)), k)
+    == True{} : Bool}
+  for +ef: {f == U32.is_eq((base + U32.shln(1, k) : U32),
+    W.U32.diff(x, W.U32.mask(k))) : Bool}
+  {U32.is_eq((base + U32.shln(1, k) : U32),
+    W.U32.diff(x, W.U32.mask(k))) == False{} : Bool}
+
+law an_ordinal_at_the_half_is_the_high_childs:
+  for +base: U32
+  for +k: Nat
+  for +x: U32
+  for +e: Bool
+  for +f: Bool
+  for +lz: {Sa.U32.lo_zero(base, 1n+k) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, k) == True{} : Bool}
+  for +nz: {Dc.U32.hi_zero(U32.and(x, W.U32.mask(1n+k)), k)
+    == False{} : Bool}
+  for +ee: {e == U32.is_eq(base, W.U32.diff(x, W.U32.mask(1n+k)))
+    : Bool}
+  for +ef: {f == U32.is_eq((base + U32.shln(1, k) : U32),
+    W.U32.diff(x, W.U32.mask(k))) : Bool}
+  {U32.is_eq((base + U32.shln(1, k) : U32),
+    W.U32.diff(x, W.U32.mask(k))) == e : Bool}
+
+law an_ordinal_at_the_half_is_not_the_low_childs:
+  for +base: U32
+  for +k: Nat
+  for +x: U32
+  for +f: Bool
+  for +lz: {Sa.U32.lo_zero(base, 1n+k) == True{} : Bool}
+  for +nz: {Dc.U32.hi_zero(U32.and(x, W.U32.mask(1n+k)), k)
+    == False{} : Bool}
+  for +ef: {f == U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) : Bool}
+  {U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) == False{} : Bool}
+
+law the_second_halfs_base_is_one_half_above:
+  for +base: U32
+  for +k: Nat
+  for +lz: {Sa.U32.lo_zero(base, 1n+k) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, k) == True{} : Bool}
+  {U32.to_nat((base + U32.shln(1, k) : U32))
+    == Nat.add(U32.to_nat(base), Dc.Nat.pow2(k)) : Nat}
