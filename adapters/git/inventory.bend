@@ -82,13 +82,13 @@ def Inv.step(+tbl: T.Trie<I.Bucket>, acc: Inventory, +o: O.Oid) ->
     case Inv{present, in_scope, out_of_scope, total}:
       Inv.add.hit(present, in_scope, out_of_scope, I.Uni.find(tbl, o))
 
-def Inv.fold(+tbl: T.Trie<I.Bucket>, infos: List<&2, Pa.Info>,
+def Inv.fold(+tbl: T.Trie<I.Bucket>, oids: List<&2, O.Oid>,
   acc: Inventory) -> Inventory:
-  match infos:
+  match oids:
     case Nil{}:
       acc
-    case Con{i, t}:
-      Inv.fold(tbl, t, Inv.step(tbl, acc, Pa.Info.oid(i)))
+    case Con{o, t}:
+      Inv.fold(tbl, t, Inv.step(tbl, acc, o))
 
 def Inv.finish(v: Inventory) -> Inventory:
   match v:
@@ -97,21 +97,21 @@ def Inv.finish(v: Inventory) -> Inventory:
       +b = out_of_scope
       Inv{present, a, b, Nat.add(a, b)}
 
-def Inv.project(+u: I.Universe, infos: List<&2, Pa.Info>) -> Inventory:
-  Inv.finish(Inv.fold(I.Uni.table(u), infos,
+def Inv.project(+u: I.Universe, oids: List<&2, O.Oid>) -> Inventory:
+  Inv.finish(Inv.fold(I.Uni.table(u), oids,
     Inv{S.PSet.empty(), 0n, 0n, 0n}))
 
 # ---------------------------------------------------------------------------
 # Observing a repository.
 # ---------------------------------------------------------------------------
 
-def Inv.observe.parsed(+u: I.Universe, inf: Pa.Infos, ok: Bool) ->
+def Inv.observe.parsed(+u: I.Universe, ol: Pa.OidList, ok: Bool) ->
   InvResult:
   match ok:
     case False{}:
       IErr{"InvalidInput: malformed cat-file --batch-check stream"}
     case True{}:
-      IOk{Inv.project(u, Pa.Infos.items(inf))}
+      IOk{Inv.project(u, Pa.OidList.oids(ol))}
 
 def Inv.observe.checked(+u: I.Universe, +f: O.Fmt, out: Gi.Out,
   ran: Bool) -> InvResult:
@@ -120,7 +120,8 @@ def Inv.observe.checked(+u: I.Universe, +f: O.Fmt, out: Gi.Out,
       IErr{"UnsupportedRepository: git cat-file --batch-all-objects failed: "
         ++ Gi.Out.err(out)}
     case True{}:
-      Inv.observe.parsed(u, Pa.Parse.infos(f, Gi.Out.body(out)), True{})
+      +ol = Pa.Parse.oids(f, Gi.Out.body(out))
+      Inv.observe.parsed(u, ol, Pa.OidList.ok(ol))
 
 def Inv.observe(repo: String, +u: I.Universe, +f: O.Fmt) ->
   IO(InvResult):

@@ -247,27 +247,51 @@ def Infos.ok(i: Infos) -> Bool:
     case Infos{items, ok}:
       ok
 
-def Parse.infos.go(+fuel: Nat, +f: O.Fmt, +bs: B.Bytes, acc: List<&2, Info>,
-  m: Maybe<&2, Info>) -> Infos:
+# `IStep` exists so each line is scanned once. The earlier shape computed
+# `Bytes.line` twice per line -- once for the parse and once for the
+# remainder -- which doubled the cost of the hottest loop in the importer.
+type IStep is Data:
+  IDone{}
+  IBad{}
+  IOne{info: Info, rest: B.Bytes}
+
+def Parse.info.step.got(m: Maybe<&2, Info>, +rest: B.Bytes) -> IStep:
+  match m:
+    case None{}:
+      IBad{}
+    case Some{i}:
+      IOne{i, rest}
+
+def Parse.info.step.pick(+f: O.Fmt, +bs: B.Bytes, empty: Bool) -> IStep:
+  match empty:
+    case True{}:
+      IDone{}
+    case False{}:
+      +c = B.Bytes.line(bs)
+      Parse.info.step.got(Parse.info.line(f, B.Cut.taken(c)),
+        B.Cut.rest(c))
+
+def Parse.info.step(+f: O.Fmt, +bs: B.Bytes) -> IStep:
+  Parse.info.step.pick(f, bs, List.is_empty(&2, U32, bs))
+
+def Parse.infos.go(+fuel: Nat, +f: O.Fmt, acc: List<&2, Info>,
+  s: IStep) -> Infos:
   match fuel:
     case 0n:
       Infos{List.reverse(&2, Info, acc), False{}}
     case 1n+g:
-      match bs:
-        case Nil{}:
+      match s:
+        case IDone{}:
           Infos{List.reverse(&2, Info, acc), True{}}
-        case Con{b, t}:
-          match m:
-            case None{}:
-              Infos{List.reverse(&2, Info, acc), False{}}
-            case Some{i}:
-              +rest = B.Cut.rest(B.Bytes.line(bs))
-              Parse.infos.go(g, f, rest, Con{i, acc},
-                Parse.info.head(f, rest))
+        case IBad{}:
+          Infos{List.reverse(&2, Info, acc), False{}}
+        case IOne{i, rest}:
+          +r = rest
+          Parse.infos.go(g, f, Con{i, acc}, Parse.info.step(f, r))
 
 def Parse.infos(+f: O.Fmt, +bs: B.Bytes) -> Infos:
-  Parse.infos.go(1n+List.length(&2, U32, bs), f, bs, Nil{},
-    Parse.info.head(f, bs))
+  Parse.infos.go(1n+List.length(&2, U32, bs), f, Nil{},
+    Parse.info.step(f, bs))
 
 # ---------------------------------------------------------------------------
 # Every record of a `git cat-file --batch` run. The body is taken by its
@@ -547,3 +571,52 @@ def Parse.children(+f: O.Fmt, k: GType, +body: B.Bytes) -> Kids:
       Kids{Nil{}, True{}}
     case TBad{}:
       Kids{Nil{}, False{}}
+
+# ---------------------------------------------------------------------------
+# Just the object ids, for an inventory observation.
+#
+# `Parse.infos` reads the type and the size too, which the importer needs and
+# an inventory scan does not: SPEC 8.1's inventory is a set of identities.
+# Skipping the rest is not a micro-optimisation -- a scan of a 31k-object
+# store is the per-cell cost of a matrix, and reading each line's type and
+# size means copying the line and parsing two decimals that are then thrown
+# away.
+# ---------------------------------------------------------------------------
+
+type OidList is Data:
+  OL{oids: List<&2, O.Oid>, ok: Bool}
+
+def OidList.oids(o: OidList) -> List<&2, O.Oid>:
+  match o:
+    case OL{oids, ok}:
+      List.reverse(&2, O.Oid, oids)
+
+def OidList.ok(o: OidList) -> Bool:
+  match o:
+    case OL{oids, ok}:
+      ok
+
+def Parse.oids.go(+fuel: Nat, +f: O.Fmt, bs: B.Bytes,
+  acc: List<&2, O.Oid>, r: O.OidRead) -> OidList:
+  match fuel:
+    case 0n:
+      OL{acc, False{}}
+    case 1n+g:
+      match bs:
+        case Nil{}:
+          OL{acc, True{}}
+        case Con{b, t}:
+          match r:
+            case O.Read{oid, ok}:
+              match ok:
+                case False{}:
+                  OL{acc, False{}}
+                case True{}:
+                  +rest = B.Bytes.after(10, Con{b, t})
+                  Parse.oids.go(g, f, rest, Con{oid, acc},
+                    O.Oid.of_hex(f, rest))
+
+# Every object id in a `--batch-check` stream, in the order the lines came.
+def Parse.oids(+f: O.Fmt, +bs: B.Bytes) -> OidList:
+  Parse.oids.go(1n+List.length(&2, U32, bs), f, bs, Nil{},
+    O.Oid.of_hex(f, bs))

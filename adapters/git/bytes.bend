@@ -70,6 +70,25 @@ def Bytes.upto(+sep: U32, bs: Bytes, acc: Bytes, hit: Bool) -> Cut:
           +t2 = t
           Bytes.upto(sep, t2, Con{b, acc}, Bytes.head_is(t2, sep))
 
+# Skip past the first `sep` without copying what was skipped. `Bytes.upto`
+# builds the taken part into an accumulator and reverses it, which is two
+# allocations a byte -- fine when the caller wants the bytes, wasted when it
+# only wants what follows. The inventory scan wants only what follows.
+def Bytes.after.go(+sep: U32, bs: Bytes, hit: Bool) -> Bytes:
+  match bs:
+    case Nil{}:
+      Nil{}
+    case Con{b, t}:
+      match hit:
+        case True{}:
+          t
+        case False{}:
+          +tt = t
+          Bytes.after.go(sep, tt, Bytes.head_is(tt, sep))
+
+def Bytes.after(+sep: U32, +bs: Bytes) -> Bytes:
+  Bytes.after.go(sep, bs, Bytes.head_is(bs, sep))
+
 def Bytes.until(+sep: U32, +bs: Bytes) -> Cut:
   Bytes.upto(sep, bs, Nil{}, Bytes.head_is(bs, sep))
 

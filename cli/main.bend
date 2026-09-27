@@ -801,6 +801,246 @@ def Cmd.import(+cx: Ctx, store: String, name: String) -> IO(Unit):
       St.Store.encode(src, Idx.Source.metas(src), Idx.Source.rows(src)))
     Cmd.import.emit(cx, st, nm, ok)
 
+# ---------------------------------------------------------------------------
+# pp git matrix -- many inventories against one requirement, from one load.
+#
+# This is the shape SPEC 1.1 is actually about: a graph imported once, then
+# asked repeatedly. Each cell reuses the same closure and the same requirement
+# set, so a cell costs one inventory scan and one fused difference rather than
+# a fresh traversal.
+#
+# SPEC 7.7 asks for equal inventories to be deduplicated before pairs are
+# evaluated. Two receivers that report the same objects -- linked worktrees
+# sharing one object store, or two workers restored from the same snapshot --
+# are one cell, and the envelope says which rows shared it.
+# ---------------------------------------------------------------------------
+
+type Cell is Data:
+  Cl{name: String, inv: Inv.Inventory, same_as: String}
+
+def Cell.name(+c: Cell) -> String:
+  match c:
+    case Cl{name, inv, same_as}:
+      name
+
+def Cell.inv(+c: Cell) -> Inv.Inventory:
+  match c:
+    case Cl{name, inv, same_as}:
+      inv
+
+def Cell.same_as(+c: Cell) -> String:
+  match c:
+    case Cl{name, inv, same_as}:
+      same_as
+
+def Cmd.matrix.same(a: S.PSet, b: S.PSet) -> Bool:
+  +x = a
+  +y = b
+  Bool.and(S.PSet.is_subset(Idx.Idx.sd(), x, y),
+    S.PSet.is_subset(Idx.Idx.sd(), y, x))
+
+# The first earlier cell reporting the same objects, or "" for a new one.
+# The comparison is carried as a parameter, because Bend forbids the mutual
+# recursion a `go`/`pick` pair would need.
+def Cmd.matrix.head_same(cs: List<&2, Cell>, +inv: Inv.Inventory) -> Bool:
+  match cs:
+    case Nil{}:
+      False{}
+    case Con{c, t}:
+      Cmd.matrix.same(Inv.Inventory.present(Cell.inv(c)),
+        Inv.Inventory.present(inv))
+
+def Cmd.matrix.name_of.pick(name: String, same_as: String, first: Bool) ->
+  String:
+  match first:
+    case True{}:
+      name
+    case False{}:
+      same_as
+
+def Cmd.matrix.name_of(+c: Cell) -> String:
+  Cmd.matrix.name_of.pick(Cell.name(c), Cell.same_as(c),
+    String.is_empty(Cell.same_as(c)))
+
+def Cmd.matrix.dup(+cells: List<&2, Cell>, +inv: Inv.Inventory,
+  same: Bool) -> String:
+  match cells:
+    case Nil{}:
+      ""
+    case Con{c, t}:
+      match same:
+        case True{}:
+          Cmd.matrix.name_of(c)
+        case False{}:
+          +tt = t
+          Cmd.matrix.dup(tt, inv, Cmd.matrix.head_same(tt, inv))
+
+def Cmd.matrix.first_dup(+cells: List<&2, Cell>, +inv: Inv.Inventory) ->
+  String:
+  Cmd.matrix.dup(cells, inv, Cmd.matrix.head_same(cells, inv))
+
+type Answered is Data:
+  An{name: String, answer: String}
+
+def Answered.name(+a: Answered) -> String:
+  match a:
+    case An{name, answer}:
+      name
+
+def Answered.answer(+a: Answered) -> String:
+  match a:
+    case An{name, answer}:
+      answer
+
+def Cmd.matrix.hit(+a: Answered, same: Bool) -> Maybe<&2, String>:
+  match same:
+    case True{}:
+      Some{Answered.answer(a)}
+    case False{}:
+      None{}
+
+def Cmd.matrix.lookup(done: List<&2, Answered>, +want: String,
+  got: Maybe<&2, String>) -> Maybe<&2, String>:
+  match done:
+    case Nil{}:
+      got
+    case Con{a, t}:
+      match got:
+        case Some{x}:
+          Some{x}
+        case None{}:
+          +aa = a
+          Cmd.matrix.lookup(t, want,
+            Cmd.matrix.hit(aa, String.eq(Answered.name(aa), want)))
+
+def Cmd.matrix.seen.pick(done: List<&2, Answered>, +same_as: String,
+  first: Bool) -> Maybe<&2, String>:
+  match first:
+    case True{}:
+      None{}
+    case False{}:
+      Cmd.matrix.lookup(done, same_as, None{})
+
+def Cmd.matrix.seen(done: List<&2, Answered>, +same_as: String) ->
+  Maybe<&2, String>:
+  Cmd.matrix.seen.pick(done, same_as, String.is_empty(same_as))
+
+def Cmd.matrix.compute(+cx: Ctx, k: S.PSet, +c: Cell) -> String:
+  +h = Inv.Inventory.present(Cell.inv(c))
+  +kk = k
+  J.Json.obj([
+    J.Json.field("ready_at_observation",
+      J.Json.bool(Ev.Ev.ready(kk, h))),
+    J.Json.field("missing",
+      Cli.stats_json(Ev.Ev.missing_stats(Ctx.src(cx), kk, h)))])
+
+def Cmd.matrix.answer_of(+cx: Ctx, k: S.PSet, +c: Cell,
+  reuse: Maybe<&2, String>) -> String:
+  match reuse:
+    case Some{a}:
+      a
+    case None{}:
+      Cmd.matrix.compute(cx, k, c)
+
+def Cmd.matrix.shared.pick(s: String, none: Bool) -> String:
+  match none:
+    case True{}:
+      "null"
+    case False{}:
+      J.Json.str(s)
+
+def Cmd.matrix.shared(+s: String) -> String:
+  Cmd.matrix.shared.pick(s, String.is_empty(s))
+
+def Cmd.matrix.wrap(+c: Cell, answer: String) -> String:
+  J.Json.obj([
+    J.Json.field("inventory", J.Json.str(Cell.name(c))),
+    J.Json.field("shares_inventory_with",
+      Cmd.matrix.shared(Cell.same_as(c))),
+    J.Json.field("answer", answer),
+    J.Json.field("in_scope",
+      J.Json.num(Inv.Inventory.in_scope(Cell.inv(c)))),
+    J.Json.field("out_of_scope",
+      J.Json.num(Inv.Inventory.out_of_scope(Cell.inv(c))))])
+
+def Cmd.matrix.rows(+cx: Ctx, +k: S.PSet, cells: List<&2, Cell>,
+  +done: List<&2, Answered>, out: List<&2, String>) -> List<&2, String>:
+  match cells:
+    case Nil{}:
+      List.reverse(&2, String, out)
+    case Con{c, t}:
+      +cc = c
+      +ans = Cmd.matrix.answer_of(cx, k, cc,
+        Cmd.matrix.seen(done, Cell.same_as(cc)))
+      Cmd.matrix.rows(cx, k, t,
+        Con{An{Cell.name(cc), ans}, done},
+        Con{Cmd.matrix.wrap(cc, ans), out})
+
+def Cmd.matrix.distinct.bump(first: Bool, acc: Nat) -> Nat:
+  match first:
+    case True{}:
+      1n+acc
+    case False{}:
+      acc
+
+def Cmd.matrix.distinct(cells: List<&2, Cell>, acc: Nat) -> Nat:
+  match cells:
+    case Nil{}:
+      acc
+    case Con{c, t}:
+      Cmd.matrix.distinct(t,
+        Cmd.matrix.distinct.bump(String.is_empty(Cell.same_as(c)), acc))
+
+def Cmd.matrix.checked(+cx: Ctx, +k: S.PSet, cells: List<&2, Cell>,
+  ok: Bool, err: String) -> IO(Unit):
+  match ok:
+    case False{}:
+      Cli.limit(err)
+    case True{}:
+      +cs = cells
+      IO.print(Cli.envelope(cx, "several", "complete", J.Json.obj([
+        J.Json.field("required",
+          Cli.stats_json(Ev.Ev.stats(Ctx.src(cx), k))),
+        J.Json.field("cells",
+          J.Json.num(List.length(&2, Cell, cs))),
+        J.Json.field("distinct_inventories",
+          J.Json.num(Cmd.matrix.distinct(cs, 0n))),
+        J.Json.field("rows",
+          J.Json.arr(Cmd.matrix.rows(cx, k, cs, Nil{}, Nil{})))])))
+
+def Cmd.matrix.emit(+cx: Ctx, v: Ev.Val, cells: List<&2, Cell>) ->
+  IO(Unit):
+  +vv = v
+  Cmd.matrix.checked(cx, Ev.Val.set(vv), cells, Ev.Val.ok(vv),
+    Ev.Val.err(vv))
+
+def Cmd.matrix.add(+cells: List<&2, Cell>, name: String,
+  r: Inv.InvResult) -> List<&2, Cell>:
+  match r:
+    case Inv.IErr{msg}:
+      cells
+    case Inv.IOk{inv}:
+      +iv = inv
+      List.append(&2, Cell, cells,
+        [Cl{name, iv, Cmd.matrix.first_dup(cells, iv)}])
+
+def Cmd.matrix.scan(+cx: Ctx, haves: List<&2, String>,
+  cells: List<&2, Cell>) -> IO(List<&2, Cell>):
+  match haves:
+    case Nil{}:
+      IO.pure(List<&2, Cell>, cells)
+    case Con{h, t}:
+      +hh = h
+      do IO<List<&2, Cell>>:
+        r : Inv.InvResult <- Inv.Inv.observe(hh,
+          Idx.Source.uni(Ctx.src(cx)), Idx.Source.fmt(Ctx.src(cx)))
+        Cmd.matrix.scan(cx, t, Cmd.matrix.add(cells, hh, r))
+
+def Cmd.matrix(+cx: Ctx, haves: List<&2, String>) -> IO(Unit):
+  do IO<Unit>:
+    cells : List<&2, Cell> <- Cmd.matrix.scan(cx, haves, Nil{})
+    Cmd.matrix.emit(cx, Cli.required(Ctx.src(cx), Ctx.policy(cx)), cells)
+
 def Cli.usage() -> String:
   "pp -- ProofPack State\n"
     ++ "\n"
@@ -813,6 +1053,7 @@ def Cli.usage() -> String:
     ++ "  pp git inventory --repo R [--root REF]... --have-repo H\n"
     ++ "  pp git verify    --repo R [--root REF]...\n"
     ++ "  pp git import    --repo R [--root REF]... --as NAME\n"
+    ++ "  pp git matrix    --graph NAME --have-repo H [--have-repo H]...\n"
     ++ "\n"
     ++ "Every query takes --repo R (import now) or --graph NAME (a stored\n"
     ++ "snapshot). --store PATH overrides the derived-cache directory.\n"
@@ -852,7 +1093,7 @@ def Cli.which.go(+cmd: String, names: List<&2, String>, i: Nat,
 
 def Cli.which(+cmd: String) -> Nat:
   +ns = {["stats", "missing", "ready", "explain", "retention",
-    "inventory", "verify", "import"] : List<&2, String>}
+    "inventory", "verify", "import", "matrix"] : List<&2, String>}
   Cli.which.go(cmd, ns, 0n, Cli.head_eq(ns, cmd))
 
 def Cli.go.pick(+ar: Ar.Args, +cx: Ctx, +keep_n: Nat, k: Nat) ->
@@ -895,8 +1136,13 @@ def Cli.go.pick(+ar: Ar.Args, +cx: Ctx, +keep_n: Nat, k: Nat) ->
                                     Ar.Args.one(ar, "store-dir", ""),
                                     Ar.Args.one(ar, "as", "source"))
                                 case 1n+h:
-                                  Cli.fail(
-                                    "InvalidInput: unknown command")
+                                  match h:
+                                    case 0n:
+                                      Cmd.matrix(cx,
+                                        Ar.Args.values(ar, "have-repo"))
+                                    case 1n+j:
+                                      Cli.fail(
+                                        "InvalidInput: unknown command")
 
 def Cli.go(+ar: Ar.Args, +cmd: String, +cx: Ctx, +keep_n: Nat) ->
   IO(Unit):

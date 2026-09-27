@@ -26,8 +26,29 @@ if [ ! -x "$pp" ]; then
   echo "differential: build/pp is missing; run tools/bend pp.bend -o build/pp" >&2
   exit 2
 fi
-if [ ! -d "$repos/source" ]; then
-  echo "differential: no fixtures at $repos; run fixtures/make_repos.sh" >&2
+# The full set, or nothing. The cases below are not all reachable from
+# `source` alone -- missing, readiness and the backend comparisons all need a
+# receiver -- and a differential that runs half its cases and still says
+# "agrees on every case" is worse than one that refuses to start. The stamp
+# carries the identity `fixtures/make_repos.sh` builds, so a set left over
+# from an older version of that script is caught too.
+for r in source receiver empty; do
+  if [ ! -d "$repos/$r" ]; then
+    echo "differential: $repos/$r is missing; run fixtures/make_repos.sh" >&2
+    exit 2
+  fi
+done
+if [ ! -f "$repos/FIXTURE" ]; then
+  echo "differential: $repos has no FIXTURE stamp; it predates the current" \
+    "fixtures/make_repos.sh. Move it aside and run that script." >&2
+  exit 2
+fi
+want_head="$(awk '$1 == "source" { print $2 }' "$repos/FIXTURE")"
+have_head="$(git -C "$repos/source" rev-parse -q --verify refs/heads/main \
+  || true)"
+if [ "$want_head" != "$have_head" ]; then
+  echo "differential: $repos/source is ${have_head:-absent}, but its stamp" \
+    "says $want_head; the fixtures are inconsistent." >&2
   exit 2
 fi
 
@@ -44,6 +65,15 @@ print(d)' "$1" "$2"
 
 check() {  # check <label> <expected> <got>
   printf '  %-46s ' "$1"
+  # An empty side is never a legitimate expectation here: every case compares
+  # a count, a byte total, an exit status, a class name or a JSON object. If
+  # one side is empty the command that produced it failed, and comparing
+  # empty to empty would report "ok" for a case that never ran.
+  if [ -z "$2" ] || [ -z "$3" ]; then
+    echo "NO RESULT expected '$2', got '$3'"
+    fail=1
+    return
+  fi
   if [ "$2" = "$3" ]; then
     echo "ok ($3)"
   else
@@ -55,6 +85,14 @@ check() {  # check <label> <expected> <got>
 for repo in source receiver empty; do
   r="$repos/$repo"
   [ -d "$r" ] || continue
+  # This section closes over a root, so a fixture without one has no case
+  # here -- it is still exercised below as an inventory. Skipping it loudly
+  # rather than running git against a missing ref keeps the empty results
+  # that would follow from being compared to each other.
+  if ! git -C "$r" rev-parse --verify -q refs/heads/main > /dev/null; then
+    echo "$repo: no refs/heads/main, not a closure case"
+    continue
+  fi
   echo "$repo:"
 
   # --- full: against git rev-list --objects ------------------------------
@@ -189,13 +227,44 @@ cls() {  # cls <graph> -- the error class a corrupt file is rejected with
 d = json.load(sys.stdin).get("error")
 print(d["class"] if d else "ACCEPTED")'
 }
-sed 's/^objects 22/objects 23/'            "$store/src.pps" > "$bad/count.pps"
-sed 's/^object 1aa22346/object ZZZZZZZZ/'  "$store/src.pps" > "$bad/hex.pps"
-awk 'NR==6 { print $0 " 9999"; next } { print }' \
-  "$store/src.pps" > "$bad/succ.pps"
-sed '1s/.*/not a proofpack store/'         "$store/src.pps" > "$bad/magic.pps"
+# Each corruption is derived from the file rather than pinned to one
+# fixture's object count or OID -- a pinned `sed` silently becomes a no-op on
+# any other fixture, and a no-op corruption is a test that passes for the
+# wrong reason. The derivation therefore refuses to write a file it did not
+# actually change.
+corrupt() {  # corrupt <mode> <in> <out>
+  python3 -c '
+import sys
+mode, src, dst = sys.argv[1], sys.argv[2], sys.argv[3]
+lines = open(src).read().split("\n")
+out = list(lines)
+first = next(i for i, l in enumerate(lines) if l.startswith("object "))
+if mode == "count":
+    i = next(i for i, l in enumerate(lines) if l.startswith("objects "))
+    out[i] = "objects %d" % (int(lines[i].split()[1]) + 1)
+elif mode == "hex":
+    f = lines[first].split()
+    f[1] = "Z" * len(f[1])
+    out[first] = " ".join(f)
+elif mode == "succ":
+    f = lines[first].split()
+    out[first] = " ".join(f[:4] + [str(int(f[4]) + 1)] + f[5:] + ["999999"])
+elif mode == "magic":
+    out[0] = "not a proofpack store"
+else:
+    sys.exit("unknown corruption " + mode)
+if out == lines:
+    sys.exit("corruption " + mode + " changed nothing")
+open(dst, "w").write("\n".join(out))
+' "$1" "$2" "$3"
+}
 for c in count hex succ magic; do
-  check "a corrupt store is rejected ($c)" "CorruptIndex" "$(cls $c)"
+  if corrupt "$c" "$store/src.pps" "$bad/$c.pps"; then
+    check "a corrupt store is rejected ($c)" "CorruptIndex" "$(cls $c)"
+  else
+    echo "  could not build the $c corruption -- the store format moved"
+    fail=1
+  fi
 done
 check "an absent graph is UnknownRoot" "UnknownRoot" \
   "$("$pp" git stats --graph nope --store "$store" 2>/dev/null \
