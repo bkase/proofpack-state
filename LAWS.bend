@@ -65,6 +65,7 @@ import ./proofs/extensive.bend as Ex2
 import ./proofs/table.bend as Tb
 import ./proofs/insert.bend as In
 import ./proofs/only.bend as On
+import ./proofs/subset.bend as Sb
 import ./proofs/inventory.bend as Iv2
 import ./adapters/git/inventory.bend as Iv
 import ./adapters/git/intern.bend as Ui2
@@ -1612,3 +1613,50 @@ law an_accepted_witness_is_checked_end_to_end:
   for +target: U32
   for +ok: {Ex.Explain.valid(td, g, roots, path, target) == True{} : Bool}
   {Ex.Explain.steps_ok(td, g, path, True{}) == True{} : Bool}
+
+# ===========================================================================
+# The subset test, related to membership.
+#
+# `PSet.is_subset` is the readiness test of M-02 and the equality test
+# `pp git matrix` deduplicates with, and it is a *count*: it asks whether the
+# fused difference has no members, never whether a particular ordinal is in
+# both sets. Three of the open obligations waited on turning that count back
+# into a statement about an ordinal, and this is it.
+#
+# Every arm of the fused count is one of four things -- a word count, a fused
+# word-difference count, the length of a sorted-list difference, or a
+# constant -- and they all say the same thing when they are zero. The
+# sorted-list case is the interesting one: if `Ords.diff` comes back empty
+# then every element of the left list was matched against something in the
+# right, and that argument needs no sortedness hypothesis at all. It needs
+# only that the walk had fuel to finish, which `Ords.merge_fuel` gives by
+# construction.
+#
+# The `PFull`-against-sparse arm needed one more fact, and it is a
+# computation: the 4096 ordinals a full leaf enumerates and the members of a
+# 128-word tile of ones are the same closed list, so the walk the fused count
+# performs is the one the tile laws already describe.
+# ===========================================================================
+
+law a_subset_contains_every_member:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
+  for +sub: {S.PSet.is_subset(20n, a, b) == True{} : Bool}
+  for +ma: {S.PSet.member(20n, a, x) == True{} : Bool}
+  {S.PSet.member(20n, b, x) == True{} : Bool}
+
+law a_set_with_a_zero_count_has_no_members:
+  for +d: Nat
+  for +s: S.PSet
+  for +bx: Bool
+  for +h: U32
+  for +x: U32
+  for +eh: {h == U32.shln(1, 11n+d) : U32}
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +ebx: {bx == U32.is_lt(x, h) : Bool}
+  for +v: {Sh.PSet.wf(d, s, True{}) == True{} : Bool}
+  for +z: {S.PSet.count(d, s, h) == 0n : Nat}
+  {S.PSet.mem(d, s, h, x) == False{} : Bool}

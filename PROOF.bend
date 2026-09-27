@@ -48,6 +48,7 @@
 #   proofs/table.bend     what a table built from a list answers
 #   proofs/insert.bend    inserting never loses a member
 #   proofs/only.bend      inserting adds nothing else
+#   proofs/subset.bend    the subset test, related to membership
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -64,6 +65,7 @@ import ./proofs/extensive.bend as PEx
 import ./proofs/table.bend as PTb
 import ./proofs/insert.bend as PIns
 import ./proofs/only.bend as POn
+import ./proofs/subset.bend as PSb
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -440,3 +442,10 @@ def Laws.the_rest_of_an_accepted_witness_is_accepted(td, g, u, v, rest, ok):
 def Laws.an_accepted_witness_is_checked_end_to_end(td, g, roots, path,
   target, ok):
   PWit.Explain.accepts_steps(td, g, roots, path, target, ok)
+
+def Laws.a_subset_contains_every_member(a, b, x, va, vb, sub, ma):
+  PSb.PSet.is_subset_member(a, b, x, va, vb, sub, ma)
+
+def Laws.a_set_with_a_zero_count_has_no_members(d, s, bx, h, x, eh, dok,
+  ebx, v, z):
+  PSb.PSet.count_zero_mem(d, s, bx, h, x, eh, dok, ebx, v, z)
