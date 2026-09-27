@@ -68,10 +68,30 @@ import ./proofs/denote.bend as PDn
 #      Q-01's whole pass needs it (closure and filter both go through
 #      `to_list`, so they respect pointwise equality only if enumeration
 #      does), Q-04's reuse needs it (equal members must give equal
-#      statistics), and Q-03's contract needs Q-01. Nothing blocks it in
-#      principle: it needs the base-offset arithmetic of `PSet.members`,
-#      which is the one piece of `U32` arithmetic this release has managed to
-#      route around everywhere else.
+#      statistics), and Q-03's contract needs Q-01.
+#
+#      The arithmetic it rests on is proved and in LAWS.bend: that adding
+#      into free bits is setting them (so the shift a branch performs is an
+#      `or`, and the two masks take it apart again), that subtracting one is
+#      one less, and that counting down covers exactly the span it should --
+#      which is what a full interval's enumeration does. So is the base case:
+#      `a_leaf_enumerates_exactly_its_members`, all four shapes.
+#
+#      What is left is the tree above the leaf, and it has two hard arms. A
+#      full *node* enumerates `base + 2h` ordinals by counting down from
+#      `base + h + h - 1`, so its arm needs that expression related to the
+#      interval it stands for, and then the numeric span related back to the
+#      bit test "this ordinal's high part is this base". A branch node needs
+#      the same relation at two adjacent mask widths, because its two halves
+#      are told apart by one bit. Neither is deep; both are long.
+#
+#      One thing the leaf case surfaced is worth recording: the enumeration
+#      needs of a sparse leaf something `PSet.wf` does not say -- that its
+#      offsets fit in the twelve bits a leaf covers. `PSet.valid` says it, so
+#      anything read from a store has it, and `PSet.ok.leaf` in
+#      proofs/leafenum.bend is the condition; carrying it through the
+#      operations is a second piece, and it needs the same bound on the
+#      members of a tile.
 #
 # The rest are their own problems: C-01's pigeonhole, C-04's exactness
 # argument, D-01's text round trip, and G-01's grammar predicate.

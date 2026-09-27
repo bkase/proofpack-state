@@ -54,6 +54,10 @@
 #   proofs/machine.bend   a failure the evaluator notices is one it reports
 #   proofs/traverse.bend  the traversal never loses a vertex
 #   proofs/parse.bend     the parser never reads short
+#   proofs/split_add.bend adding into free bits is setting them
+#   proofs/decr.bend      what subtracting one does
+#   proofs/span.bend      what counting down covers
+#   proofs/leafenum.bend  a leaf enumerates exactly its members
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -76,6 +80,10 @@ import ./proofs/store.bend as PSt
 import ./proofs/machine.bend as PMa
 import ./proofs/traverse.bend as PTv
 import ./proofs/parse.bend as PPa
+import ./proofs/split_add.bend as PSa
+import ./proofs/decr.bend as PDe
+import ./proofs/span.bend as PSn
+import ./proofs/leafenum.bend as PLe
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -501,3 +509,23 @@ def Laws.an_accepted_object_id_had_its_full_width(f, bs, ok):
 
 def Laws.an_accepted_record_had_its_declared_size(oid, k, n, bs, ok):
   PPa.Parse.a_record_fits_its_declared_size(oid, k, n, bs, ok)
+
+def Laws.adding_into_free_bits_is_setting_them(y, b, k, hy, lb):
+  PSa.U32.add_disjoint(y, b, k, hy, lb)
+
+def Laws.a_word_is_its_low_bits_or_its_high_bits(x, k):
+  PSa.U32.or_split(x, k)
+
+def Laws.subtracting_one_is_one_less(x, pos):
+  PDe.U32.dec_spec(x, pos)
+
+def Laws.counting_down_reaches_every_ordinal_in_the_span(k, eq, ord, x,
+  eeq, le, g):
+  PSn.Ords.in_down_of_span(k, eq, ord, x, eeq, le, g)
+
+def Laws.counting_down_reaches_nothing_else(k, eq, ord, x, eeq, nowrap,
+  ok):
+  PSn.Ords.span_of_in_down(k, eq, ord, x, eeq, nowrap, ok)
+
+def Laws.a_leaf_enumerates_exactly_its_members(s, y, inr, ok):
+  PLe.PSet.leaf_members_mem(s, y, inr, ok)

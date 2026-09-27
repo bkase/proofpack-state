@@ -72,6 +72,11 @@ import ./query/eval.bend as Qe
 import ./proofs/machine.bend as Ma
 import ./proofs/traverse.bend as Tv
 import ./proofs/parse.bend as Pa
+import ./proofs/split_add.bend as Sa
+import ./proofs/decr.bend as De
+import ./proofs/span.bend as Sn
+import ./proofs/leafenum.bend as Le
+import ./proofs/shift.bend as Sf
 import ./adapters/git/bytes.bend as By
 import ./adapters/git/parse.bend as Gp
 import ./proofs/extensive.bend as Ex3
@@ -1928,3 +1933,83 @@ law an_accepted_record_had_its_declared_size:
   for +ok: {Pa.Parse.is_rec(Gp.Parse.recs.step.take(oid, k,
     By.Bytes.split(n, bs))) == True{} : Bool}
   {C.Nat.upto(n, List.length(&2, U32, bs)) == True{} : Bool}
+
+# ===========================================================================
+# The arithmetic the enumeration needs, and the leaf case of it.
+#
+# `List.contains(PSet.to_list(d, s), x) == PSet.member(d, s, x)` -- that a
+# set's enumeration agrees with its membership -- is the lemma several of the
+# remaining obligations share, and the one place the algebra needs `U32`
+# arithmetic rather than bit tests. These are the pieces of it that are
+# proved, and they stand on their own.
+#
+# Adding into free bits is setting them. Every addition the enumeration
+# performs has the same shape -- a value that fits in the low `k` bits, added
+# to a base whose low `k` bits are zero -- and for that shape the addition
+# carries nowhere. With the two masks that take the sum apart again, that is
+# what lets a walk ask "is this ordinal in this subtree, and where" as two bit
+# tests instead of a subtraction.
+#
+# Subtracting one is one less. The count-down a full interval enumerates with
+# needs it once per step. It is proved structurally, through the borrow,
+# because the obvious route -- `~1` is `2^32 - 2` -- needs a `Nat` literal
+# that size, and one that size does not normalise.
+#
+# Counting down covers exactly the span. Both directions; the second carries
+# the hypothesis that the count does not run past zero and wrap, which is not
+# decoration -- `range(2, 0, tail)` really does enumerate `0` and
+# `0xFFFFFFFF`.
+#
+# And the leaf case of the enumeration itself: a leaf enumerates exactly its
+# members, all four shapes. What remains is the tree above it.
+# ===========================================================================
+
+law adding_into_free_bits_is_setting_them:
+  for +y: U32
+  for +b: U32
+  for +k: Nat
+  for +hy: {Dc.U32.hi_zero(y, k) == True{} : Bool}
+  for +lb: {Sa.U32.lo_zero(b, k) == True{} : Bool}
+  {(y + b : U32) == U32.or(y, b) : U32}
+
+law a_word_is_its_low_bits_or_its_high_bits:
+  for +x: U32
+  for +k: Nat
+  {U32.or(U32.and(x, W.U32.mask(k)), W.U32.diff(x, W.U32.mask(k))) == x
+    : U32}
+
+law subtracting_one_is_one_less:
+  for +x: U32
+  for +pos: {C.Nat.gt(U32.to_nat(x), 0n) == True{} : Bool}
+  {U32.to_nat(U32.sub(x, 1)) == Nat.sub(U32.to_nat(x), 1n) : Nat}
+
+law counting_down_reaches_every_ordinal_in_the_span:
+  for +k: Nat
+  for +eq: Bool
+  for +ord: U32
+  for +x: U32
+  for +eeq: {eq == U32.is_eq(ord, x) : Bool}
+  for +le: {C.Nat.upto(U32.to_nat(x), U32.to_nat(ord)) == True{} : Bool}
+  for +g: {C.Nat.gt(Nat.add(U32.to_nat(x), k), U32.to_nat(ord))
+    == True{} : Bool}
+  {Sn.Ords.in_down(k, ord, x) == True{} : Bool}
+
+law counting_down_reaches_nothing_else:
+  for +k: Nat
+  for +eq: Bool
+  for +ord: U32
+  for +x: U32
+  for +eeq: {eq == U32.is_eq(ord, x) : Bool}
+  for +nowrap: {C.Nat.upto(k, 1n+U32.to_nat(ord)) == True{} : Bool}
+  for +ok: {Sn.Ords.in_down(k, ord, x) == True{} : Bool}
+  {Bool.and(C.Nat.upto(U32.to_nat(x), U32.to_nat(ord)),
+    C.Nat.gt(Nat.add(U32.to_nat(x), k), U32.to_nat(ord)))
+    == True{} : Bool}
+
+law a_leaf_enumerates_exactly_its_members:
+  for +s: S.PSet
+  for +y: U32
+  for +inr: {Dc.U32.hi_zero(y, 12n) == True{} : Bool}
+  for +ok: {Le.PSet.ok.leaf(s) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, S.PSet.leaf_members(s), y)
+    == S.PSet.mem.leaf(s, y) : Bool}
