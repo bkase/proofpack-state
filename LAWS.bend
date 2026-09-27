@@ -43,6 +43,7 @@ import ./proofs/adder.bend as Ad
 import ./proofs/enum.bend as En
 import ./proofs/collapse.bend as Co
 import ./closure/graph.bend as Gr
+import ./spec/closure.bend as Sp2
 import ./closure/reach.bend as Re
 import ./closure/explain.bend as Ex
 import ./core/trie.bend as Tr
@@ -957,3 +958,25 @@ law subtracting_an_empty_set_changes_nothing:
   for +z: {S.PSet.empty_p(20n, b) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
     == S.PSet.member(20n, a, x) : Bool}
+
+# ===========================================================================
+# C-03, in part -- closing nothing gives nothing.
+#
+# SPEC 3.3 defines the closure as the least fixed point of `X |-> X u
+# post(X)` started from the roots. Closing the empty set gives the empty set:
+# there is no member to follow an edge from, so every round leaves it where
+# it was. This is what licenses `query/rewrite.bend` to rewrite
+# `Reach(Empty)` to `Empty` without traversing.
+#
+# The rest of C-03 -- extensivity, monotonicity, idempotence and union
+# preservation -- is still open, and `LAWS.pending.bend` says what it needs:
+# the subset test related to membership, which needs the set-level fused
+# count.
+# ===========================================================================
+
+law closing_nothing_gives_nothing:
+  for +n: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +p: Nat
+  {Sp2.Spec.closure(n, td, g, 1n+p, S.PZero{}) == S.PZero{} : S.PSet}

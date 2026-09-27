@@ -37,6 +37,8 @@ The proofs cover:
 | `E-01` | of a produced dependency witness: every step is a real policy edge, and it ends at the object asked about. That it *starts* at a root depends on the levels being a genuine BFS layering, which is `C-02` |
 | `S-02` | set difference, union and intersection are pointwise at the production depth, for structurally valid operands and every `U32` ordinal |
 | `S-03` | compression changes no member, whichever of its four representations it picks |
+| `S-04` | the emptiness test only accepts a set with no members, and the three admitted Boolean rewrites follow |
+| `C-03` (part) | closing the empty set gives the empty set |
 | addressing | an ordinal is below a power of two exactly when it fits in that many bits; rebasing into a node's upper half keeps it inside the child; the tile address is injective; a bit index is below a word's width; `U32` addition adds when neither operand is large; the enumeration walk and the tile address name the same positions |
 
 `LAWS.pending.bend` states, in the same syntax, the obligations this release

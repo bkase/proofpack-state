@@ -36,6 +36,7 @@
 #   proofs/leafops.bend   the leaf operations are pointwise
 #   proofs/setops.bend    the set operations are pointwise
 #   proofs/empty.bend     an empty set has no members
+#   proofs/closure.bend   closing nothing gives nothing
 
 import Base
 import ./LAWS.bend as Laws
@@ -67,6 +68,7 @@ import ./proofs/walk.bend as PWk
 import ./proofs/leafops.bend as PLo
 import ./proofs/setops.bend as PSo
 import ./proofs/empty.bend as PEm
+import ./proofs/closure.bend as PCl
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -284,3 +286,6 @@ def Laws.intersection_with_an_empty_set_is_empty(a, b, x, va, vb, z):
 
 def Laws.subtracting_an_empty_set_changes_nothing(a, b, x, va, vb, z):
   PEm.PSet.diff_empty_right(a, b, x, va, vb, z)
+
+def Laws.closing_nothing_gives_nothing(n, td, g, p):
+  PCl.Spec.closure_empty(n, td, g, p)

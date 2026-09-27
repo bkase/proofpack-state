@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 14 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 3 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 10 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 14 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 4 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 9 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -158,11 +158,13 @@
    "depends_on": [
     "C-01"
    ],
-   "status": "specified_checked_at_runtime",
+   "status": "partially_proved",
    "production_symbol": null,
-   "proof_symbol": null,
-   "stated_in": "LAWS.pending.bend",
-   "backed_by": "tests.bend: union preservation, extensivity, idempotence and closure-of-empty on the counterexample graph."
+   "proof_symbol": "Spec.closure_empty (proofs/closure.bend)",
+   "stated_in": "LAWS.bend (empty preservation) and LAWS.pending.bend (the rest)",
+   "backed_by": "tests.bend: union preservation, extensivity, idempotence and closure-of-empty on the counterexample graph.",
+   "proved_part": "Closing the empty set gives the empty set, which is what licenses rewriting Reach(Empty) to Empty without traversing.",
+   "gap": "Extensivity, monotonicity, idempotence and union preservation. All four need the subset test related to membership -- PSet.is_subset is a count, so it needs the set-level fused count and the fact that a zero count means no members. The tile-level fused count is proved (Q-02); the set-level one is not."
   },
   {
    "id": "C-04",
