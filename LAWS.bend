@@ -859,3 +859,29 @@ law the_leaf_intersection_is_pointwise:
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.inter.leaf(a, b), x)
     == Bool.and(S.PSet.mem.leaf(a, x), S.PSet.mem.leaf(b, x)) : Bool}
+
+# ===========================================================================
+# S-02 -- set difference is pointwise.
+#
+# The one the product's central question is made of: `Missing = Required \
+# Have`. Everything it needs is proved above -- the tile kernel is pointwise,
+# a valid leaf agrees with its tile, compression changes no member, the
+# Zero/Full collapses preserve membership, and the descent carries an ordinal
+# into a child correctly -- and this is the induction that runs them down the
+# tree.
+#
+# Stated at the depth the product runs at. `Idx.sd()` is 20, and a depth-20
+# tree covers 4096 * 2^20 = 2^32 ordinals, so every `U32` is in range and no
+# hypothesis about the ordinal survives. What remains is the structural
+# invariant, which every stored generation is checked against on load.
+# ===========================================================================
+
+law set_difference_is_pointwise:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
+    == Bool.and(S.PSet.member(20n, a, x),
+         Bool.not(S.PSet.member(20n, b, x))) : Bool}

@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 56 laws in `LAWS.bend`, discharged by `PROOF.bend`,
+**What is proved.** 57 laws in `LAWS.bend`, discharged by `PROOF.bend`,
 covering the word kernel, the tile kernel, the fused count, the statistics
 monoid, the least-missing theorem, the checked accumulator, the persistent
 insert (`P-01`, in full at the depth the product runs at), the tree-data row

@@ -34,6 +34,7 @@
 #   proofs/faithful.bend  a valid leaf and its tile agree
 #   proofs/walk.bend      the walk and the address agree
 #   proofs/leafops.bend   the leaf operations are pointwise
+#   proofs/setops.bend    the set operations are pointwise
 
 import Base
 import ./LAWS.bend as Laws
@@ -63,6 +64,7 @@ import ./proofs/compress.bend as PCp
 import ./proofs/faithful.bend as PFa
 import ./proofs/walk.bend as PWk
 import ./proofs/leafops.bend as PLo
+import ./proofs/setops.bend as PSo
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -259,3 +261,6 @@ def Laws.the_leaf_union_is_pointwise(a, b, x, va, vb, inr):
 
 def Laws.the_leaf_intersection_is_pointwise(a, b, x, va, vb, inr):
   PLo.PSet.inter_leaf_pointwise(a, b, x, va, vb, inr)
+
+def Laws.set_difference_is_pointwise(a, b, x, va, vb):
+  PSo.PSet.diff_member(a, b, x, va, vb)
