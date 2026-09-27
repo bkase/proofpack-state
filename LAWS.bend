@@ -61,6 +61,7 @@ import ./query/ast.bend as A
 import ./query/rewrite.bend as Rw
 import ./spec/query.bend as Q
 import ./proofs/denote.bend as Dn
+import ./proofs/extensive.bend as Ex2
 import ./proofs/missing.bend as M
 
 # ===========================================================================
@@ -1300,3 +1301,35 @@ law every_denotation_is_well_shaped:
   for +e: A.SetExpr
   for +ok: {Dn.SetExpr.wf_lits(e) == True{} : Bool}
   {Sh.PSet.wf(20n, Q.Den.eval(src, e), True{}) == True{} : Bool}
+
+# ===========================================================================
+# C-03, in part -- the closure contains what it closes.
+#
+# SPEC 3.3's closure is extensive. The registry states that with
+# `PSet.is_subset`, which is a count rather than a membership test, and
+# relating a count to membership needs the set-level fused-count theorem this
+# release has not written. Stated pointwise -- every member of the roots is a
+# member of the closure -- it needs none of that, and it is the form every
+# other set law here is stated in.
+#
+# One round plus induction on the fuel does it: a round is `X u post(X)`, and
+# union is pointwise, so a member of `X` survives whatever `post` contributed.
+#
+# This is the half of extensivity that matters for the optimizer, which needs
+# to know a closure never loses a root. The `is_subset` form, and the other
+# three closure properties -- edge-closure, idempotence and union preservation
+# -- are still open, and LAWS.pending.bend says why: all three are statements
+# about the *fixed point* rather than about a round, so they need the argument
+# that the iteration is stable after `n` rounds.
+# ===========================================================================
+
+law the_closure_contains_every_member_of_its_roots:
+  for +n: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +x: U32
+  for +v: {Sh.PSet.wf(20n, r, True{}) == True{} : Bool}
+  for +m: {S.PSet.member(20n, r, x) == True{} : Bool}
+  {S.PSet.member(20n, Sp2.Spec.closure(n, td, g, 20n, r), x)
+    == True{} : Bool}

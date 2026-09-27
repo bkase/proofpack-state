@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 82 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 83 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -82,8 +82,8 @@ the set algebra itself:
 
 Partly proved, with the remaining half stated precisely: `G-02` (the
 tree-data filter at a row), `E-01` (two of the three parts of a dependency
-witness), `C-03` (closing nothing gives nothing, now pointwise as well as at
-`PZero`), `C-04` (what an accepted certificate means), `U-01` (the lookup
+witness), `C-03` (closing nothing gives nothing, pointwise as well as at
+`PZero`, and the closure contains every member of its roots), `C-04` (what an accepted certificate means), `U-01` (the lookup
 round trip; injectivity is open), `Q-01` (every rewrite; the whole pass is
 open), `D-01` (what structural validity rules out). Section 4 below lists each law with the optimization it
 unlocks.

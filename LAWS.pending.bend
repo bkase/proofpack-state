@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 11. That count is the point of the file, so the command "failing"
+# currently 12. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -155,6 +155,11 @@ law the_traversal_returns_the_specification_closure:
         Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
         x) : Bool}
 
+# Extensivity is proved, pointwise, and lives in LAWS.bend as
+# `the_closure_contains_every_member_of_its_roots`. The `is_subset` form
+# below is the same claim counted rather than tested, and it stays open for
+# the reason C-03's remaining properties do: `PSet.is_subset` is a count, and
+# relating a count to membership needs the set-level fused-count theorem.
 law closure_contains_its_roots:
   for +n: Nat
   for +td: Nat
@@ -162,6 +167,24 @@ law closure_contains_its_roots:
   for +sd: Nat
   for +r: S.PSet
   {S.PSet.is_subset(sd, r, Sp.Spec.closure(n, td, g, sd, r))
+    == True{} : Bool}
+
+# Edge-closure, in the pointwise form the rest of LAWS.bend is written in --
+# no `is_subset`, so this one is not waiting on the count. It is waiting on
+# the fixed point: the iteration is edge-closed only once it is stable, and
+# that it is stable after `n` rounds is C-01, which needs a pigeonhole
+# argument over the universe this release has not written.
+law closure_is_edge_closed_at_every_edge:
+  for +n: Nat
+  for +td: Nat
+  for +g: G.Graph()
+  for +r: S.PSet
+  for +u: U32
+  for +v: U32
+  for +mu: {S.PSet.member(20n, Sp.Spec.closure(n, td, g, 20n, r), u)
+    == True{} : Bool}
+  for +e: {G.Graph.edge(td, g, u, v) == True{} : Bool}
+  {S.PSet.member(20n, Sp.Spec.closure(n, td, g, 20n, r), v)
     == True{} : Bool}
 
 law closure_is_edge_closed:

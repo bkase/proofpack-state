@@ -44,6 +44,7 @@
 #   proofs/nothing.bend   an empty set enumerates to nothing
 #   proofs/denote.bend    every denotation is well shaped
 #   proofs/rewrite.bend   every admitted query rewrite keeps the denotation
+#   proofs/extensive.bend the closure contains what it closes
 #   proofs/trie.bend      a trie reads back what was written
 #   proofs/intern.bend    interning an id and finding it again
 
@@ -54,6 +55,7 @@ import ./proofs/preserve.bend as PPr
 import ./proofs/nothing.bend as PNo
 import ./proofs/denote.bend as PDn
 import ./proofs/rewrite.bend as PRw
+import ./proofs/extensive.bend as PEx
 import ./proofs/trie.bend as PTr
 import ./proofs/intern.bend as PIn
 import ./proofs/nat.bend as N
@@ -377,3 +379,7 @@ def Laws.simplifying_a_reachability_keeps_every_member(src, p, a, x):
 
 def Laws.every_denotation_is_well_shaped(src, e, ok):
   PDn.Eval.wf(src, e, ok)
+
+def Laws.the_closure_contains_every_member_of_its_roots(n, td, g, r, x, v,
+  m):
+  PEx.Spec.closure_contains_its_roots(n, td, g, r, x, v, m)
