@@ -45,6 +45,7 @@ import ./proofs/collapse.bend as Co
 import ./closure/graph.bend as Gr
 import ./spec/closure.bend as Sp2
 import ./closure/reach.bend as Re
+import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
 import ./core/trie.bend as Tr
 import ./adapters/git/import.bend as Im
@@ -980,3 +981,64 @@ law closing_nothing_gives_nothing:
   for +g: Gr.Graph()
   for +p: Nat
   {Sp2.Spec.closure(n, td, g, 1n+p, S.PZero{}) == S.PZero{} : S.PSet}
+
+# ===========================================================================
+# C-04, restated -- what an accepted certificate means.
+#
+# SPEC 4.4's certificate is four conditions, and `pp git verify` runs all four
+# on every query. What this release cannot mechanise is their *meaning* --
+# that conditions 1 and 2 put `Reach(R)` inside `C`, and condition 3's
+# well-founded predecessor chains put `C` inside `Reach(R)`. That argument is
+# written out in `closure/cert.bend` and in `TRUST.md`, and it stays argued;
+# `LAWS.pending.bend` states it as the open claim.
+#
+# What is mechanised here is the other half, and it is the half a reader of
+# `pp git verify`'s output actually needs: acceptance really does establish
+# each of the four conditions, not some weaker conjunction. These four laws
+# can be read instead of the checker.
+# ===========================================================================
+
+law an_accepted_certificate_contains_the_roots:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  for +levels: Re.Levels
+  for +c: S.PSet
+  for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{} : Bool}
+  {S.PSet.is_subset(sd, S.PSet.from_list(sd, roots), c) == True{} : Bool}
+
+law an_accepted_certificate_is_edge_closed:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  for +levels: Re.Levels
+  for +c: S.PSet
+  for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{} : Bool}
+  {Sp2.Spec.closed(td, g, sd, c) == True{} : Bool}
+
+law an_accepted_certificate_matches_its_levels:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  for +levels: Re.Levels
+  for +c: S.PSet
+  for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{} : Bool}
+  {Ct.Cert.same(sd, S.PSet.from_list(sd,
+    Ct.Cert.concat(levels, Nil{})), c) == True{} : Bool}
+
+law an_accepted_certificate_has_layered_predecessors:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  for +levels: Re.Levels
+  for +c: S.PSet
+  for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{} : Bool}
+  {Ct.Cert.layers_ok(td, g, Ct.Cert.rest(levels),
+    Ct.Cert.first(levels, roots),
+    S.PSet.is_subset(sd, S.PSet.from_list(sd,
+      Ct.Cert.first(levels, roots)),
+      S.PSet.from_list(sd, roots))) == True{} : Bool}

@@ -37,6 +37,7 @@
 #   proofs/setops.bend    the set operations are pointwise
 #   proofs/empty.bend     an empty set has no members
 #   proofs/closure.bend   closing nothing gives nothing
+#   proofs/cert.bend      what an accepted certificate means
 
 import Base
 import ./LAWS.bend as Laws
@@ -69,6 +70,7 @@ import ./proofs/leafops.bend as PLo
 import ./proofs/setops.bend as PSo
 import ./proofs/empty.bend as PEm
 import ./proofs/closure.bend as PCl
+import ./proofs/cert.bend as PCe
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -289,3 +291,19 @@ def Laws.subtracting_an_empty_set_changes_nothing(a, b, x, va, vb, z):
 
 def Laws.closing_nothing_gives_nothing(n, td, g, p):
   PCl.Spec.closure_empty(n, td, g, p)
+
+def Laws.an_accepted_certificate_contains_the_roots(td, g, sd, roots,
+  levels, c, ok):
+  PCe.Cert.accepts_roots(td, g, sd, roots, levels, c, ok)
+
+def Laws.an_accepted_certificate_is_edge_closed(td, g, sd, roots, levels,
+  c, ok):
+  PCe.Cert.accepts_closed(td, g, sd, roots, levels, c, ok)
+
+def Laws.an_accepted_certificate_matches_its_levels(td, g, sd, roots,
+  levels, c, ok):
+  PCe.Cert.accepts_levels(td, g, sd, roots, levels, c, ok)
+
+def Laws.an_accepted_certificate_has_layered_predecessors(td, g, sd,
+  roots, levels, c, ok):
+  PCe.Cert.accepts_layers(td, g, sd, roots, levels, c, ok)
