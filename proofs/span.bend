@@ -599,3 +599,20 @@ def Ords.span_of_in_down(k, eq, ord, x, eeq, nowrap, ok):
                       Span.nowrap_pred(U32.to_nat(ord), i, nowrap)),
                     Span.or_false_left(U32.is_eq(ord, x),
                       Ords.in_down(1n+i, U32.sub(ord, 1), x), eeq, ok))))
+
+law Bool.or_assoc:
+  for +a: Bool
+  for +b: Bool
+  for +c: Bool
+  {Bool.or(a, Bool.or(b, c)) == Bool.or(Bool.or(a, b), c) : Bool}
+
+def Bool.or_assoc(a, b, c):
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      match b:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
