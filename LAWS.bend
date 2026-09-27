@@ -1537,3 +1537,78 @@ law the_projection_contains_only_ordinals_the_table_named:
     Iv.Inventory.present(Iv.Inv.project(u, oids)), x) == True{} : Bool}
   {List.contains(~U32, ~U32.is_eq,
     Iv2.Inv.ords(Ui2.Uni.table(u), oids), x) == True{} : Bool}
+
+# ===========================================================================
+# E-01, closed -- what a returned witness guarantees.
+#
+# Two of the three parts hold for a produced path with no hypothesis at all
+# and are proved above: every step is a real policy edge, because the
+# predecessor search only returns a vertex it has just tested `Graph.edge`
+# on, and the path ends at the object asked about, because the walk starts
+# there and only prepends.
+#
+# The third -- that it *starts* at a requested root -- does not hold of the
+# producer alone: it depends on the levels being a genuine breadth-first
+# layering, which is obligation C-02, and a walk over levels that are not
+# such a layering can stop early. That is exactly why `closure/explain.bend`
+# checks rather than trusts, and why `pp git explain` runs `Explain.valid` on
+# the witness it is about to print and exits non-zero when it fails.
+#
+# So E-01 is stated here the way the product guarantees it: about a witness
+# that is *returned*, not about the producer. A returned witness passed the
+# check, and these laws say what passing means, part by part.
+#
+# The last two are not the checker restated. `Explain.steps_ok` folds over
+# the path with an accumulator; they unfold that fold into what a reader
+# wants -- the first pair is an edge, and what follows is again a checked
+# path -- so "every step is a policy edge" follows by walking the list.
+# ===========================================================================
+
+law an_accepted_witness_starts_at_a_requested_root:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +u: U32
+  for +rest: List<&2, U32>
+  for +target: U32
+  for +ok: {Ex.Explain.valid(td, g, roots, Con{u, rest}, target)
+    == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, roots, u) == True{} : Bool}
+
+law an_accepted_witness_ends_at_the_object_asked_about:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +path: List<&2, U32>
+  for +target: U32
+  for +ok: {Ex.Explain.valid(td, g, roots, path, target) == True{} : Bool}
+  {Ex.Explain.last_is(path, target) == True{} : Bool}
+
+law an_accepted_witness_takes_an_edge_at_every_step:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +u: U32
+  for +v: U32
+  for +rest: List<&2, U32>
+  for +ok: {Ex.Explain.steps_ok(td, g, Con{u, Con{v, rest}}, True{})
+    == True{} : Bool}
+  {Gr.Graph.edge(td, g, u, v) == True{} : Bool}
+
+law the_rest_of_an_accepted_witness_is_accepted:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +u: U32
+  for +v: U32
+  for +rest: List<&2, U32>
+  for +ok: {Ex.Explain.steps_ok(td, g, Con{u, Con{v, rest}}, True{})
+    == True{} : Bool}
+  {Ex.Explain.steps_ok(td, g, Con{v, rest}, True{}) == True{} : Bool}
+
+law an_accepted_witness_is_checked_end_to_end:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +path: List<&2, U32>
+  for +target: U32
+  for +ok: {Ex.Explain.valid(td, g, roots, path, target) == True{} : Bool}
+  {Ex.Explain.steps_ok(td, g, path, True{}) == True{} : Bool}

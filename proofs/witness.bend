@@ -193,3 +193,143 @@ def Explain.walk_ends_at_target(td, g, rev, target, p):
     Explain.walk_last(td, g, rev, target, Nil{}, p))
     : {X.Explain.last_is.un(_, target) == True{} : Bool}
   E.U32.is_eq_refl(target)
+
+# ---------------------------------------------------------------------------
+# What passing the check means.
+#
+# `pp git explain` runs `Explain.valid` on the witness it is about to print
+# and exits non-zero when it fails (`Cmd.explain.exit`), so a witness that is
+# *returned* is a witness that passed. These laws say what that buys, part by
+# part, so that a reader of the output can read them instead of reading the
+# checker -- and the third of them is E-01's remaining part, in the form the
+# product actually guarantees it: not "the producer always gets it right",
+# but "what comes back begins at a requested root".
+#
+# The step law is not the checker restated. `Explain.steps_ok` folds over the
+# path with an accumulator; these two unfold that fold into the statement a
+# reader wants -- the first pair is an edge, and the rest is again a checked
+# path -- so "every step is a policy edge" follows by walking the list.
+# ---------------------------------------------------------------------------
+
+law Explain.accepts_first:
+  for +td: Nat
+  for +g: G.Graph()
+  for +roots: List<&2, U32>
+  for +path: List<&2, U32>
+  for +target: U32
+  for +ok: {X.Explain.valid(td, g, roots, path, target) == True{} : Bool}
+  {X.Explain.first_in(path, roots) == True{} : Bool}
+
+def Explain.accepts_first(td, g, roots, path, target, ok):
+  E.Bool.and_l(X.Explain.first_in(path, roots),
+    Bool.and(X.Explain.last_is(path, target),
+      X.Explain.steps_ok(td, g, path, True{})), ok)
+
+law Explain.accepts_root_head:
+  for +td: Nat
+  for +g: G.Graph()
+  for +roots: List<&2, U32>
+  for +u: U32
+  for +rest: List<&2, U32>
+  for +target: U32
+  for +ok: {X.Explain.valid(td, g, roots, Con{u, rest}, target)
+    == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, roots, u) == True{} : Bool}
+
+def Explain.accepts_root_head(td, g, roots, u, rest, target, ok):
+  Explain.accepts_first(td, g, roots, Con{u, rest}, target, ok)
+
+law Explain.accepts_last:
+  for +td: Nat
+  for +g: G.Graph()
+  for +roots: List<&2, U32>
+  for +path: List<&2, U32>
+  for +target: U32
+  for +ok: {X.Explain.valid(td, g, roots, path, target) == True{} : Bool}
+  {X.Explain.last_is(path, target) == True{} : Bool}
+
+def Explain.accepts_last(td, g, roots, path, target, ok):
+  E.Bool.and_l(X.Explain.last_is(path, target),
+    X.Explain.steps_ok(td, g, path, True{}),
+    E.Bool.and_r(X.Explain.first_in(path, roots),
+      Bool.and(X.Explain.last_is(path, target),
+        X.Explain.steps_ok(td, g, path, True{})), ok))
+
+law Explain.accepts_steps:
+  for +td: Nat
+  for +g: G.Graph()
+  for +roots: List<&2, U32>
+  for +path: List<&2, U32>
+  for +target: U32
+  for +ok: {X.Explain.valid(td, g, roots, path, target) == True{} : Bool}
+  {X.Explain.steps_ok(td, g, path, True{}) == True{} : Bool}
+
+def Explain.accepts_steps(td, g, roots, path, target, ok):
+  E.Bool.and_r(X.Explain.last_is(path, target),
+    X.Explain.steps_ok(td, g, path, True{}),
+    E.Bool.and_r(X.Explain.first_in(path, roots),
+      Bool.and(X.Explain.last_is(path, target),
+        X.Explain.steps_ok(td, g, path, True{})), ok))
+
+# The fold, unfolded: a checked path takes an edge first and stays checked.
+law Explain.checked_edge:
+  for +td: Nat
+  for +g: G.Graph()
+  for +u: U32
+  for +v: U32
+  for +rest: List<&2, U32>
+  for +ok: {X.Explain.steps_ok(td, g, Con{u, Con{v, rest}}, True{})
+    == True{} : Bool}
+  {G.Graph.edge(td, g, u, v) == True{} : Bool}
+
+law Explain.steps_start:
+  for +td: Nat
+  for +g: G.Graph()
+  for +v: U32
+  for +rest: List<&2, U32>
+  for +e: Bool
+  for +ok: {X.Explain.steps_ok(td, g, Con{v, rest}, e) == True{} : Bool}
+  {e == True{} : Bool}
+
+law Explain.steps_false:
+  for +td: Nat
+  for +g: G.Graph()
+  for +path: List<&2, U32>
+  for +ok: {X.Explain.steps_ok(td, g, path, False{}) == True{} : Bool}
+  {False{} == True{} : Bool}
+
+def Explain.steps_false(td, g, path, ok):
+  match path:
+    case Nil{}:
+      ok
+    case Con{u, t}:
+      match t:
+        case Nil{}:
+          ok
+        case Con{v, rest}:
+          ok
+
+def Explain.steps_start(td, g, v, rest, e, ok):
+  match e:
+    case True{}:
+      {==}
+    case False{}:
+      Explain.steps_false(td, g, Con{v, rest}, ok)
+
+def Explain.checked_edge(td, g, u, v, rest, ok):
+  Explain.steps_start(td, g, v, rest, G.Graph.edge(td, g, u, v), ok)
+
+law Explain.checked_rest:
+  for +td: Nat
+  for +g: G.Graph()
+  for +u: U32
+  for +v: U32
+  for +rest: List<&2, U32>
+  for +ok: {X.Explain.steps_ok(td, g, Con{u, Con{v, rest}}, True{})
+    == True{} : Bool}
+  {X.Explain.steps_ok(td, g, Con{v, rest}, True{}) == True{} : Bool}
+
+def Explain.checked_rest(td, g, u, v, rest, ok):
+  %Explain.checked_edge(td, g, u, v, rest, ok)
+    : {X.Explain.steps_ok(td, g, Con{v, rest}, _) == True{} : Bool}
+  ok

@@ -421,3 +421,22 @@ def Laws.a_set_built_from_a_list_has_only_the_ordinals_on_it(xs, x, ok):
 def Laws.the_projection_contains_only_ordinals_the_table_named(u, oids, x,
   ok):
   PIv.Inv.project_only(u, oids, x, ok)
+
+def Laws.an_accepted_witness_starts_at_a_requested_root(td, g, roots, u,
+  rest, target, ok):
+  PWit.Explain.accepts_root_head(td, g, roots, u, rest, target, ok)
+
+def Laws.an_accepted_witness_ends_at_the_object_asked_about(td, g, roots,
+  path, target, ok):
+  PWit.Explain.accepts_last(td, g, roots, path, target, ok)
+
+def Laws.an_accepted_witness_takes_an_edge_at_every_step(td, g, u, v, rest,
+  ok):
+  PWit.Explain.checked_edge(td, g, u, v, rest, ok)
+
+def Laws.the_rest_of_an_accepted_witness_is_accepted(td, g, u, v, rest, ok):
+  PWit.Explain.checked_rest(td, g, u, v, rest, ok)
+
+def Laws.an_accepted_witness_is_checked_end_to_end(td, g, roots, path,
+  target, ok):
+  PWit.Explain.accepts_steps(td, g, roots, path, target, ok)

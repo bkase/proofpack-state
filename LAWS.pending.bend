@@ -251,6 +251,28 @@ law an_accepted_certificate_means_an_exact_closure:
         x) : Bool}
 
 # ===========================================================================
+# E-01 -- the reachability witness.
+#
+# Closed, in the form the product guarantees it. Two of the three parts hold
+# of a produced path with no hypothesis and are proved in LAWS.bend; the
+# third -- that it starts at a requested root -- does not hold of the
+# producer alone, because it depends on the levels being a genuine
+# breadth-first layering, which is C-02.
+#
+# That is why `closure/explain.bend` checks rather than trusts, and why
+# `pp git explain` runs `Explain.valid` on the witness it is about to print
+# and exits non-zero when it fails. So the obligation is stated about a
+# witness that is *returned* -- `an_accepted_witness_starts_at_a_requested_
+# root` and its three siblings say what passing the check means, part by
+# part, with the step fold unfolded so that "every step is a policy edge"
+# follows by walking the list rather than by trusting the checker.
+#
+# The law below is the producer-side claim -- that the path the walk builds
+# always passes without being checked. It stays open, and it is not what any
+# `pp` output rests on.
+# ===========================================================================
+
+# ===========================================================================
 # E-01 -- the third part of a dependency witness.
 #
 # Two of SPEC 4.4's three parts are proved and live in LAWS.bend: every step
