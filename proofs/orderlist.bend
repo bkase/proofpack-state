@@ -379,3 +379,37 @@ def Ords.lt_all_trans(t, y, h, lt, la):
             Ords.lt_value(y, h, lt))),
         Ords.lt_all_trans(u, y, h, lt,
           E.Bool.and_r(U32.is_lt(h, z), Ords.lt_all(h, u), la)))
+
+law U32.lt_of_cmp_gt:
+  for +x: U32
+  for +y: U32
+  for +e: {U32.cmp(x, y) == GT{} : Cmp}
+  {U32.is_lt(y, x) == True{} : Bool}
+
+def Cmp.nat_of_u32_gt(+x: U32, +y: U32,
+  +e: {U32.cmp(x, y) == GT{} : Cmp})
+  -> {Nat.cmp(U32.to_nat(x), U32.to_nat(y)) == GT{} : Cmp}:
+  %Or.U32.cmp_spec(x, y)
+    : {_ == GT{} : Cmp}
+  e
+
+def U32.lt_of_cmp_gt(x, y, e):
+  U32.lt_of_nat(y, x,
+    Nat.cmp_gt_gt(U32.to_nat(x), U32.to_nat(y),
+      Cmp.nat_of_u32_gt(x, y, e)))
+
+law U32.eq_of_cmp_eq:
+  for +x: U32
+  for +y: U32
+  for +e: {U32.cmp(x, y) == EQ{} : Cmp}
+  {x == y : U32}
+
+def U32.is_eq_of_cmp(+x: U32, +y: U32,
+  +e: {U32.cmp(x, y) == EQ{} : Cmp})
+  -> {U32.is_eq(x, y) == True{} : Bool}:
+  %E.Cmp.sym(U32.cmp(x, y), EQ{}, e)
+    : {Cmp.is_eq(_) == True{} : Bool}
+  {==}
+
+def U32.eq_of_cmp_eq(x, y, e):
+  E.U32.eq_reflect(x, y, U32.is_eq_of_cmp(x, y, e))

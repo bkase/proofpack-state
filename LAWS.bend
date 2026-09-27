@@ -80,6 +80,7 @@ import ./proofs/treeenum.bend as Te
 import ./proofs/validshape.bend as Vs
 import ./proofs/nonempty.bend as Wt
 import ./proofs/orderlist.bend as Ol
+import ./core/ords.bend as Or3
 import ./proofs/shift.bend as Sh2
 import ./proofs/shift.bend as Sf
 import ./adapters/git/bytes.bend as By
@@ -2286,3 +2287,13 @@ law a_tile_lists_its_ordinals_in_order:
   for +len: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{}
     : Bool}
   {Ol.Ords.asc(Wo.Words.members(ws, 0)) == True{} : Bool}
+
+law the_merge_difference_holds_exactly_what_it_should:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +x: U32
+  for +aa: {Ol.Ords.asc(a) == True{} : Bool}
+  for +ab: {Ol.Ords.asc(b) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, Or3.Ords.diff(a, b), x)
+    == Bool.and(List.contains(~U32, ~U32.is_eq, a, x),
+         Bool.not(List.contains(~U32, ~U32.is_eq, b, x))) : Bool}

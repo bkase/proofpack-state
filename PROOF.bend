@@ -70,6 +70,7 @@
 #   proofs/fusedlen.bend  the fused count is the length of the fused list
 #   proofs/orderlist.bend ascending and descending lists of ordinals
 #   proofs/tileorder.bend the tile walk emits ordinals in order
+#   proofs/merge.bend     what the merge-based difference contains
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -112,6 +113,7 @@ import ./proofs/countlen.bend as PCn
 import ./proofs/fusedlen.bend as PFl
 import ./proofs/orderlist.bend as POl
 import ./proofs/tileorder.bend as PTo
+import ./proofs/merge.bend as PMg
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -637,3 +639,7 @@ def Laws.the_fused_count_is_the_length_of_the_fused_list(d, a, b, lt):
 
 def Laws.a_tile_lists_its_ordinals_in_order(ws, len):
   PTo.Ords.asc_members(ws, len)
+
+def Laws.the_merge_difference_holds_exactly_what_it_should(a, b, x, aa,
+  ab):
+  PMg.Ords.diff_contains(a, b, x, aa, ab)
