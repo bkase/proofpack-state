@@ -2033,3 +2033,17 @@ law an_interval_forces_the_subtree_test:
   for +hi: {C.Nat.gt(Nat.add(U32.to_nat(base), Dc.Nat.pow2(k)),
     U32.to_nat(x)) == True{} : Bool}
   {U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) == True{} : Bool}
+
+law a_full_node_enumerates_its_interval:
+  for +k: Nat
+  for +base: U32
+  for +ord: U32
+  for +x: U32
+  for +tail: List<&2, U32>
+  for +lb: {Sa.U32.lo_zero(base, k) == True{} : Bool}
+  for +eo: {U32.to_nat(ord)
+    == Nat.sub(Nat.add(U32.to_nat(base), Dc.Nat.pow2(k)), 1n) : Nat}
+  {List.contains(~U32, ~U32.is_eq,
+    S.PSet.range(Dc.Nat.pow2(k), ord, tail), x)
+    == Bool.or(U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))),
+         List.contains(~U32, ~U32.is_eq, tail, x)) : Bool}
