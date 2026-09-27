@@ -524,10 +524,10 @@
  "gate": "tools/gate.sh",
  "public_laws": "LAWS.bend (proved) and LAWS.pending.bend (open claims)",
  "addressing_arithmetic": {
-  "note": "Two of the four are now proved, and they are the two the set tree descends on. A3 is what the sparse/dense bridge in S-02 and S-03 still needs. LAWS.pending.bend states them in full.",
+  "note": "Two and a half of the four are now proved, including both the set tree descends on. A3's remaining half is what the sparse/dense bridge in S-02 and S-03 still needs -- specifically the direction that reads a member out of a tile; the direction that puts one in is proved. LAWS.pending.bend states them in full.",
   "A1": "U32.is_lt agrees with the order on U32.to_nat. Open in general; the power-of-two case, which is the one the tree needs, is proved.",
   "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. PROVED, as `rebasing_into_the_upper_half_keeps_the_ordinal_in_range`, together with A1 in the form that matters (`an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits`). The half-width is always a power of two, which makes the whole question bitwise.",
-  "A3": "The tile address is injective: x is determined by x>>5 and x&31. Open.",
+  "A3": "The tile address x -> (x>>5, x&31) is injective. Half proved: `the_number_a_word_reads_as_determines_the_word` says a word is determined by the number it reads as. The other half -- reconstructing the ordinal from the two addresses -- needs that two words with the same bits are the same word, whose natural statement takes a hypothesis quantified over bit positions that Bend's affine values will not let an induction use twice. Open; proofs/inject.bend records the obstruction.",
   "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
   "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`."
  }

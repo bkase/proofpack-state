@@ -48,7 +48,8 @@ import ./query/eval.bend as Ev
 #
 #   A1  `U32.is_lt` agrees with the order on `U32.to_nat`.
 #
-#   A2  `U32.sub` is subtraction when it does not borrow -- concretely, that
+#   A2  (PROVED, in LAWS.bend) `U32.sub` is subtraction when it does not
+#       borrow -- concretely, that
 #       an ordinal inside a node's interval lands inside a child's interval:
 #       from `x < h + h` and not `x < h` it follows that `x - h < h`. This is
 #       what carries "the ordinal is in range" down one level of the tree, and
@@ -57,15 +58,22 @@ import ./query/eval.bend as Ev
 #
 #   A3  the tile address is injective: `x` is determined by `x >> 5` and
 #       `x & 31`. Needed to read a sparse leaf's offsets back out of the tile
-#       they were spread into -- the direction from a set bit to a member.
+#       they were spread into -- the direction from a set bit to a member; the
+#       direction from a member to a set bit is proved. Half of A3 is proved
+#       (`the_number_a_word_reads_as_determines_the_word`); the other half
+#       needs that two words with the same bits are the same word, and the
+#       natural statement of that takes a hypothesis quantified over bit
+#       positions, which Bend's affine values will not let an induction use
+#       twice. proofs/inject.bend records the obstruction.
 #
-#   A4  `x < 4096` implies `x >> 5 < 128`, so a 128-word tile has a word for
+#   A4  (PROVED, in proofs/descend.bend) `x < 4096` implies `x >> 5 < 128`, so a 128-word tile has a word for
 #       every ordinal of a leaf. The laws that need it carry it explicitly, as
 #       "the tile has the word this ordinal lives in".
 #
-# One of this family is proved: `a_bit_index_is_below_the_word_width` in
-# LAWS.bend, which is why `setting_a_bit_reads_it_back` needs no side
-# condition on the bit index.
+# Two and a half of these are now proved, including both the ones the set tree
+# descends on -- which is what let `P-01` close completely. What is left is
+# A3's second half, and it is what the sparse/dense bridge in S-02 and S-03
+# still needs.
 #
 # A second gap, independent of these, is a *counting* argument: `PSet.compress`
 # decides a leaf is `PFull` by finding 4096 set bits, and concluding from that

@@ -24,6 +24,7 @@
 #   proofs/witness.bend   what a dependency witness guarantees
 #   proofs/collapse.bend  the Zero/Full branch collapses
 #   proofs/descend.bend   carrying an ordinal down a level
+#   proofs/inject.bend    the numeric reading of a word is injective
 
 import Base
 import ./LAWS.bend as Laws
@@ -43,6 +44,7 @@ import ./proofs/leaf.bend as PLf
 import ./proofs/witness.bend as PWit
 import ./proofs/collapse.bend as PCo
 import ./proofs/descend.bend as PDc
+import ./proofs/inject.bend as PIj
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -187,3 +189,6 @@ def Laws.halving_a_half_width_moves_the_bit_down(k, ok):
 
 def Laws.inserting_adds_exactly_that_ordinal(s, x, v):
   PLf.PSet.mem_insert(s, x, v)
+
+def Laws.the_number_a_word_reads_as_determines_the_word(a, b, e):
+  PIj.U32.to_nat_inj(a, b, e)

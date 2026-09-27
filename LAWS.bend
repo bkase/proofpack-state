@@ -553,3 +553,28 @@ law inserting_adds_exactly_that_ordinal:
   for +x: U32
   for +v: {S.PSet.valid(20n, s, True{}) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.insert(20n, s, x), x) == True{} : Bool}
+
+# ===========================================================================
+# The numeric reading of a word determines the word.
+#
+# `Words.bit(ws, x)` addresses a tile by two numbers, `x >> 5` and `x & 31`,
+# both read through `U32.to_nat`. For a sparse leaf and the tile it spreads
+# into to have the same members, that address has to be injective -- two
+# different ordinals must not land on the same bit of the same word -- and
+# the first half of that is this law.
+#
+# The head bit of a word is the parity of its value and the tail is the
+# halved value, so an equality of numbers splits into an equality of bits and
+# an equality of tails. What separates the two halves is the one fact this
+# runtime's `Nat` does not ship: a doubled number is never one more than a
+# doubled number.
+#
+# The second half -- reconstructing the ordinal from the two addresses -- is
+# still open; `proofs/inject.bend` says exactly where it stops and why.
+# ===========================================================================
+
+law the_number_a_word_reads_as_determines_the_word:
+  for +a: U32
+  for +b: U32
+  for +e: {U32.to_nat(a) == U32.to_nat(b) : Nat}
+  {a == b : U32}
