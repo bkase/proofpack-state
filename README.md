@@ -56,13 +56,28 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 64 laws in `LAWS.bend`, discharged by `PROOF.bend`,
-covering the word kernel, the tile kernel, the fused count, the statistics
-monoid, the least-missing theorem, the checked accumulator, the persistent
-insert (`P-01`, in full at the depth the product runs at), the tree-data row
-filter, two of the three parts of a dependency witness, the Zero/Full branch
-collapses, and the addressing arithmetic the set tree descends on. Section 4
-below lists each with the optimization it unlocks.
+**What is proved.** 64 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+cover the word and tile kernels, the fused count, the statistics monoid, the
+least-missing theorem and the checked accumulator, and -- as of this release --
+the set algebra itself:
+
+* `S-02`: difference, union and intersection are pointwise at the production
+  depth, for structurally valid operands and every `U32` ordinal.
+* `S-03`: compression changes no member, whichever of its four
+  representations it picks.
+* `S-04`: the emptiness test only accepts a set with no members, so the three
+  admitted Boolean rewrites preserve membership.
+* `P-01`: inserting an ordinal leaves it present.
+* plus the addressing arithmetic all of that rests on -- that `U32` addition
+  adds, that a word is determined by the number it reads as, that the tile
+  address is injective, and that the enumeration walk and the tile address
+  name the same positions.
+
+Partly proved, with the remaining half stated precisely: `G-02` (the
+tree-data filter at a row), `E-01` (two of the three parts of a dependency
+witness), `C-03` (closing nothing gives nothing), `D-01` (what structural
+validity rules out). Section 4 below lists each law with the optimization it
+unlocks.
 
 Four of the laws in `LAWS.pending.bend` turned out to be **false** as first
 written -- each was missing the structural invariant `PSet.valid` states -- and
