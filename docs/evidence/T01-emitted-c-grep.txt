@@ -1,0 +1,13 @@
+917:INLINE Term term_keep(Env e, Term t, u32 k) {
+1117:  Term v = term_keep(e, w, 1);
+1200:    v[j] = term_keep(e, v[j], (1u << d) - 1);
+1336:INLINE Term spin_1(Env e, THR Term* o, Term r0, u32 r1, u32 r2) {
+1368:    if (spin_1(e, _o_0, 32ull, _x_0, 0ull) == 0) {
+1379:INLINE Term spin_3(Env e, THR Term* o, Term r0, Term r1, u32 r2) {
+1413:        WL_AGAIN(spin_3);
+1660:      if (spin_3(e, _o_1, _req_0, _inv_0, 0ull) == 0) {
+1669:        _req_0 = term_keep(e, _req_0, 1);
+1670:        _inv_0 = term_keep(e, _inv_0, 1);
+1684:      _req_0 = term_keep(e, _req_0, 1);
+1685:      _inv_0 = term_keep(e, _inv_0, 1);
+1853:    if (spin_3(e, _o_0, _h_2, _h_1, 0ull) == 0) {

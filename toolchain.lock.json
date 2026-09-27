@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "tool": "bend",
+  "version": "2.0.31",
+  "source": {
+    "repo": "https://github.com/bendlang/bend",
+    "revision": "af569d4826913b2ce3557e9829ccad31fcf86f94",
+    "revision_subject": "The flake names 2.0.31"
+  },
+  "artifacts": {
+    "aarch64-darwin": {
+      "url": "https://github.com/bendlang/bend/releases/download/v2.0.31/bend-2.0.31-darwin-arm64.tar.gz",
+      "sha256": "f7334bc36cba76a9d3484b092cf2f3d2ffc36f83cb939f2b142411a3a19e1bc4"
+    },
+    "x86_64-darwin": {
+      "url": "https://github.com/bendlang/bend/releases/download/v2.0.31/bend-2.0.31-darwin-x64.tar.gz",
+      "sha256": "ee2d6aca00ea4cca79213fdf653039b9a86262232586217432aa8c5ac71a869b"
+    },
+    "aarch64-linux": {
+      "url": "https://github.com/bendlang/bend/releases/download/v2.0.31/bend-2.0.31-linux-arm64.tar.gz",
+      "sha256": "c20ffee201e94b0a6ee6d52008e69379286cf546089b38d5bac09189f2667ed1"
+    },
+    "x86_64-linux": {
+      "url": "https://github.com/bendlang/bend/releases/download/v2.0.31/bend-2.0.31-linux-x64.tar.gz",
+      "sha256": "f7dbecc8ef5991fe15d9953b8b33911bc62a120c735e2e5902aa031e22055bad"
+    }
+  },
+  "sha256_provenance": "Recorded in the pinned revision's flake.nix; re-verified against the downloaded archive by tools/bootstrap.sh.",
+  "notes": [
+    "The sha256 values come from the pinned revision's own flake.nix. Pinning is a reproducibility choice: it is not a claim that this revision was independently audited.",
+    "The C effects in host/ compile against this exact runtime. Bend's effect ABI is internal and unversioned; rebuild host effects on every toolchain bump."
+  ]
+}

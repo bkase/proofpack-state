@@ -1,0 +1,11 @@
+# Pinned toolchain artifact (fetched by tools/bootstrap.sh, verified by sha256)
+.toolchain/
+
+# Build outputs
+build/
+*.gpu
+*.bendtt
+PROOF.bendtt
+
+# Local scratch
+.scratch/

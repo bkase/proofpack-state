@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Invoke the pinned Bend toolchain. Never uses a bend on PATH.
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ver="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$root/toolchain.lock.json" | head -1)"
+bin="$root/.toolchain/bend-$ver/bend/bin/bend"
+if [ ! -x "$bin" ]; then
+  echo "tools/bend: pinned toolchain missing; run tools/bootstrap.sh" >&2
+  exit 2
+fi
+exec "$bin" "$@"

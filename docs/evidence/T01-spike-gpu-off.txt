@@ -1,0 +1,13 @@
+# T01 substrate spike -- 2^16 leaves x 128 words
+# = 8388608 U32 words = 268435456 bits scanned per trial
+owned.cpu  sum=68952480  ms=17
+owned.gpu  sum=68952480  ms=15
+owned.cpu  sum=68952480  ms=15
+owned.gpu  sum=68952480  ms=14
+shared.cpu sum=74383360  ms=183
+shared.gpu sum=74383360  ms=183
+shared.cpu sum=74383360  ms=183
+shared.gpu sum=74383360  ms=179
+# A-vs-A noise control
+owned.cpu  sum=68952480  ms=14
+owned.cpu  sum=68952480  ms=21

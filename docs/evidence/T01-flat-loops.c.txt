@@ -1,0 +1,95 @@
+INLINE Term spin_1(Env e, THR Term* o, Term r0, u32 r1, u32 r2) {
+  u32 wpoll = 0;
+  u32 _v_1 = 0;
+  Term _k_0 = r0;
+  u32 _x_1 = r1;
+  u32 _acc_0 = r2;
+  WL_SPIN
+    if (_k_0 == 0) {
+      _v_1 = _acc_0;
+    } else {
+      Term _p_0 = (_k_0 - 1);
+      r0 = _p_0;
+      r1 = U32_BIN(_x_1, >>, 1);
+      r2 = U32_BIN(_acc_0, +, U32_BIN(_x_1, &, 1ull));
+      _k_0 = r0;
+      _x_1 = r1;
+      _acc_0 = r2;
+      WL_AGAIN(spin_1);
+    }
+  break;
+  }
+  o[0] = _v_1;
+  return 1;
+}
+
+INLINE Term spin_2(Env e, THR Term* o, u32 r0) {
+  u32 wpoll = 0;
+  u32 _v_2 = 0;
+  u32 _x_0 = r0;
+  WL_SPIN
+    u32 _v_3 = 0;
+    Term _o_0[1];
+    if (spin_1(e, _o_0, 32ull, _x_0, 0ull) == 0) {
+      return 0;
+    }
+    _v_3 = _o_0[0];
+    _v_2 = _v_3;
+  break;
+  }
+  o[0] = _v_2;
+  return 1;
+}
+
+INLINE Term spin_3(Env e, THR Term* o, Term r0, Term r1, u32 r2) {
+  u32 wpoll = 0;
+  u32 _v_1 = 0;
+  Term _a_0 = r0;
+  Term _b_0 = r1;
+  u32 _acc_0 = r2;
+  WL_SPIN
+    if (term_aux(_a_0) == CID_CON) {
+      Term _fb_0[2];
+      u64 _sp_0 = ctr_take(e, _a_0, 2, _fb_0);
+      Term _f_0 = _fb_0[0];
+      Term _f_1 = _fb_0[1];
+      if (term_aux(_b_0) == CID_CON) {
+        Term _fb_1[2];
+        u64 _sp_1 = ctr_take(e, _b_0, 2, _fb_1);
+        Term _f_2 = _fb_1[0];
+        Term _f_3 = _fb_1[1];
+        u32 _d_1 = U32_BIN(_f_0, &, ((u64)~(u32)(_f_2)));
+        u32 _v_2 = 0;
+        u32 _v_3 = 0;
+        Term _o_0[1];
+        if (spin_2(e, _o_0, _d_1) == 0) {
+          return 0;
+        }
+        _v_3 = _o_0[0];
+        _v_2 = _v_3;
+        spare_free(e, cls_fit(2), _sp_1);
+        spare_free(e, cls_fit(2), _sp_0);
+        r0 = _f_1;
+        r1 = _f_3;
+        r2 = U32_BIN(_acc_0, +, _v_2);
+        _a_0 = r0;
+        _b_0 = r1;
+        _acc_0 = r2;
+        WL_AGAIN(spin_3);
+      } else {
+        term_sink(e, _f_1);
+        term_sink(e, _b_0);
+        _v_1 = _acc_0;
+        spare_free(e, cls_fit(2), _sp_0);
+      }
+    } else {
+      term_sink(e, _a_0);
+      term_sink(e, _b_0);
+      _v_1 = _acc_0;
+    }
+  break;
+  }
+  o[0] = _v_1;
+  return 1;
+}
+
