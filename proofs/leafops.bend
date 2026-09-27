@@ -11,6 +11,7 @@
 # structurally valid leaves, and the ordinal is one the leaf covers.
 
 import Base
+import ./shape.bend as Sh
 import ./eq.bend as E
 import ./words.bend as PWo
 import ./faithful.bend as Fa
@@ -106,8 +107,8 @@ law PSet.diff_leaf_pointwise:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.diff.leaf(a, b), x)
     == Bool.and(S.PSet.mem.leaf(a, x),
@@ -118,8 +119,8 @@ law PSet.op_leaf:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.compress(Wo.Words.diff(
       S.PSet.leaf_words(a), S.PSet.leaf_words(b))), x)
@@ -129,7 +130,7 @@ law PSet.op_leaf:
 law PSet.diff_width:
   for +a: S.PSet
   for +b: S.PSet
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
   {List.length(&2, U32, Wo.Words.diff(S.PSet.leaf_words(a),
     S.PSet.leaf_words(b))) == 128n : Nat}
 
@@ -139,7 +140,7 @@ def PSet.diff_width(a, b, va):
       S.PSet.leaf_words(b))),
     List.length(&2, U32, S.PSet.leaf_words(a)), 128n,
     Words.len_diff(S.PSet.leaf_words(a), S.PSet.leaf_words(b)),
-    Lf.PSet.leaf_words_width(a, va))
+    Sh.PSet.wf_leaf_words_width(a, va))
 
 def PSet.op_leaf(a, b, x, va, vb, inr):
   %E.Bool.sym(S.PSet.mem.leaf(S.PSet.compress(Wo.Words.diff(
@@ -188,8 +189,8 @@ law PSet.union_leaf_pointwise:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.union.leaf(a, b), x)
     == Bool.or(S.PSet.mem.leaf(a, x), S.PSet.mem.leaf(b, x)) : Bool}
@@ -198,8 +199,8 @@ law PSet.or_leaf:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.compress(Wo.Words.or(
       S.PSet.leaf_words(a), S.PSet.leaf_words(b))), x)
@@ -208,25 +209,25 @@ law PSet.or_leaf:
 law PSet.pair_width_or:
   for +a: S.PSet
   for +b: S.PSet
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   {List.length(&2, U32, Wo.Words.or(S.PSet.leaf_words(a),
     S.PSet.leaf_words(b))) == 128n : Nat}
 
 law PSet.same_width:
   for +a: S.PSet
   for +b: S.PSet
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   {List.length(&2, U32, S.PSet.leaf_words(a))
     == List.length(&2, U32, S.PSet.leaf_words(b)) : Nat}
 
 def PSet.same_width(a, b, va, vb):
   Equal.trans(Nat, List.length(&2, U32, S.PSet.leaf_words(a)), 128n,
     List.length(&2, U32, S.PSet.leaf_words(b)),
-    Lf.PSet.leaf_words_width(a, va),
+    Sh.PSet.wf_leaf_words_width(a, va),
     E.Nat.sym(List.length(&2, U32, S.PSet.leaf_words(b)), 128n,
-      Lf.PSet.leaf_words_width(b, vb)))
+      Sh.PSet.wf_leaf_words_width(b, vb)))
 
 def PSet.pair_width_or(a, b, va, vb):
   Equal.trans(Nat,
@@ -235,7 +236,7 @@ def PSet.pair_width_or(a, b, va, vb):
     List.length(&2, U32, S.PSet.leaf_words(a)), 128n,
     Words.len_or(S.PSet.leaf_words(a), S.PSet.leaf_words(b),
       PSet.same_width(a, b, va, vb)),
-    Lf.PSet.leaf_words_width(a, va))
+    Sh.PSet.wf_leaf_words_width(a, va))
 
 def PSet.or_leaf(a, b, x, va, vb, inr):
   %E.Bool.sym(S.PSet.mem.leaf(S.PSet.compress(Wo.Words.or(
@@ -282,8 +283,8 @@ law PSet.inter_leaf_pointwise:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.inter.leaf(a, b), x)
     == Bool.and(S.PSet.mem.leaf(a, x), S.PSet.mem.leaf(b, x)) : Bool}
@@ -292,8 +293,8 @@ law PSet.and_leaf:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(S.PSet.compress(Wo.Words.and(
       S.PSet.leaf_words(a), S.PSet.leaf_words(b))), x)
@@ -302,8 +303,8 @@ law PSet.and_leaf:
 law PSet.pair_width_and:
   for +a: S.PSet
   for +b: S.PSet
-  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
-  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +va: {Sh.PSet.wf.leaf(a) == True{} : Bool}
+  for +vb: {Sh.PSet.wf.leaf(b) == True{} : Bool}
   {List.length(&2, U32, Wo.Words.and(S.PSet.leaf_words(a),
     S.PSet.leaf_words(b))) == 128n : Nat}
 
@@ -314,7 +315,7 @@ def PSet.pair_width_and(a, b, va, vb):
     List.length(&2, U32, S.PSet.leaf_words(a)), 128n,
     Words.len_and(S.PSet.leaf_words(a), S.PSet.leaf_words(b),
       PSet.same_width(a, b, va, vb)),
-    Lf.PSet.leaf_words_width(a, va))
+    Sh.PSet.wf_leaf_words_width(a, va))
 
 def PSet.and_leaf(a, b, x, va, vb, inr):
   %E.Bool.sym(S.PSet.mem.leaf(S.PSet.compress(Wo.Words.and(

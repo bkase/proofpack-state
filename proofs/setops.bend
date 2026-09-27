@@ -13,6 +13,7 @@
 # is `PZero{}`, `PFull{}` or a branch.
 
 import Base
+import ./shape.bend as Sh
 import ./eq.bend as E
 import ./collapse.bend as Co
 import ./descend.bend as Dc
@@ -20,17 +21,6 @@ import ./leaf.bend as Lf
 import ./leafops.bend as Lo
 import ../core/count.bend as C
 import ../core/set.bend as S
-
-law PSet.valid_full:
-  for +d: Nat
-  {S.PSet.valid(d, S.PFull{}, True{}) == True{} : Bool}
-
-def PSet.valid_full(d):
-  match d:
-    case 0n:
-      {==}
-    case 1n+p:
-      {==}
 
 law PSet.diff_pointwise:
   for +d: Nat
@@ -40,8 +30,8 @@ law PSet.diff_pointwise:
   for +x: U32
   for +eh: {h == U32.shln(1, 11n+d) : U32}
   for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
-  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
   for +bt: Bool
   for +ebt: {bt == U32.is_lt(x, h) : Bool}
@@ -134,8 +124,8 @@ def PSet.diff_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                            U32.shr(h), x))) : Bool}
                   PSet.diff_pointwise(p, S.PFull{}, bl, U32.shr(h), x,
                     Lf.PSet.half_shr(p, h, eh, dok),
-                    Dc.Nat.gt_down(32n, 11n+p, dok), PSet.valid_full(p),
-                    Lf.PSet.valid_lo(p, bl, bh, vb),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Sh.PSet.wf_full(p),
+                    Sh.PSet.wf_lo(p, bl, bh, vb),
                     Lf.PSet.range_lo(p, h, x, eh, dok, ebt),
                     U32.is_lt(x, U32.shr(h)), {==})
                 case False{}:
@@ -164,8 +154,8 @@ def PSet.diff_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                   PSet.diff_pointwise(p, S.PFull{}, bh, U32.shr(h),
                     U32.sub(x, h),
                     Lf.PSet.half_shr(p, h, eh, dok),
-                    Dc.Nat.gt_down(32n, 11n+p, dok), PSet.valid_full(p),
-                    Lf.PSet.valid_hi(p, bl, bh, vb),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Sh.PSet.wf_full(p),
+                    Sh.PSet.wf_hi(p, bl, bh, vb),
                     Lf.PSet.range_hi(p, h, x, eh, dok, ebt, inv),
                     U32.is_lt(U32.sub(x, h), U32.shr(h)), {==})
         case S.PBranch{al, ah}:
@@ -211,8 +201,8 @@ def PSet.diff_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                   PSet.diff_pointwise(p, al, bl, U32.shr(h), x,
                     Lf.PSet.half_shr(p, h, eh, dok),
                     Dc.Nat.gt_down(32n, 11n+p, dok),
-                    Lf.PSet.valid_lo(p, al, ah, va),
-                    Lf.PSet.valid_lo(p, bl, bh, vb),
+                    Sh.PSet.wf_lo(p, al, ah, va),
+                    Sh.PSet.wf_lo(p, bl, bh, vb),
                     Lf.PSet.range_lo(p, h, x, eh, dok, ebt),
                     U32.is_lt(x, U32.shr(h)), {==})
                 case False{}:
@@ -238,8 +228,8 @@ def PSet.diff_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                     U32.sub(x, h),
                     Lf.PSet.half_shr(p, h, eh, dok),
                     Dc.Nat.gt_down(32n, 11n+p, dok),
-                    Lf.PSet.valid_hi(p, al, ah, va),
-                    Lf.PSet.valid_hi(p, bl, bh, vb),
+                    Sh.PSet.wf_hi(p, al, ah, va),
+                    Sh.PSet.wf_hi(p, bl, bh, vb),
                     Lf.PSet.range_hi(p, h, x, eh, dok, ebt, inv),
                     U32.is_lt(U32.sub(x, h), U32.shr(h)), {==})
 
@@ -249,8 +239,8 @@ law PSet.diff_member:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
     == Bool.and(S.PSet.member(20n, a, x),
          Bool.not(S.PSet.member(20n, b, x))) : Bool}
@@ -268,8 +258,8 @@ law PSet.union_pointwise:
   for +x: U32
   for +eh: {h == U32.shln(1, 11n+d) : U32}
   for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
-  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
   for +bt: Bool
   for +ebt: {bt == U32.is_lt(x, h) : Bool}
@@ -357,8 +347,8 @@ def PSet.union_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                            U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
                   PSet.union_pointwise(p, al, bl, U32.shr(h), x,
                     Lf.PSet.half_shr(p, h, eh, dok),
-                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_lo(p, al, ah, va),
-                    Lf.PSet.valid_lo(p, bl, bh, vb),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Sh.PSet.wf_lo(p, al, ah, va),
+                    Sh.PSet.wf_lo(p, bl, bh, vb),
                     Lf.PSet.range_lo(p, h, x, eh, dok, ebt),
                     U32.is_lt(x, U32.shr(h)), {==})
                 case False{}:
@@ -381,8 +371,8 @@ def PSet.union_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                            U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
                   PSet.union_pointwise(p, ah, bh, U32.shr(h), U32.sub(x, h),
                     Lf.PSet.half_shr(p, h, eh, dok),
-                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_hi(p, al, ah, va),
-                    Lf.PSet.valid_hi(p, bl, bh, vb),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Sh.PSet.wf_hi(p, al, ah, va),
+                    Sh.PSet.wf_hi(p, bl, bh, vb),
                     Lf.PSet.range_hi(p, h, x, eh, dok, ebt, inv),
                     U32.is_lt(U32.sub(x, h), U32.shr(h)), {==})
 
@@ -394,8 +384,8 @@ law PSet.inter_pointwise:
   for +x: U32
   for +eh: {h == U32.shln(1, 11n+d) : U32}
   for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
-  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
   for +bt: Bool
   for +ebt: {bt == U32.is_lt(x, h) : Bool}
@@ -462,8 +452,8 @@ def PSet.inter_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                            U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
                   PSet.inter_pointwise(p, al, bl, U32.shr(h), x,
                     Lf.PSet.half_shr(p, h, eh, dok),
-                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_lo(p, al, ah, va),
-                    Lf.PSet.valid_lo(p, bl, bh, vb),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Sh.PSet.wf_lo(p, al, ah, va),
+                    Sh.PSet.wf_lo(p, bl, bh, vb),
                     Lf.PSet.range_lo(p, h, x, eh, dok, ebt),
                     U32.is_lt(x, U32.shr(h)), {==})
                 case False{}:
@@ -486,8 +476,8 @@ def PSet.inter_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
                            U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
                   PSet.inter_pointwise(p, ah, bh, U32.shr(h), U32.sub(x, h),
                     Lf.PSet.half_shr(p, h, eh, dok),
-                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_hi(p, al, ah, va),
-                    Lf.PSet.valid_hi(p, bl, bh, vb),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Sh.PSet.wf_hi(p, al, ah, va),
+                    Sh.PSet.wf_hi(p, bl, bh, vb),
                     Lf.PSet.range_hi(p, h, x, eh, dok, ebt, inv),
                     U32.is_lt(U32.sub(x, h), U32.shr(h)), {==})
 
@@ -495,8 +485,8 @@ law PSet.union_member:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.union(20n, a, b), x)
     == Bool.or(S.PSet.member(20n, a, x),
          S.PSet.member(20n, b, x)) : Bool}
@@ -510,8 +500,8 @@ law PSet.inter_member:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
     == Bool.and(S.PSet.member(20n, a, x),
          S.PSet.member(20n, b, x)) : Bool}

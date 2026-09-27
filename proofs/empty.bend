@@ -11,6 +11,7 @@
 # preserves membership.
 
 import Base
+import ./shape.bend as Sh
 import ./eq.bend as E
 import ./addr.bend as Ad
 import ./bits.bend as PB
@@ -287,8 +288,8 @@ law PSet.union_empty_left:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
   for +z: {S.PSet.empty_p(20n, a) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.union(20n, a, b), x)
     == S.PSet.member(20n, b, x) : Bool}
@@ -309,8 +310,8 @@ law PSet.inter_empty_left:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
   for +z: {S.PSet.empty_p(20n, a) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.inter(20n, a, b), x) == False{} : Bool}
 
@@ -329,8 +330,8 @@ law PSet.diff_empty_right:
   for +a: S.PSet
   for +b: S.PSet
   for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +va: {Sh.PSet.wf(20n, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, b, True{}) == True{} : Bool}
   for +z: {S.PSet.empty_p(20n, b) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
     == S.PSet.member(20n, a, x) : Bool}

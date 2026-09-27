@@ -12,6 +12,7 @@
 # the counterexample in tests.bend shows.
 
 import Base
+import ./shape.bend as Sh
 import ./eq.bend as E
 import ./addr.bend as Ad
 import ./bits.bend as PB
@@ -87,7 +88,7 @@ def Words.at_ones(n, i, b, iok, bok):
 law PSet.leaf_faithful:
   for +s: S.PSet
   for +x: U32
-  for +v: {S.PSet.valid.leaf(s) == True{} : Bool}
+  for +v: {Sh.PSet.wf.leaf(s) == True{} : Bool}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(s, x)
     == Wo.Words.bit(S.PSet.leaf_words(s), x) : Bool}

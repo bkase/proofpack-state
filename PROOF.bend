@@ -39,11 +39,15 @@
 #   proofs/closure.bend   closing nothing gives nothing
 #   proofs/cert.bend      what an accepted certificate means
 #   proofs/order.bend     comparison agrees with the numeric order
+#   proofs/shape.bend     the part of structural validity the algebra uses
+#   proofs/preserve.bend  the set operations keep that shape
 #   proofs/trie.bend      a trie reads back what was written
 #   proofs/intern.bend    interning an id and finding it again
 
 import Base
 import ./LAWS.bend as Laws
+import ./proofs/shape.bend as PSh
+import ./proofs/preserve.bend as PPr
 import ./proofs/trie.bend as PTr
 import ./proofs/intern.bend as PIn
 import ./proofs/nat.bend as N
@@ -254,7 +258,7 @@ def Laws.a_tile_compression_calls_full_has_every_member(ws, x, wide, full,
   PCp.PSet.compress_full(ws, x, wide, full, inr)
 
 def Laws.a_valid_leaf_and_its_tile_hold_the_same_ordinals(s, x, v, inr):
-  PFa.PSet.leaf_faithful(s, x, v, inr)
+  PFa.PSet.leaf_faithful(s, x, PSh.PSet.valid_leaf_wf(s, v), inr)
 
 def Laws.a_valid_set_has_no_payload_above_a_leaf(p, s, ok):
   PCo.PSet.valid_is_node(p, s, ok)
@@ -266,34 +270,43 @@ def Laws.the_walk_agrees_with_the_tile_address(ws, x, wide):
   PWk.Words.holds_bit(ws, x, wide)
 
 def Laws.the_leaf_difference_is_pointwise(a, b, x, va, vb, inr):
-  PLo.PSet.diff_leaf_pointwise(a, b, x, va, vb, inr)
+  PLo.PSet.diff_leaf_pointwise(a, b, x, PSh.PSet.valid_leaf_wf(a, va),
+    PSh.PSet.valid_leaf_wf(b, vb), inr)
 
 def Laws.the_leaf_union_is_pointwise(a, b, x, va, vb, inr):
-  PLo.PSet.union_leaf_pointwise(a, b, x, va, vb, inr)
+  PLo.PSet.union_leaf_pointwise(a, b, x, PSh.PSet.valid_leaf_wf(a, va),
+    PSh.PSet.valid_leaf_wf(b, vb), inr)
 
 def Laws.the_leaf_intersection_is_pointwise(a, b, x, va, vb, inr):
-  PLo.PSet.inter_leaf_pointwise(a, b, x, va, vb, inr)
+  PLo.PSet.inter_leaf_pointwise(a, b, x, PSh.PSet.valid_leaf_wf(a, va),
+    PSh.PSet.valid_leaf_wf(b, vb), inr)
 
 def Laws.set_difference_is_pointwise(a, b, x, va, vb):
-  PSo.PSet.diff_member(a, b, x, va, vb)
+  PSo.PSet.diff_member(a, b, x, PSh.PSet.valid_wf(20n, a, va),
+    PSh.PSet.valid_wf(20n, b, vb))
 
 def Laws.set_union_is_pointwise(a, b, x, va, vb):
-  PSo.PSet.union_member(a, b, x, va, vb)
+  PSo.PSet.union_member(a, b, x, PSh.PSet.valid_wf(20n, a, va),
+    PSh.PSet.valid_wf(20n, b, vb))
 
 def Laws.set_intersection_is_pointwise(a, b, x, va, vb):
-  PSo.PSet.inter_member(a, b, x, va, vb)
+  PSo.PSet.inter_member(a, b, x, PSh.PSet.valid_wf(20n, a, va),
+    PSh.PSet.valid_wf(20n, b, vb))
 
 def Laws.an_empty_set_has_no_members(d, s, h, x, z):
   PEm.PSet.empty_no_member(d, s, h, x, z, U32.is_lt(x, h), {==})
 
 def Laws.union_with_an_empty_set_changes_nothing(a, b, x, va, vb, z):
-  PEm.PSet.union_empty_left(a, b, x, va, vb, z)
+  PEm.PSet.union_empty_left(a, b, x, PSh.PSet.valid_wf(20n, a, va),
+    PSh.PSet.valid_wf(20n, b, vb), z)
 
 def Laws.intersection_with_an_empty_set_is_empty(a, b, x, va, vb, z):
-  PEm.PSet.inter_empty_left(a, b, x, va, vb, z)
+  PEm.PSet.inter_empty_left(a, b, x, PSh.PSet.valid_wf(20n, a, va),
+    PSh.PSet.valid_wf(20n, b, vb), z)
 
 def Laws.subtracting_an_empty_set_changes_nothing(a, b, x, va, vb, z):
-  PEm.PSet.diff_empty_right(a, b, x, va, vb, z)
+  PEm.PSet.diff_empty_right(a, b, x, PSh.PSet.valid_wf(20n, a, va),
+    PSh.PSet.valid_wf(20n, b, vb), z)
 
 def Laws.closing_nothing_gives_nothing(n, td, g, p):
   PCl.Spec.closure_empty(n, td, g, p)
@@ -323,3 +336,15 @@ def Laws.interning_an_id_then_finding_it_gives_the_same_ordinal(u, o):
 def Laws.reading_a_trie_at_the_key_just_written_gives_that_value(A, d, t,
   x, v):
   PTr.Trie.at_set(A, d, t, x, v)
+
+def Laws.every_structurally_valid_set_is_well_shaped(d, s, v):
+  PSh.PSet.valid_wf(d, s, v)
+
+def Laws.union_keeps_a_set_well_shaped(d, a, b, va, vb):
+  PPr.PSet.wf_union(d, a, b, va, vb)
+
+def Laws.intersection_keeps_a_set_well_shaped(d, a, b, va, vb):
+  PPr.PSet.wf_inter(d, a, b, va, vb)
+
+def Laws.difference_keeps_a_set_well_shaped(d, a, b, va, vb):
+  PPr.PSet.wf_diff(d, a, b, va, vb)

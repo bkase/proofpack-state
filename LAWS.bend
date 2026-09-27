@@ -38,6 +38,7 @@ import Base
 import ./core/count.bend as C
 import ./core/ords.bend as Or
 import ./proofs/descend.bend as Dc
+import ./proofs/shape.bend as Sh
 import ./proofs/split.bend as Sp
 import ./proofs/order.bend as Or2
 import ./proofs/adder.bend as Ad
@@ -1110,3 +1111,60 @@ law reading_a_trie_at_the_key_just_written_gives_that_value:
   for +v: A
   {Tr.Trie.at(A, d, Tr.Trie.set(A, d, t, x, v), x) == Some{v}
     : Maybe<&2, A>}
+
+# ===========================================================================
+# The shape the algebra needs, and that the operations keep.
+#
+# `PSet.valid` is the structural check a decoded generation has to pass
+# before anything answers from it (SPEC 6.5), and it says three things: no
+# sparse or dense payload above a leaf, a dense leaf exactly 128 words, and a
+# sparse leaf's offsets ascending and in range. The pointwise laws above need
+# the first two and never the third -- a sparse leaf is searched by
+# `Ords.elem`, which reads the whole list, so the order of the offsets changes
+# how fast a lookup is and not what it answers.
+#
+# `PSet.wf` (proofs/shape.bend) is the first two conditions alone. It is a
+# proof-only predicate: nothing in the product computes it, `PSet.valid`
+# remains the one thing checked on load, and the first law below is what ties
+# them together. Everything the pointwise laws actually use is proved from
+# `PSet.wf`, which is why they hold of more values than `PSet.valid` admits.
+#
+# The reason to separate them is the three laws after it. `PSet.wf` is
+# preserved by union, intersection and difference; `PSet.valid` is not known
+# to be, because a compressed sparse leaf's offsets come back from a tile walk
+# whose ascending order this release has not proved. Preservation is what an
+# induction over a query's syntax needs: to use a pointwise law at a node, the
+# proof has to know the operands are still well shaped, and the operands are
+# themselves results of operations. Without it such an induction stops at
+# depth one.
+# ===========================================================================
+
+law every_structurally_valid_set_is_well_shaped:
+  for +d: Nat
+  for +s: S.PSet
+  for +v: {S.PSet.valid(d, s, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, s, True{}) == True{} : Bool}
+
+law union_keeps_a_set_well_shaped:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, S.PSet.union(d, a, b), True{}) == True{} : Bool}
+
+law intersection_keeps_a_set_well_shaped:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, S.PSet.inter(d, a, b), True{}) == True{} : Bool}
+
+law difference_keeps_a_set_well_shaped:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, S.PSet.diff(d, a, b), True{}) == True{} : Bool}

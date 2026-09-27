@@ -42,47 +42,34 @@ import ./adapters/git/intern.bend as Ui
 import ./proofs/intern.bend as PIn
 
 # ===========================================================================
-# The addressing arithmetic.
+# The addressing arithmetic -- closed.
 #
-# Almost everything still open below reduces to the same short list of facts
-# about how a `U32` ordinal addresses the structures, and none of them is
-# about sets, closure or queries. Naming them here is more useful than
-# repeating "not proved" under each obligation, because closing them would
-# close, or nearly close, several at once.
+# Almost everything that was open in this file reduced to the same short list
+# of facts about how a `U32` ordinal addresses the structures: none of them
+# about sets, closure or queries, and all of them now proved and published in
+# LAWS.bend. They are kept named here because the notes below refer to them.
 #
-#   A1  `U32.is_lt` agrees with the order on `U32.to_nat`.
+#   A1  `U32.cmp` agrees with `Nat.cmp` on `U32.to_nat`
+#       (`comparing_two_ordinals_compares_their_values`), with the
+#       power-of-two case in the bitwise form the descent uses.
+#   A2  rebasing into a node's upper half keeps the ordinal inside the child
+#       (`rebasing_into_the_upper_half_keeps_the_ordinal_in_range`).
+#   A3  the tile address is injective (`the_tile_address_is_injective`), by
+#       the division identity rather than by word extensionality.
+#   A4  a leaf ordinal's word index is inside a 128-word tile.
+#   A5  the enumeration walk and the tile address name the same positions
+#       (`the_walk_agrees_with_the_tile_address`).
 #
-#   A2  (PROVED, in LAWS.bend) `U32.sub` is subtraction when it does not
-#       borrow -- concretely, that
-#       an ordinal inside a node's interval lands inside a child's interval:
-#       from `x < h + h` and not `x < h` it follows that `x - h < h`. This is
-#       what carries "the ordinal is in range" down one level of the tree, and
-#       it is why every law below that descends is open while the same law at
-#       a leaf is proved.
+# The counting argument is closed too: that finding 4096 set bits across 128
+# words of at most 32 bits each means every bit is set is proved by
+# pigeonhole in proofs/count.bend, which is what let S-03 close.
 #
-#   A3  the tile address is injective: `x` is determined by `x >> 5` and
-#       `x & 31`. Needed to read a sparse leaf's offsets back out of the tile
-#       they were spread into -- the direction from a set bit to a member; the
-#       direction from a member to a set bit is proved. Half of A3 is proved
-#       (`the_number_a_word_reads_as_determines_the_word`); the other half
-#       needs that two words with the same bits are the same word, and the
-#       natural statement of that takes a hypothesis quantified over bit
-#       positions, which Bend's affine values will not let an induction use
-#       twice. proofs/inject.bend records the obstruction.
-#
-#   A4  (PROVED, in proofs/descend.bend) `x < 4096` implies `x >> 5 < 128`, so a 128-word tile has a word for
-#       every ordinal of a leaf. The laws that need it carry it explicitly, as
-#       "the tile has the word this ordinal lives in".
-#
-# Two and a half of these are now proved, including both the ones the set tree
-# descends on -- which is what let `P-01` close completely. What is left is
-# A3's second half, and it is what the sparse/dense bridge in S-02 and S-03
-# still needs.
-#
-# A second gap, independent of these, is a *counting* argument: `PSet.compress`
-# decides a leaf is `PFull` by finding 4096 set bits, and concluding from that
-# that every bit is set is a pigeonhole argument over 128 words of at most 32
-# bits each. S-03 needs it, and S-02 needs it through S-03.
+# So nothing below is waiting on arithmetic any more. What the remaining
+# obligations are waiting on is stated under each of them, and it is mostly
+# one of two things: an induction over a structure whose invariant quantifies
+# over keys or positions (which Bend's affine values will not let an
+# induction use twice unless the invariant is made decidable first), or a
+# fixed-point argument about an iteration rather than about a value.
 #
 # ===========================================================================
 # S-02, S-03 -- the persistent set, above the tile.
@@ -114,8 +101,8 @@ import ./proofs/intern.bend as PIn
 # uses these operations throughout, against the specification closure), and by
 # tools/differential.sh against Git on real repositories.
 #
-# Needs: A2 to descend, A3 for a sparse operand, and the counting argument
-# through S-03.
+# Both are now closed; what follows records how, and what the hypothesis is,
+# because the hypothesis is the whole content of the restatement.
 # ===========================================================================
 
 # S-02 is proved and lives in LAWS.bend as `set_difference_is_pointwise`,
