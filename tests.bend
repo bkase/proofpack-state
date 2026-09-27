@@ -32,6 +32,11 @@ import ./closure/reach.bend as R
 import ./closure/explain.bend as E
 import ./closure/cert.bend as Ct
 import ./spec/closure.bend as Sp
+import ./query/eval.bend as Ev
+import ./index/source.bend as Idx
+import ./adapters/git/oid.bend as Oid
+import ./adapters/git/intern.bend as In
+import ./adapters/git/import.bend as Im
 
 type Case is Data:
   Case{name: String, ok: Bool}
@@ -326,6 +331,26 @@ def Tests.witness_off_root() -> Case:
     Bool.not(E.Explain.valid(Tests.depth(), g, [0], [1, 2, 3], 3))}
 
 # ---------------------------------------------------------------------------
+# An unfinished traversal must not be reported as a complete answer.
+#
+# `Reach.go` returns `done = False` when its budget runs out, and SPEC 3.3
+# says the caller must report that rather than dress it up. The evaluator
+# reacts by emptying its own stack, so the machine stops -- and this checks
+# that stopping that way is a failure and not a success.
+# ---------------------------------------------------------------------------
+
+def Tests.src() -> Idx.Source:
+  Idx.Src{Oid.Sha1{}, 0n, In.Uni.new(Oid.Sha1{}),
+    T.Trie.gap(G.Succ), T.Trie.gap(G.Succ), T.Trie.gap(Im.Meta),
+    T.Trie.gap(Oid.Oid), Nil{}, Nil{}, Nil{}, Nil{}}
+
+def Tests.unfinished_traversal() -> Case:
+  Case{"an unfinished traversal is not reported as a complete answer",
+    Bool.not(Ev.Val.ok(Ev.Ev.go(4n, Tests.src(),
+      Ev.CVal{Tests.set([1])},
+      Ev.Ev.reach.stack(False{}, [Ev.FFilter{0}]), False{})))}
+
+# ---------------------------------------------------------------------------
 # The runner.
 # ---------------------------------------------------------------------------
 
@@ -387,7 +412,8 @@ def Tests.all() -> List<&2, Case>:
     Tests.insert_needs_a_wide_enough_tile(),
     Tests.leaf_difference_needs_an_in_range_ordinal(),
     Tests.node_union_needs_a_valid_shape(),
-    Tests.compress_needs_an_in_range_ordinal()]
+    Tests.compress_needs_an_in_range_ordinal(),
+    Tests.unfinished_traversal()]
 
 # ---------------------------------------------------------------------------
 # Why the leaf laws carry hypotheses.

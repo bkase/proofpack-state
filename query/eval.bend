@@ -99,7 +99,11 @@ def Ev.apply(sa: S.PSet, sb: S.PSet, op: Nat) -> S.PSet:
           S.PSet.diff(20n, sa, sb)
 
 # The traversal's own answer, and whether it finished. An exhausted budget
-# empties the stack, which ends the machine with ok = False.
+# empties the stack, which stops the machine at once; the `ok` flag the
+# machine threads is what makes stopping that way a failure rather than a
+# short answer. Emptying the stack alone would end the machine at its
+# accepting state, which is how an unfinished traversal used to come back
+# reported as complete -- `tests.bend` keeps the case.
 def Ev.reach.stack(done: Bool, k: List<&2, Frame>) -> List<&2, Frame>:
   match done:
     case True{}:
@@ -134,8 +138,17 @@ def Ev.size(e: A.SetExpr) -> Nat:
     case A.EFilter{kind, a}:
       1n+Ev.size(a)
 
-def Ev.go(+fuel: Nat, +src: Idx.Source, c: Ctl, k: List<&2, Frame>) ->
-  Val:
+# The answer, once there are no frames left: a success only if nothing along
+# the way reported that it had not finished.
+def Ev.done(v: S.PSet, ok: Bool) -> Val:
+  match ok:
+    case True{}:
+      V{v, True{}, ""}
+    case False{}:
+      V{v, False{}, Ev.reach.err(False{})}
+
+def Ev.go(+fuel: Nat, +src: Idx.Source, c: Ctl, k: List<&2, Frame>,
+  ok: Bool) -> Val:
   match fuel:
     case 0n:
       V{S.PSet.empty(), False{},
@@ -145,43 +158,45 @@ def Ev.go(+fuel: Nat, +src: Idx.Source, c: Ctl, k: List<&2, Frame>) ->
         case CVal{v}:
           match k:
             case Nil{}:
-              V{v, True{}, ""}
+              Ev.done(v, ok)
             case Con{f, rest}:
               match f:
                 case FRight{op, rhs}:
-                  Ev.go(g, src, CEval{rhs}, Con{FComb{op, v}, rest})
+                  Ev.go(g, src, CEval{rhs}, Con{FComb{op, v}, rest}, ok)
                 case FComb{op, lhs}:
-                  Ev.go(g, src, CVal{Ev.apply(lhs, v, op)}, rest)
+                  Ev.go(g, src, CVal{Ev.apply(lhs, v, op)}, rest, ok)
                 case FFilter{kind}:
-                  Ev.go(g, src, CVal{Den.Den.filter(src, kind, v)}, rest)
+                  Ev.go(g, src, CVal{Den.Den.filter(src, kind, v)}, rest,
+                    ok)
                 case FReach{policy}:
                   +out = R.Reach.closure(Idx.Source.n(src), 32n,
                     Idx.Source.graph(src, policy), 20n,
                     S.PSet.to_list(20n, v))
+                  +fin = R.Reach.done(20n, out)
                   Ev.go(g, src, CVal{R.Reach.seen(20n, out)},
-                    Ev.reach.stack(R.Reach.done(20n, out), rest))
+                    Ev.reach.stack(fin, rest), Bool.and(ok, fin))
         case CEval{e}:
           match e:
             case A.EEmpty{}:
-              Ev.go(g, src, CVal{S.PSet.empty()}, k)
+              Ev.go(g, src, CVal{S.PSet.empty()}, k, ok)
             case A.EFull{}:
-              Ev.go(g, src, CVal{Den.Den.universe(Idx.Source.n(src))}, k)
+              Ev.go(g, src, CVal{Den.Den.universe(Idx.Source.n(src))}, k, ok)
             case A.ELit{set}:
-              Ev.go(g, src, CVal{set}, k)
+              Ev.go(g, src, CVal{set}, k, ok)
             case A.EUnion{a, b}:
-              Ev.go(g, src, CEval{a}, Con{FRight{0n, b}, k})
+              Ev.go(g, src, CEval{a}, Con{FRight{0n, b}, k}, ok)
             case A.EInter{a, b}:
-              Ev.go(g, src, CEval{a}, Con{FRight{1n, b}, k})
+              Ev.go(g, src, CEval{a}, Con{FRight{1n, b}, k}, ok)
             case A.EDiff{a, b}:
-              Ev.go(g, src, CEval{a}, Con{FRight{2n, b}, k})
+              Ev.go(g, src, CEval{a}, Con{FRight{2n, b}, k}, ok)
             case A.EReach{policy, a}:
-              Ev.go(g, src, CEval{a}, Con{FReach{policy}, k})
+              Ev.go(g, src, CEval{a}, Con{FReach{policy}, k}, ok)
             case A.EFilter{kind, a}:
-              Ev.go(g, src, CEval{a}, Con{FFilter{kind}, k})
+              Ev.go(g, src, CEval{a}, Con{FFilter{kind}, k}, ok)
 
 def Ev.set(+src: Idx.Source, e: A.SetExpr) -> Val:
   +ee = e
-  Ev.go(1n+Nat.mul(4n, Ev.size(ee)), src, CEval{ee}, Nil{})
+  Ev.go(1n+Nat.mul(4n, Ev.size(ee)), src, CEval{ee}, Nil{}, True{})
 
 def Ev.run(+src: Idx.Source, e: A.SetExpr) -> Val:
   Ev.set(src, Rw.Rw.simplify(e))

@@ -51,6 +51,7 @@
 #   proofs/subset.bend    the subset test, related to membership
 #   proofs/batch.bend     the matrix restores the caller's positions
 #   proofs/store.bend     what accepting a stored generation means
+#   proofs/machine.bend   a failure the evaluator notices is one it reports
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -70,6 +71,7 @@ import ./proofs/only.bend as POn
 import ./proofs/subset.bend as PSb
 import ./proofs/batch.bend as PBa
 import ./proofs/store.bend as PSt
+import ./proofs/machine.bend as PMa
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -473,3 +475,7 @@ def Laws.an_accepted_store_declared_the_objects_it_holds(c, d, ec, ok):
 
 def Laws.a_rejected_store_says_why(u, d, eu, no):
   PSt.Store.rejection_is_reported(u, d, eu, no)
+
+def Laws.an_unfinished_traversal_is_never_reported_as_complete(fuel, src, c,
+  k):
+  PMa.Mach.failure_is_reported(fuel, src, c, k)

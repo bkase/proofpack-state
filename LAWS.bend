@@ -68,6 +68,7 @@ import ./proofs/only.bend as On
 import ./proofs/subset.bend as Sb
 import ./proofs/batch.bend as Ba
 import ./index/store.bend as St
+import ./query/eval.bend as Qe
 import ./proofs/extensive.bend as Ex3
 import ./cli/main.bend as Cm
 import ./proofs/inventory.bend as Iv2
@@ -1775,3 +1776,31 @@ law a_rejected_store_says_why:
   for +no: {St.Dec.ok(St.Store.decode.named(d)) == False{} : Bool}
   {String.is_empty(St.Dec.err(St.Store.decode.named(d)))
     == False{} : Bool}
+
+# ===========================================================================
+# An unfinished traversal is never reported as a complete answer.
+#
+# `closure/reach.bend` returns `done = False` when its budget runs out, and
+# SPEC 3.3 is explicit that the caller must report that rather than dress it
+# up. The evaluator is an explicit machine -- a control word, a stack of
+# frames, one tail call per step -- and it reacts to an unfinished traversal
+# by emptying its own stack, which stops it at once.
+#
+# Stopping at once is not the same as failing. The machine's accepting state
+# is "no frames left", so emptying the stack lands on exactly the state that
+# reports success; what makes it a failure is the flag the machine threads
+# alongside. This law is that the flag cannot be lost: once it is `False{}`,
+# no continuation of the machine reports `ok`.
+#
+# It is worth having because the alternative is invisible. A truncated
+# closure is a *smaller* answer, not a malformed one, and every consumer
+# downstream would read it as a complete one. `tests.bend` keeps the case
+# that fails without the flag.
+# ===========================================================================
+
+law an_unfinished_traversal_is_never_reported_as_complete:
+  for +fuel: Nat
+  for +src: Sc.Source
+  for +c: Qe.Ctl
+  for +k: List<&2, Qe.Frame>
+  {Qe.Val.ok(Qe.Ev.go(fuel, src, c, k, False{})) == False{} : Bool}
