@@ -76,6 +76,7 @@ import ./proofs/split_add.bend as Sa
 import ./proofs/decr.bend as De
 import ./proofs/span.bend as Sn
 import ./proofs/leafenum.bend as Le
+import ./proofs/treeenum.bend as Te
 import ./proofs/shift.bend as Sf
 import ./adapters/git/bytes.bend as By
 import ./adapters/git/parse.bend as Gp
@@ -2158,3 +2159,30 @@ law the_second_halfs_base_is_one_half_above:
   for +lt: {C.Nat.gt(32n, k) == True{} : Bool}
   {U32.to_nat((base + U32.shln(1, k) : U32))
     == Nat.add(U32.to_nat(base), Dc.Nat.pow2(k)) : Nat}
+
+law the_list_a_node_contributes_is_its_interval_and_its_members:
+  for +d: Nat
+  for +s: S.PSet
+  for +base: U32
+  for +x: U32
+  for +tail: List<&2, U32>
+  for +ok: {Te.PSet.ok(d, s) == True{} : Bool}
+  for +lz: {Sa.U32.lo_zero(base, 12n+d) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq,
+     S.PSet.members(d, s, base, S.PSet.half(d), tail), x)
+   == Bool.or(
+        Bool.and(U32.is_eq(base, W.U32.diff(x, W.U32.mask(12n+d))),
+          S.PSet.mem(d, s, S.PSet.half(d),
+            U32.and(x, W.U32.mask(12n+d)))),
+        List.contains(~U32, ~U32.is_eq, tail, x)) : Bool}
+
+law enumerating_a_set_lists_exactly_its_members:
+  for +d: Nat
+  for +s: S.PSet
+  for +x: U32
+  for +ok: {Te.PSet.ok(d, s) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, S.PSet.to_list(d, s), x)
+    == S.PSet.member(d, s, x) : Bool}

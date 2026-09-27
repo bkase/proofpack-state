@@ -64,6 +64,7 @@
 #   proofs/lastord.bend   the last ordinal of a node's interval
 #   proofs/halves.bend    a node's two halves, as bases
 #   proofs/childtest.bend which half an ordinal is in
+#   proofs/treeenum.bend  the tree enumerates exactly its members
 #   proofs/sum.bend       addition that does not overflow is addition
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
@@ -97,6 +98,7 @@ import ./proofs/maskwidth.bend as PMw
 import ./proofs/lastord.bend as PLd
 import ./proofs/halves.bend as PHv
 import ./proofs/childtest.bend as PCh
+import ./proofs/treeenum.bend as PTe
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
@@ -591,3 +593,11 @@ def Laws.an_ordinal_at_the_half_is_not_the_low_childs(base, k, x, f, lz,
 
 def Laws.the_second_halfs_base_is_one_half_above(base, k, lz, lt):
   PHv.U32.to_nat_half_base(base, k, lz, lt)
+
+def Laws.the_list_a_node_contributes_is_its_interval_and_its_members(d,
+  s, base, x, tail, ok, lz, lt):
+  PTe.PSet.members_contains(d, s, base, x, tail, ok, lz, lt)
+
+def Laws.enumerating_a_set_lists_exactly_its_members(d, s, x, ok, lt,
+  inr):
+  PTe.PSet.to_list_member(d, s, x, ok, lt, inr)
