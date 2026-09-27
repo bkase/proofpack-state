@@ -220,3 +220,15 @@ def Nat.empty2(e: {0n == 1n+0n : Nat}) -> Empty:
 def Nat.noconf2(-A: Type, -k: Nat, e: {1n+k == 0n : Nat}) -> A:
   Empty.absurd(A, Nat.empty2(Equal.cong(Nat, Nat, Nat.trim2, 0n, 1n+k,
     Equal.sym(Nat, 1n+k, 0n, e))))
+
+law Bool.not_true:
+  for +b: Bool
+  for +ok: {Bool.not(b) == True{} : Bool}
+  {False{} == b : Bool}
+
+def Bool.not_true(b, ok):
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      Bool.noconf({False{} == True{} : Bool}, ok)

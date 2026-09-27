@@ -35,8 +35,9 @@ The proofs cover:
 | `P-01` | inserting an ordinal into a structurally valid set leaves it present, at the depth the product runs at, with no hypothesis on the ordinal. The sharing half -- that retained old roots are undisturbed -- is a property of Bend's affine values, not an equation; §3 |
 | `G-02` | at a row: the tree-data filter drops exactly the commit targets. Lifting that to `Graph.edge` over the assembled tries is still open |
 | `E-01` | of a produced dependency witness: every step is a real policy edge, and it ends at the object asked about. That it *starts* at a root depends on the levels being a genuine BFS layering, which is `C-02` |
-| `S-02` (part) | the Zero/Full branch collapses of SPEC 5.3 preserve membership, at every depth and for every ordinal |
-| addressing | an ordinal is below a power of two exactly when it fits in that many bits; rebasing into a node's upper half keeps it inside the child; a bit index is below a word's width; halving a half-width moves the bit down |
+| `S-02` | set difference, union and intersection are pointwise at the production depth, for structurally valid operands and every `U32` ordinal |
+| `S-03` | compression changes no member, whichever of its four representations it picks |
+| addressing | an ordinal is below a power of two exactly when it fits in that many bits; rebasing into a node's upper half keeps it inside the child; the tile address is injective; a bit index is below a word's width; `U32` addition adds when neither operand is large; the enumeration walk and the tile address name the same positions |
 
 `LAWS.pending.bend` states, in the same syntax, the obligations this release
 specifies but has **not** proved. `law-registry.json` records the status of

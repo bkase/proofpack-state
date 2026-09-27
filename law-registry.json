@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 13 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 3 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 11 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 14 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 3 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 10 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -90,11 +90,13 @@
     "S-01",
     "S-02"
    ],
-   "status": "specified_checked_at_runtime",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": null,
-   "stated_in": "LAWS.pending.bend",
-   "backed_by": "tests.bend: the SPEC 4.1 counterexamples fail the build if a forbidden rewrite is ever added."
+   "proof_symbol": "PSet.empty_no_member, PSet.union_empty_left, PSet.inter_empty_left, PSet.diff_empty_right (proofs/empty.bend)",
+   "stated_in": "LAWS.bend",
+   "backed_by": "tests.bend: the SPEC 4.1 counterexamples fail the build if a forbidden rewrite is ever added.",
+   "proved_part": "The emptiness test only answers True for a set with no members -- which is what the admitted rewrites rest on, since it is an early exit that stops at the first word with a bit in it rather than counting -- and the three rewrites are then instances of S-02 with an empty operand.",
+   "gap": null
   },
   {
    "id": "P-01",
@@ -285,7 +287,7 @@
    "proof_symbol": null,
    "stated_in": "LAWS.pending.bend",
    "backed_by": "tests.bend counterexamples; the rewrites are instances of Boolean laws proved at the tile level.",
-   "gap": "Every rewrite is an instance of the pointwise laws, which are now proved (S-02). What is left is the statement over a whole expression, which is an induction over the AST."
+   "gap": "The set-level content is proved (S-02 and S-04). What is left is the lift to expressions: an induction over the AST, which needs the denotation of every subexpression to be structurally valid -- so it needs PSet.valid to be preserved by union, intersection, difference, filter and closure, which is not proved."
   },
   {
    "id": "Q-02",

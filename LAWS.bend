@@ -905,3 +905,55 @@ law set_intersection_is_pointwise:
   {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
     == Bool.and(S.PSet.member(20n, a, x),
          S.PSet.member(20n, b, x)) : Bool}
+
+# ===========================================================================
+# S-04 -- the admitted Boolean rewrites.
+#
+# `query/rewrite.bend` rewrites `A u Empty` to `A`, `A n Empty` to `Empty` and
+# `A \ Empty` to `A`, on the strength of `PSet.empty_p`'s answer. That test is
+# the early exit SPEC 4.3 asks for -- it stops at the first word with a bit in
+# it rather than counting -- so what the rewrites rest on is that it only
+# answers `True{}` for a set with no members. That is the first law here; the
+# three rewrites are then instances of S-02 with an empty operand.
+#
+# What is deliberately *not* admitted is in `tests.bend`: closure does not
+# distribute over intersection or difference, and the counterexamples of SPEC
+# 4.1 run on every build so that adding such a rewrite fails it.
+# ===========================================================================
+
+law an_empty_set_has_no_members:
+  for +d: Nat
+  for +s: S.PSet
+  for +h: U32
+  for +x: U32
+  for +z: {S.PSet.empty_p(d, s) == True{} : Bool}
+  {S.PSet.mem(d, s, h, x) == False{} : Bool}
+
+law union_with_an_empty_set_changes_nothing:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +z: {S.PSet.empty_p(20n, a) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.union(20n, a, b), x)
+    == S.PSet.member(20n, b, x) : Bool}
+
+law intersection_with_an_empty_set_is_empty:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +z: {S.PSet.empty_p(20n, a) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.inter(20n, a, b), x) == False{} : Bool}
+
+law subtracting_an_empty_set_changes_nothing:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  for +z: {S.PSet.empty_p(20n, b) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
+    == S.PSet.member(20n, a, x) : Bool}

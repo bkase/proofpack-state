@@ -35,6 +35,7 @@
 #   proofs/walk.bend      the walk and the address agree
 #   proofs/leafops.bend   the leaf operations are pointwise
 #   proofs/setops.bend    the set operations are pointwise
+#   proofs/empty.bend     an empty set has no members
 
 import Base
 import ./LAWS.bend as Laws
@@ -65,6 +66,7 @@ import ./proofs/faithful.bend as PFa
 import ./proofs/walk.bend as PWk
 import ./proofs/leafops.bend as PLo
 import ./proofs/setops.bend as PSo
+import ./proofs/empty.bend as PEm
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -270,3 +272,15 @@ def Laws.set_union_is_pointwise(a, b, x, va, vb):
 
 def Laws.set_intersection_is_pointwise(a, b, x, va, vb):
   PSo.PSet.inter_member(a, b, x, va, vb)
+
+def Laws.an_empty_set_has_no_members(d, s, h, x, z):
+  PEm.PSet.empty_no_member(d, s, h, x, z, U32.is_lt(x, h), {==})
+
+def Laws.union_with_an_empty_set_changes_nothing(a, b, x, va, vb, z):
+  PEm.PSet.union_empty_left(a, b, x, va, vb, z)
+
+def Laws.intersection_with_an_empty_set_is_empty(a, b, x, va, vb, z):
+  PEm.PSet.inter_empty_left(a, b, x, va, vb, z)
+
+def Laws.subtracting_an_empty_set_changes_nothing(a, b, x, va, vb, z):
+  PEm.PSet.diff_empty_right(a, b, x, va, vb, z)
