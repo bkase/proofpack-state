@@ -2229,3 +2229,11 @@ law a_set_with_a_nonzero_count_has_a_member:
   for +pos: {C.Nat.gt(S.PSet.count(d, s, S.PSet.half(d)), 0n)
     == True{} : Bool}
   {S.PSet.member(d, s, Wt.Ords.head(l)) == True{} : Bool}
+
+law the_fused_count_is_the_length_of_the_fused_list:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {S.PSet.missing_count(d, a, b)
+    == List.length(&2, U32, S.PSet.missing(d, a, b)) : Nat}
