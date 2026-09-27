@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "formal_proof": false,
+  "golden_cases": 7,
+  "law_obligations": 32,
+  "graphs": 512,
+  "root_cases": 4096,
+  "minimality_cases": 262144
+}

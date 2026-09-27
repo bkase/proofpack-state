@@ -1,0 +1,448 @@
+{
+  "schema_version": 1,
+  "project": "ProofPack State",
+  "status": "Proposed law registry; no Bend proofs implemented in this handoff.",
+  "laws": [
+    {
+      "id": "U-01",
+      "required_by": "M0",
+      "name": "Identity mapping",
+      "statement": "identify is injective; lookup round-trips within one universe.",
+      "unlocks": "Dense ordinals without identity confusion",
+      "depends_on": [],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "U-02",
+      "required_by": "M2",
+      "name": "Generation lifting",
+      "statement": "Append-only lifting preserves membership of old identities and union/intersection/difference; new members are absent.",
+      "unlocks": "Reuse old set roots after universe growth",
+      "depends_on": [
+        "U-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "S-01",
+      "required_by": "M0",
+      "name": "Pointwise set operations",
+      "statement": "Member(union/intersection/difference(A,B),x) equals the Boolean specification.",
+      "unlocks": "All set-operation correctness",
+      "depends_on": [],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "S-02",
+      "required_by": "M2",
+      "name": "Representation refinement",
+      "statement": "Empty/full/sparse/dense/branch denotations agree with membership and validate ranges/tails.",
+      "unlocks": "Adaptive persistent representations",
+      "depends_on": [
+        "U-01",
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "S-03",
+      "required_by": "M2",
+      "name": "Representation conversion",
+      "statement": "decode(convert(A)) = decode(A), including sparse/dense and zero/full compression.",
+      "unlocks": "Density-adaptive storage",
+      "depends_on": [
+        "S-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "S-04",
+      "required_by": "M3",
+      "name": "Boolean rewrites",
+      "statement": "Each admitted Boolean rewrite preserves membership in one universe.",
+      "unlocks": "Pruning, absorption and common-subexpression elimination",
+      "depends_on": [
+        "S-01",
+        "S-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "P-01",
+      "required_by": "M2",
+      "name": "Persistent updates",
+      "statement": "Returned updated root has patch semantics; every retained old root has unchanged denotation.",
+      "unlocks": "Sharing across inventory versions",
+      "depends_on": [
+        "S-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "C-01",
+      "required_by": "M0",
+      "name": "Least fixed point",
+      "statement": "C(R) is the least edge-closed set containing R.",
+      "unlocks": "Authoritative generic requirement semantics",
+      "depends_on": [
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "C-02",
+      "required_by": "M1",
+      "name": "Traversal refinement",
+      "statement": "Production frontier traversal returns C(R) and terminates on admitted finite graphs.",
+      "unlocks": "Efficient CPU graph traversal",
+      "depends_on": [
+        "C-01",
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "C-03",
+      "required_by": "M1",
+      "name": "Closure algebra",
+      "statement": "Closure is extensive, monotone, idempotent, empty-preserving and union-preserving.",
+      "unlocks": "Grouped roots and closure reuse",
+      "depends_on": [
+        "C-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "C-04",
+      "required_by": "M1",
+      "name": "Closure certificate soundness/completeness",
+      "statement": "The rank/predecessor and edge-closure checker accepts only exact closures; every finite exact closure admits such a certificate.",
+      "unlocks": "Checked cached or alternative closure proposals",
+      "depends_on": [
+        "C-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "C-05",
+      "required_by": "M2",
+      "name": "Checkpoint shortcut",
+      "statement": "Replacing exploration at a vertex by its validated cached closure preserves the full result.",
+      "unlocks": "Checkpoint indexes and shared ancestor reuse",
+      "depends_on": [
+        "C-02",
+        "C-03",
+        "C-04"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "M-01",
+      "required_by": "M1",
+      "name": "Least missing set",
+      "statement": "K subset H union T iff (K minus H) subset T, for K=C(R) and arbitrary H.",
+      "unlocks": "Exact additional object requirements",
+      "depends_on": [
+        "C-01",
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "M-02",
+      "required_by": "M1",
+      "name": "Readiness",
+      "statement": "isReady(K,H) iff K subset H iff K minus H is empty.",
+      "unlocks": "Fast readiness and missing witnesses",
+      "depends_on": [
+        "M-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "M-03",
+      "required_by": "M3",
+      "name": "Missing composition",
+      "statement": "(A union B) minus H = (A minus H) union (B minus H); A minus (H1 union H2) = (A minus H1) minus H2.",
+      "unlocks": "Shared requirements and tiered inventory filtering",
+      "depends_on": [
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "R-01",
+      "required_by": "M0",
+      "name": "Ordinal partition",
+      "statement": "Disjoint valid ordinal intervals cover the result exactly once; pointwise Boolean operations commute with restriction.",
+      "unlocks": "Independent CPU/Metal leaf jobs",
+      "depends_on": [
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "R-02",
+      "required_by": "M0",
+      "name": "Disjoint statistics",
+      "statement": "Stats(disjoint_union tiles)=fold(componentwise_add, Stats(tiles)).",
+      "unlocks": "Balanced deterministic reductions",
+      "depends_on": [
+        "R-01",
+        "B-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "Q-01",
+      "required_by": "M3",
+      "name": "Validated query rewrites",
+      "statement": "For every admitted rewrite, denotation before equals denotation after; validation precedes elimination.",
+      "unlocks": "Safe algebraic query optimization",
+      "depends_on": [
+        "S-04",
+        "C-03"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "Q-02",
+      "required_by": "M3",
+      "name": "Fused difference statistics",
+      "statement": "FusedStats(A,B)=Stats(decode(A) minus decode(B)).",
+      "unlocks": "Eliminate intermediate missing bitmaps",
+      "depends_on": [
+        "S-02",
+        "R-01",
+        "R-02",
+        "B-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "Q-03",
+      "required_by": "M4",
+      "name": "Compiler soundness",
+      "statement": "observe(execute(compile(W,q)))=denote(q,W) for admitted total core inputs.",
+      "unlocks": "Production end-to-end refinement",
+      "depends_on": [
+        "Q-01",
+        "Q-02",
+        "B-03",
+        "C-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "Q-04",
+      "required_by": "M3",
+      "name": "Batch deduplication",
+      "statement": "Deduplicating equal requests/operand pairs and restoring caller positions preserves every result and order.",
+      "unlocks": "Worker/task matrix reuse",
+      "depends_on": [
+        "Q-01",
+        "R-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "I-01",
+      "required_by": "M2",
+      "name": "Inventory maintenance",
+      "statement": "maintain(K,H,remove,add)=fresh(K,(H minus remove) union add).",
+      "unlocks": "Exact updates including evictions",
+      "depends_on": [
+        "P-01",
+        "M-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "I-02",
+      "required_by": "M4",
+      "name": "Graph extension",
+      "statement": "Under complete unchanged old outgoing adjacency, old-root closure is preserved by the identity embedding.",
+      "unlocks": "Reuse checkpoints after graph append",
+      "depends_on": [
+        "U-02",
+        "C-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "I-03",
+      "required_by": "M2",
+      "name": "Cache binding",
+      "statement": "A reused value is bound to exact universe/graph/policy/root/weight/input generations.",
+      "unlocks": "Prevent stale graph and metric reuse",
+      "depends_on": [
+        "U-01",
+        "C-04",
+        "D-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "E-01",
+      "required_by": "M1",
+      "name": "Reachability witness",
+      "statement": "Returned explanation begins at a requested root, ends at the requested object, and every step is a policy edge.",
+      "unlocks": "Source-anchored dependency explanation",
+      "depends_on": [
+        "C-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "B-01",
+      "required_by": "M0",
+      "name": "Word refinement",
+      "statement": "U32 difference/popcount and final-word masking implement bounded bit membership/count.",
+      "unlocks": "Fast dense leaf loops",
+      "depends_on": [
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "B-02",
+      "required_by": "M0",
+      "name": "Checked numeric refinement",
+      "statement": "Limb conversion/addition/comparison agree with Naturals in range; overflow is detected.",
+      "unlocks": "Exact counts and byte totals",
+      "depends_on": [],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "B-03",
+      "required_by": "M4",
+      "name": "Plan execution refinement",
+      "statement": "Every leaf/reduction executes its specified result with bounded reads and exclusive output writes under documented backend contracts.",
+      "unlocks": "Native/Metal source-level agreement",
+      "depends_on": [
+        "B-01",
+        "B-02",
+        "R-01",
+        "R-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "D-01",
+      "required_by": "M2",
+      "name": "Serialization",
+      "statement": "decode(encode(valid_value)) preserves denotation; accepted untrusted data satisfies structural invariants.",
+      "unlocks": "Persisted sets and manifests",
+      "depends_on": [
+        "U-01",
+        "S-02"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "G-01",
+      "required_by": "M1",
+      "name": "Metadata parser",
+      "statement": "Parsing is sound and complete within declared metadata grammar and explicit size limits.",
+      "unlocks": "Git-to-graph correctness boundary",
+      "depends_on": [],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "G-02",
+      "required_by": "M1",
+      "name": "Git policies",
+      "statement": "Parsed Git objects map to exactly the specified full/tree-data internal edges and external references.",
+      "unlocks": "Separate history from current-tree requirements",
+      "depends_on": [
+        "G-01",
+        "C-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    },
+    {
+      "id": "G-03",
+      "required_by": "M1",
+      "name": "Inventory projection",
+      "statement": "Projection into source universe contains exactly the recorded source-domain OIDs, without assuming closure.",
+      "unlocks": "Partial receiver caches",
+      "depends_on": [
+        "U-01",
+        "S-01"
+      ],
+      "status": "specified_not_proved",
+      "production_symbol": null,
+      "proof_symbol": null
+    }
+  ],
+  "forbidden_rewrites": [
+    "C(A intersect B) = C(A) intersect C(B)",
+    "C(A minus B) = C(A) minus C(B)",
+    "Stats(A union B) = Stats(A) + Stats(B) without disjointness",
+    "lift(Full_old)=Full_new",
+    "Reach(R) intersect tile = Reach_in_induced_tile(R intersect tile)",
+    "Resolve an invalid input only after eliminating it by a rewrite"
+  ]
+}

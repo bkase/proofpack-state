@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "note": "Symbolic metadata fixture, NOT serialized Git objects. Sizes are specified test weights. Node order defines this fixture universe.",
+  "nodes": [
+    {
+      "id": "shared",
+      "type": "blob",
+      "bytes": 7
+    },
+    {
+      "id": "old",
+      "type": "blob",
+      "bytes": 11
+    },
+    {
+      "id": "t0",
+      "type": "tree",
+      "bytes": 80
+    },
+    {
+      "id": "c0",
+      "type": "commit",
+      "bytes": 120
+    },
+    {
+      "id": "new",
+      "type": "blob",
+      "bytes": 13
+    },
+    {
+      "id": "t1",
+      "type": "tree",
+      "bytes": 82
+    },
+    {
+      "id": "c1",
+      "type": "commit",
+      "bytes": 150
+    },
+    {
+      "id": "tag1",
+      "type": "tag",
+      "bytes": 40
+    },
+    {
+      "id": "orphan",
+      "type": "blob",
+      "bytes": 17
+    }
+  ],
+  "edges": [
+    [
+      "t0",
+      "shared",
+      "entry"
+    ],
+    [
+      "t0",
+      "old",
+      "entry"
+    ],
+    [
+      "c0",
+      "t0",
+      "root_tree"
+    ],
+    [
+      "t1",
+      "shared",
+      "entry"
+    ],
+    [
+      "t1",
+      "new",
+      "entry"
+    ],
+    [
+      "c1",
+      "t1",
+      "root_tree"
+    ],
+    [
+      "c1",
+      "c0",
+      "parent"
+    ],
+    [
+      "tag1",
+      "c1",
+      "tag_target"
+    ]
+  ],
+  "inventories": {
+    "old_full": [
+      "shared",
+      "old",
+      "t0",
+      "c0"
+    ],
+    "new_tree": [
+      "shared",
+      "new",
+      "t1",
+      "c1"
+    ],
+    "nonclosed": [
+      "shared",
+      "new",
+      "t1"
+    ],
+    "empty": []
+  },
+  "cases": [
+    {
+      "name": "historical requirement",
+      "roots": [
+        "c1"
+      ],
+      "policy": "full",
+      "have": "old_full",
+      "required": [
+        "shared",
+        "old",
+        "t0",
+        "c0",
+        "new",
+        "t1",
+        "c1"
+      ],
+      "missing": [
+        "new",
+        "t1",
+        "c1"
+      ],
+      "missing_count": 3,
+      "missing_bytes": 245,
+      "ready": false
+    },
+    {
+      "name": "snapshot-only requirement",
+      "roots": [
+        "c1"
+      ],
+      "policy": "tree-data",
+      "have": "new_tree",
+      "required": [
+        "shared",
+        "new",
+        "t1",
+        "c1"
+      ],
+      "missing": [],
+      "missing_count": 0,
+      "missing_bytes": 0,
+      "ready": true
+    },
+    {
+      "name": "snapshot-ready is not full-history-ready",
+      "roots": [
+        "c1"
+      ],
+      "policy": "full",
+      "have": "new_tree",
+      "required": [
+        "shared",
+        "old",
+        "t0",
+        "c0",
+        "new",
+        "t1",
+        "c1"
+      ],
+      "missing": [
+        "old",
+        "t0",
+        "c0"
+      ],
+      "missing_count": 3,
+      "missing_bytes": 211,
+      "ready": false
+    },
+    {
+      "name": "arbitrary inventory need not be closed",
+      "roots": [
+        "c1"
+      ],
+      "policy": "tree-data",
+      "have": "nonclosed",
+      "required": [
+        "shared",
+        "new",
+        "t1",
+        "c1"
+      ],
+      "missing": [
+        "c1"
+      ],
+      "missing_count": 1,
+      "missing_bytes": 150,
+      "ready": false
+    },
+    {
+      "name": "annotated tag root retained",
+      "roots": [
+        "tag1"
+      ],
+      "policy": "tree-data",
+      "have": "new_tree",
+      "required": [
+        "tag1",
+        "c1",
+        "t1",
+        "shared",
+        "new"
+      ],
+      "missing": [
+        "tag1"
+      ],
+      "missing_count": 1,
+      "missing_bytes": 40,
+      "ready": false
+    },
+    {
+      "name": "empty roots",
+      "roots": [],
+      "policy": "full",
+      "have": "empty",
+      "required": [],
+      "missing": [],
+      "missing_count": 0,
+      "missing_bytes": 0,
+      "ready": true
+    },
+    {
+      "name": "isolated requested root",
+      "roots": [
+        "orphan"
+      ],
+      "policy": "full",
+      "have": "empty",
+      "required": [
+        "orphan"
+      ],
+      "missing": [
+        "orphan"
+      ],
+      "missing_count": 1,
+      "missing_bytes": 17,
+      "ready": false
+    }
+  ]
+}
