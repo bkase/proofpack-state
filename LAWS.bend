@@ -2297,3 +2297,14 @@ law the_merge_difference_holds_exactly_what_it_should:
   {List.contains(~U32, ~U32.is_eq, Or3.Ords.diff(a, b), x)
     == Bool.and(List.contains(~U32, ~U32.is_eq, a, x),
          Bool.not(List.contains(~U32, ~U32.is_eq, b, x))) : Bool}
+
+law the_fused_leaf_difference_lists_exactly_what_it_should:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +y: U32
+  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
+  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(y, 12n) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, S.PSet.leaf_diff_members(a, b), y)
+    == Bool.and(S.PSet.mem.leaf(a, y),
+         Bool.not(S.PSet.mem.leaf(b, y))) : Bool}

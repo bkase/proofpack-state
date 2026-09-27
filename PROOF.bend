@@ -71,6 +71,7 @@
 #   proofs/orderlist.bend ascending and descending lists of ordinals
 #   proofs/tileorder.bend the tile walk emits ordinals in order
 #   proofs/merge.bend     what the merge-based difference contains
+#   proofs/leafdiff.bend  what the fused leaf difference emits
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -114,6 +115,7 @@ import ./proofs/fusedlen.bend as PFl
 import ./proofs/orderlist.bend as POl
 import ./proofs/tileorder.bend as PTo
 import ./proofs/merge.bend as PMg
+import ./proofs/leafdiff.bend as PLf2
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -643,3 +645,7 @@ def Laws.a_tile_lists_its_ordinals_in_order(ws, len):
 def Laws.the_merge_difference_holds_exactly_what_it_should(a, b, x, aa,
   ab):
   PMg.Ords.diff_contains(a, b, x, aa, ab)
+
+def Laws.the_fused_leaf_difference_lists_exactly_what_it_should(a, b,
+  y, va, vb, inr):
+  PLf2.PSet.leaf_diff_members_mem(a, b, y, va, vb, inr)
