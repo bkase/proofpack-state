@@ -633,3 +633,36 @@ law a_sparse_leaf_and_its_tile_hold_the_same_ordinals:
     U32.to_nat(U32.shrn(x, 5n))) == True{} : Bool}
   {Wo.Words.bit(S.PSet.spread(offs, Wo.Words.zeros(128n)), x)
     == Or.Ords.elem(offs, x) : Bool}
+
+# ===========================================================================
+# S-03, at the count -- what a bit count says about the bits.
+#
+# `PSet.compress` decides a leaf's representation from one number: how many
+# bits are set. Zero means `PZero{}`, a full 4096 means `PFull{}`, few enough
+# means a sparse offset list, and the rest stays dense. For that decision to
+# preserve membership, the two extreme answers have to be justified by the
+# count alone.
+#
+# The second is a pigeonhole: 128 words hold at most 32 bits each, so 4096 is
+# only reachable when every word is full, and a word is full only when every
+# one of its bits is set. `Nat.dbl(5n, n)` is 32n -- the capacity of an
+# n-word tile.
+# ===========================================================================
+
+law a_tile_at_capacity_has_every_bit_set:
+  for +ws: List<&2, U32>
+  for +full: {Wo.Words.count(ws)
+    == Sp.Nat.dbl(5n, List.length(&2, U32, ws)) : Nat}
+  for +i: Nat
+  for +iok: {C.Nat.gt(List.length(&2, U32, ws), i) == True{} : Bool}
+  for +b: Nat
+  for +bok: {C.Nat.gt(32n, b) == True{} : Bool}
+  {Wo.Words.at(ws, i, b) == True{} : Bool}
+
+law a_tile_counting_zero_has_no_bit_set:
+  for +ws: List<&2, U32>
+  for +z: {Wo.Words.count(ws) == 0n : Nat}
+  for +i: Nat
+  for +b: Nat
+  for +bok: {C.Nat.gt(32n, b) == True{} : Bool}
+  {Wo.Words.at(ws, i, b) == False{} : Bool}

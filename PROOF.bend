@@ -27,6 +27,7 @@
 #   proofs/inject.bend    the numeric reading of a word is injective
 #   proofs/split.bend     the division identity, and A3
 #   proofs/bridge.bend    a sparse leaf and its tile agree
+#   proofs/count.bend     what a bit count says about the bits
 
 import Base
 import ./LAWS.bend as Laws
@@ -49,6 +50,7 @@ import ./proofs/descend.bend as PDc
 import ./proofs/inject.bend as PIj
 import ./proofs/split.bend as PSp
 import ./proofs/bridge.bend as PBr
+import ./proofs/count.bend as PCt
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -205,3 +207,9 @@ def Laws.the_tile_address_is_injective(o, x, ei, eb):
 
 def Laws.a_sparse_leaf_and_its_tile_hold_the_same_ordinals(offs, x, fits):
   PBr.PSet.sparse_matches_its_tile(offs, x, fits)
+
+def Laws.a_tile_at_capacity_has_every_bit_set(ws, full, i, iok, b, bok):
+  PCt.Words.count_full(ws, full, i, iok, b, bok)
+
+def Laws.a_tile_counting_zero_has_no_bit_set(ws, z, i, b, bok):
+  PCt.Words.count_zero(ws, z, i, b, bok)
