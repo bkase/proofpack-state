@@ -34,11 +34,20 @@ import ../adapters/git/inventory.bend as Inv
 import ../adapters/git/git.bend as Gi
 import ../query/ast.bend as A
 import ../query/eval.bend as Ev
+import ../execute/plan.bend as X
+import ../host/proc.bend as P
 import ./args.bend as Ar
 import ./json.bend as J
 # ---------------------------------------------------------------------------
 # Options.
 # ---------------------------------------------------------------------------
+
+# The requested backend, the one that actually ran, and what the plan did.
+# SPEC 7.6 requires every result diagnostic to report all of it, and requires
+# a forced Metal run to fail when GPU execution cannot actually occur.
+type Backend is Data:
+  Bk{requested: String, actual: String, dispatches: Nat, leaves: Nat,
+    pruned: Nat, words: Nat}
 
 # One value carrying everything every command needs, rather than five
 # parameters threaded through five defs. SHADERS.md's advice -- "wrap a big
@@ -48,7 +57,37 @@ import ./json.bend as J
 # answers "an arity over 247".
 type Ctx is Data:
   Cx{repo: String, src: Idx.Source, policy: Idx.Policy,
-    refs: List<&2, String>, backend: String}
+    refs: List<&2, String>, backend: Backend}
+
+def Backend.requested(+b: Backend) -> String:
+  match b:
+    case Bk{requested, actual, dispatches, leaves, pruned, words}:
+      requested
+
+def Backend.actual(+b: Backend) -> String:
+  match b:
+    case Bk{requested, actual, dispatches, leaves, pruned, words}:
+      actual
+
+def Backend.dispatches(+b: Backend) -> Nat:
+  match b:
+    case Bk{requested, actual, dispatches, leaves, pruned, words}:
+      dispatches
+
+def Backend.leaves(+b: Backend) -> Nat:
+  match b:
+    case Bk{requested, actual, dispatches, leaves, pruned, words}:
+      leaves
+
+def Backend.pruned(+b: Backend) -> Nat:
+  match b:
+    case Bk{requested, actual, dispatches, leaves, pruned, words}:
+      pruned
+
+def Backend.words(+b: Backend) -> Nat:
+  match b:
+    case Bk{requested, actual, dispatches, leaves, pruned, words}:
+      words
 
 def Ctx.repo(+c: Ctx) -> String:
   match c:
@@ -70,7 +109,7 @@ def Ctx.refs(+c: Ctx) -> List<&2, String>:
     case Cx{repo, src, policy, refs, backend}:
       refs
 
-def Ctx.backend(+c: Ctx) -> String:
+def Ctx.backend(+c: Ctx) -> Backend:
   match c:
     case Cx{repo, src, policy, refs, backend}:
       backend
@@ -148,11 +187,17 @@ def Cli.env.snapshot(+src: Idx.Source, refs: List<&2, String>) -> String:
     J.Json.field("external_references", J.Json.arr(
       Cli.oids_json(Idx.Source.fmt(src), Idx.Source.ext(src))))])
 
-def Cli.env.execution(backend: String) -> String:
+def Cli.env.execution(+b: Backend) -> String:
   J.Json.obj([
-    J.Json.field("requested_backend", J.Json.str(backend)),
-    J.Json.field("actual_backend", J.Json.str("cpu")),
-    J.Json.field("gpu_dispatches", J.Json.str("0"))])
+    J.Json.field("requested_backend",
+      J.Json.str(Backend.requested(b))),
+    J.Json.field("actual_backend", J.Json.str(Backend.actual(b))),
+    J.Json.field("gpu_dispatches", J.Json.num(Backend.dispatches(b))),
+    J.Json.field("leaf_jobs", J.Json.num(Backend.leaves(b))),
+    J.Json.field("intervals_pruned", J.Json.num(Backend.pruned(b))),
+    J.Json.field("words_read", J.Json.num(Backend.words(b))),
+    J.Json.field("bytes_read",
+      J.Json.num(Nat.mul(4n, Backend.words(b))))])
 
 def Cli.env.head(+cx: Ctx) -> List<&2, String>:
   [J.Json.field("schema_version", "1"),
@@ -164,7 +209,7 @@ def Cli.env.head(+cx: Ctx) -> List<&2, String>:
     J.Json.field("policy", J.Json.str(Idx.Policy.name(Ctx.policy(cx))))]
 
 def Cli.env.tail(inventory: String, completeness: String,
-  backend: String, result: String) -> List<&2, String>:
+  +backend: Backend, result: String) -> List<&2, String>:
   [J.Json.field("inventory_snapshot", J.Json.str(inventory)),
     J.Json.field("completeness", J.Json.str(completeness)),
     J.Json.field("inventory_assurance",
@@ -312,52 +357,13 @@ def Cmd.missing.gate(ready: Bool, gated: Bool) -> IO(Unit):
     case True{}:
       Cmd.missing.ready_exit(ready)
 
-def Cmd.missing.emit(+cx: Ctx, have: String, k: S.PSet,
-  inv: Inv.Inventory, want_oids: Bool, ready_gate: Bool) -> IO(Unit):
-  +kk = k
-  +iv = inv
-  +hh = Inv.Inventory.present(iv)
-  do IO<Unit>:
-    IO.print(Cli.envelope(cx, have, "complete",
-    Cmd.missing.body(Ctx.src(cx), kk, hh, want_oids, iv)))
-    Cmd.missing.gate(Ev.Ev.ready(kk, hh), ready_gate)
-
-def Cmd.missing.checked(+cx: Ctx, have: String,
-  inv: Inv.Inventory, k: S.PSet, ok: Bool, err: String,
-  want_oids: Bool, ready_gate: Bool) -> IO(Unit):
-  match ok:
-    case False{}:
-      Cli.limit(err)
+def Cmd.missing.agreed(disagreed: Bool, ready: Bool, gated: Bool) ->
+  IO(Unit):
+  match disagreed:
     case True{}:
-      Cmd.missing.emit(cx, have, k, inv,
-        want_oids, ready_gate)
-
-def Cmd.missing.have(+cx: Ctx, have: String, +v: Ev.Val,
-  ir: Inv.InvResult, want_oids: Bool, ready_gate: Bool) -> IO(Unit):
-  match ir:
-    case Inv.IErr{msg}:
-      Cli.fail(msg)
-    case Inv.IOk{inv}:
-      Cmd.missing.checked(cx, have, inv,
-        Ev.Val.set(v), Ev.Val.ok(v), Ev.Val.err(v), want_oids, ready_gate)
-
-def Cmd.missing(+cx: Ctx, have: String, want_oids: Bool,
-  ready_gate: Bool) -> IO(Unit):
-  +h = have
-  do IO<Unit>:
-    ir : Inv.InvResult <- Inv.Inv.observe(h, Idx.Source.uni(Ctx.src(cx)),
-      Idx.Source.fmt(Ctx.src(cx)))
-    Cmd.missing.have(cx, h, Cli.required(Ctx.src(cx), Ctx.policy(cx)),
-      ir, want_oids, ready_gate)
-
-# ---------------------------------------------------------------------------
-# pp git explain
-#
-# Law E-01: the returned path begins at a requested root, ends at the
-# requested object, and every step is a real policy edge. The path is
-# produced from the traversal's BFS levels and then *checked* independently
-# by `Explain.valid`, so the answer does not rest on trusting the producer.
-# ---------------------------------------------------------------------------
+      IO.die(Unit, 2, "")
+    case False{}:
+      Cmd.missing.gate(ready, gated)
 
 def Cmd.kind_name.pick(n: Nat) -> String:
   match n:
@@ -581,6 +587,124 @@ def Cmd.inventory(+cx: Ctx, have: String) -> IO(Unit):
 # Dispatch.
 # ---------------------------------------------------------------------------
 
+def Cli.actual.pick(forced: Bool, gpu: Bool) -> String:
+  match forced:
+    case False{}:
+      "cpu"
+    case True{}:
+      match gpu:
+        case True{}:
+          "metal"
+        case False{}:
+          "unavailable"
+
+# The actual backend: Metal only when the runtime says a `!` call really
+# reaches the GPU in this process, which `Host.gpu_enabled` reads from the
+# runtime itself. `auto` stays on the CPU: SPEC 11.4 says to ship a useful
+# native product and call Metal experimental until a measured regime exists,
+# rather than dispatch a GPU to demonstrate that it exists.
+def Cli.actual(requested: String, gpu: Bool) -> String:
+  Cli.actual.pick(String.eq(requested, "metal"), gpu)
+
+def Cli.backend_of(+requested: String, gpu: Bool) -> Backend:
+  Bk{requested, Cli.actual(requested, gpu), 0n, 0n, 0n, 0n}
+
+def Cli.backend_ok(+b: Backend) -> Bool:
+  Bool.not(String.eq(Backend.actual(b), "unavailable"))
+
+def Cli.execute.pick(metal: Bool, j: X.Job) -> Nat:
+  match metal:
+    case True{}:
+      X.Exec.count_gpu(Idx.Idx.sd(), j)
+    case False{}:
+      X.Exec.count(Idx.Idx.sd(), j)
+
+def Cli.execute.run(+b: Backend, j: X.Job) -> Nat:
+  Cli.execute.pick(String.eq(Backend.actual(b), "metal"), j)
+
+def Cli.execute.dispatches(metal: Bool) -> Nat:
+  match metal:
+    case True{}:
+      1n
+    case False{}:
+      0n
+
+def Cli.execute.check(+b: Backend, leaves: Nat, pruned: Nat, words: Nat,
+  agree: Bool) -> Backend:
+  match agree:
+    case True{}:
+      Bk{Backend.requested(b), Backend.actual(b),
+        Cli.execute.dispatches(String.eq(Backend.actual(b), "metal")),
+        leaves, pruned, words}
+    case False{}:
+      Bk{Backend.requested(b), "disagreed", 0n, leaves, pruned, words}
+
+def Cli.execute.go(+b: Backend, leaves: Nat, pruned: Nat, words: Nat,
+  got: Nat, tree: Nat) -> Backend:
+  Cli.execute.check(b, leaves, pruned, words, Nat.is_eq(got, tree))
+
+# Run the leaf-job plan on the chosen backend, and cross-check it against the
+# tree reduction. SPEC 11.1's second independent comparison is native against
+# Metal over identical validated plans; this runs it on every query rather
+# than only in a benchmark, and a disagreement is an error, not a warning.
+def Cli.execute(+b: Backend, k: S.PSet, h: S.PSet, tree: Nat) -> Backend:
+  +j = X.Plan.of(Idx.Idx.sd(), k, h)
+  Cli.execute.go(b, X.Plan.leaves(j, 0n), X.Plan.pruned(j, 0n),
+    X.Plan.words(j, 0n), Cli.execute.run(b, j), tree)
+
+def Cmd.missing.emit(+cx: Ctx, have: String, k: S.PSet,
+  inv: Inv.Inventory, want_oids: Bool, ready_gate: Bool) -> IO(Unit):
+  +kk = k
+  +iv = inv
+  +hh = Inv.Inventory.present(iv)
+  # The leaf-job plan runs on the chosen backend and its count is checked
+  # against the tree reduction. A disagreement between the two is reported as
+  # `actual_backend: "disagreed"` and exits 2 -- never as an answer.
+  +bk = Cli.execute(Ctx.backend(cx), kk, hh, Ev.Ev.missing_count(kk, hh))
+  do IO<Unit>:
+    IO.print(Cli.envelope(Cx{Ctx.repo(cx), Ctx.src(cx), Ctx.policy(cx),
+      Ctx.refs(cx), bk}, have, "complete",
+      Cmd.missing.body(Ctx.src(cx), kk, hh, want_oids, iv)))
+    Cmd.missing.agreed(String.eq(Backend.actual(bk), "disagreed"),
+      Ev.Ev.ready(kk, hh), ready_gate)
+
+def Cmd.missing.checked(+cx: Ctx, have: String,
+  inv: Inv.Inventory, k: S.PSet, ok: Bool, err: String,
+  want_oids: Bool, ready_gate: Bool) -> IO(Unit):
+  match ok:
+    case False{}:
+      Cli.limit(err)
+    case True{}:
+      Cmd.missing.emit(cx, have, k, inv,
+        want_oids, ready_gate)
+
+def Cmd.missing.have(+cx: Ctx, have: String, +v: Ev.Val,
+  ir: Inv.InvResult, want_oids: Bool, ready_gate: Bool) -> IO(Unit):
+  match ir:
+    case Inv.IErr{msg}:
+      Cli.fail(msg)
+    case Inv.IOk{inv}:
+      Cmd.missing.checked(cx, have, inv,
+        Ev.Val.set(v), Ev.Val.ok(v), Ev.Val.err(v), want_oids, ready_gate)
+
+def Cmd.missing(+cx: Ctx, have: String, want_oids: Bool,
+  ready_gate: Bool) -> IO(Unit):
+  +h = have
+  do IO<Unit>:
+    ir : Inv.InvResult <- Inv.Inv.observe(h, Idx.Source.uni(Ctx.src(cx)),
+      Idx.Source.fmt(Ctx.src(cx)))
+    Cmd.missing.have(cx, h, Cli.required(Ctx.src(cx), Ctx.policy(cx)),
+      ir, want_oids, ready_gate)
+
+# ---------------------------------------------------------------------------
+# pp git explain
+#
+# Law E-01: the returned path begins at a requested root, ends at the
+# requested object, and every step is a real policy edge. The path is
+# produced from the traversal's BFS levels and then *checked* independently
+# by `Explain.valid`, so the answer does not rest on trusting the producer.
+# ---------------------------------------------------------------------------
+
 def Cli.usage() -> String:
   "pp -- ProofPack State\n"
     ++ "\n"
@@ -594,6 +718,10 @@ def Cli.usage() -> String:
     ++ "  pp git verify    --repo R [--root REF]...\n"
     ++ "\n"
     ++ "Global: --mode full|tree-data  --backend auto|cpu|metal\n"
+    ++ "\n"
+    ++ "--backend metal fails if this process has no GPU rather than\n"
+    ++ "falling back; auto stays on the CPU, because no measured regime\n"
+    ++ "yet exists where Metal beats the native path after dispatch.\n"
     ++ "\n"
     ++ "Every command is read-only. Exit 0 complete, 1 not ready,\n"
     ++ "2 rejected, 3 resource limit."
@@ -668,7 +796,7 @@ def Cli.go(+ar: Ar.Args, +cmd: String, +cx: Ctx, +keep_n: Nat) ->
   Cli.go.pick(ar, cx, keep_n, Cli.which(cmd))
 
 def Cli.dispatch(+ar: Ar.Args, +cmd: String, repo: String,
-  +p: Idx.Policy, refs: List<&2, String>, backend: String, +keep_n: Nat,
+  +p: Idx.Policy, refs: List<&2, String>, backend: Backend, +keep_n: Nat,
   b: Idx.Built) -> IO(Unit):
   match b:
     case Idx.BErr{msg}:
@@ -676,15 +804,31 @@ def Cli.dispatch(+ar: Ar.Args, +cmd: String, repo: String,
     case Idx.BOk{src}:
       Cli.go(ar, cmd, Cx{repo, src, p, refs, backend}, keep_n)
 
-def Cli.run(+ar: Ar.Args, +cmd: String, repo: String, +p: Idx.Policy,
-  +refs: List<&2, String>, backend: String, removed: List<&2, String>) ->
+def Cli.run.checked(+ar: Ar.Args, +cmd: String, +repo: String,
+  +p: Idx.Policy, +refs: List<&2, String>, +bk: Backend,
+  removed: List<&2, String>, all: List<&2, String>, ok: Bool) ->
   IO(Unit):
-  +all = List.append(&2, String, refs, removed)
+  match ok:
+    case False{}:
+      Cli.fail("BackendUnavailable: --backend metal was requested, but "
+        ++ "this process has no GPU: either the binary was built without a "
+        ++ "`!` call, no device was found, or --gpu off was passed")
+    case True{}:
+      do IO<Unit>:
+        b : Idx.Built <- Idx.Idx.import(repo, all)
+        Cli.dispatch(ar, cmd, repo, p, refs, bk,
+          List.length(&2, String, refs), b)
+
+def Cli.run(+ar: Ar.Args, +cmd: String, repo: String, +p: Idx.Policy,
+  +refs: List<&2, String>, requested: String,
+  removed: List<&2, String>) -> IO(Unit):
   +rp = repo
+  +rm = removed
   do IO<Unit>:
-    b : Idx.Built <- Idx.Idx.import(rp, all)
-    Cli.dispatch(ar, cmd, rp, p, refs, backend,
-      List.length(&2, String, refs), b)
+    gpu : Bool <- P.Host.gpu_enabled()
+    +bk : Backend = Cli.backend_of(requested, gpu)
+    Cli.run.checked(ar, cmd, rp, p, refs, bk, rm,
+      List.append(&2, String, refs, rm), Cli.backend_ok(bk))
 
 def Cli.top.pick(+ar: Ar.Args, +cmd: String, ok: Bool) -> IO(Unit):
   match ok:

@@ -27,3 +27,12 @@ def Host.run_bytes(program: String, args: List<&2, String>, input: String,
   IO(Result<&1, &1, U32 & String, U32 & (Bytes & String)>):
   import "./run_bytes.c"
   import "./run_bytes.js"
+
+# Whether a `!` call actually reaches the GPU in this process. The runtime
+# decides that once at start-up, from whether a GPU was found and whether
+# `--gpu off` was passed; this reads its answer. SPEC 7.6 requires a forced
+# Metal run to fail when GPU execution cannot occur, which needs the actual
+# backend and not the requested one.
+def Host.gpu_enabled() -> IO(Bool):
+  import "./gpu.c"
+  import "./gpu.js"

@@ -130,6 +130,42 @@ if [ -d "$repos/receiver" ]; then
   done
 fi
 
+# --- native against Metal over identical plans (SPEC 11.1) ----------------
+# `pp` already cross-checks the leaf-job plan against the tree reduction on
+# every query and reports `actual_backend: "disagreed"` if they differ. This
+# checks the stronger thing: the whole result is identical whichever backend
+# ran it, and a forced Metal run fails rather than falls back when no GPU is
+# available.
+if [ -d "$repos/receiver" ]; then
+  echo "backends:"
+  S="$repos/source"; R="$repos/receiver"
+  base="git missing --repo $S --root refs/heads/main --have-repo $R"
+  c=$("$pp" $base --backend cpu   | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["result"],sort_keys=True))')
+  m=$("$pp" $base --backend metal | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["result"],sort_keys=True))')
+  if [ "$c" = "$m" ]; then
+    printf '  %-46s %s\n' "cpu and metal return identical results" "ok"
+  else
+    printf '  %-46s\n    cpu:   %s\n    metal: %s\n' \
+      "cpu and metal return identical results MISMATCH" "$c" "$m"
+    fail=1
+  fi
+  act=$("$pp" $base --backend metal | python3 -c 'import json,sys; print(json.load(sys.stdin)["execution"]["actual_backend"])')
+  disp=$("$pp" $base --backend metal | python3 -c 'import json,sys; print(json.load(sys.stdin)["execution"]["gpu_dispatches"])')
+  if [ "$act" = "metal" ]; then
+    check "forced metal actually dispatched" "1" "$disp"
+  else
+    printf '  %-46s %s\n' "forced metal" \
+      "no GPU in this process (actual: $act); skipped"
+  fi
+  "$pp" --gpu off $base --backend metal > /dev/null 2>&1
+  check "forced metal without a GPU fails, exit 2" "2" "$?"
+  "$pp" --gpu off $base --backend cpu > /dev/null 2>&1
+  check "cpu without a GPU still answers, exit 0" "0" "$?"
+  "$pp" --gpu off git ready --repo "$S" --root refs/heads/main \
+    --have-repo "$R" > /dev/null 2>&1
+  check "ready is still a complete negative, exit 1" "1" "$?"
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "differential: pp agrees with git plumbing on every case"
