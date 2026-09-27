@@ -66,6 +66,9 @@ import ./proofs/table.bend as Tb
 import ./proofs/insert.bend as In
 import ./proofs/only.bend as On
 import ./proofs/subset.bend as Sb
+import ./proofs/batch.bend as Ba
+import ./proofs/extensive.bend as Ex3
+import ./cli/main.bend as Cm
 import ./proofs/inventory.bend as Iv2
 import ./adapters/git/inventory.bend as Iv
 import ./adapters/git/intern.bend as Ui2
@@ -1660,3 +1663,76 @@ law a_set_with_a_zero_count_has_no_members:
   for +v: {Sh.PSet.wf(d, s, True{}) == True{} : Bool}
   for +z: {S.PSet.count(d, s, h) == 0n : Nat}
   {S.PSet.mem(d, s, h, x) == False{} : Bool}
+
+# ===========================================================================
+# C-01, in part -- a round that changes nothing has reached a closed set.
+#
+# The fixed-point half of C-01 -- that the iteration is stable after `n`
+# rounds -- needs a pigeonhole argument over the universe and is still open.
+# This is the other half of what "fixed point" means, and it needs no
+# counting: *if* a round changes nothing, then what it changed nothing about
+# is edge-closed, in the pointwise sense every set law here uses. The
+# hypothesis is a value equality, which is what a check can actually observe:
+# the round returned the operand it was given.
+# ===========================================================================
+
+law a_stable_round_has_reached_an_edge_closed_set:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +xs: S.PSet
+  for +v: U32
+  for +w: {Sh.PSet.wf(20n, xs, True{}) == True{} : Bool}
+  for +st: {Sp2.Spec.step(td, g, 20n, xs) == xs : S.PSet}
+  for +mp: {S.PSet.member(20n, Sp2.Spec.post(td, g, 20n, xs), v)
+    == True{} : Bool}
+  {S.PSet.member(20n, xs, v) == True{} : Bool}
+
+# ===========================================================================
+# Q-04, in part -- the matrix restores the caller's positions.
+#
+# `pp git matrix` answers one cell per distinct inventory and points every
+# duplicate at the cell it shares with. The obligation has two halves: that
+# deduplicating changes no answer, and that restoring caller positions
+# changes no order.
+#
+# This is the second half. `Cmd.matrix.rows` builds the output with an
+# accumulator and reverses once at the end -- which is what makes the order
+# question worth asking -- and `Ba.Rows.spec` is the same walk written the
+# obvious way, in order and without an accumulator. The two agree, and the
+# result has one row per cell, so a cell's position in the output is its
+# position in the input whatever deduplication did to its answer.
+#
+# The third law is what a reused answer *is*: `Cmd.matrix.lookup` walks the
+# answers already produced with an accumulator that stops at the first hit,
+# and it agrees with a plain find-first-by-name. So a duplicate reuses the
+# recorded answer of the first cell whose name it points at, and nothing the
+# deduplication invented.
+#
+# What is still open is the step from there to "the same answer it would have
+# computed", which needs two cells that compare equal to have inventories
+# that *are* equal as values -- `PSet.is_subset` gives equal members, and
+# going from equal members to an equal statistic needs the enumeration to
+# agree with membership. LAWS.pending.bend says so.
+# ===========================================================================
+
+law the_matrix_rows_are_the_cells_in_order:
+  for +cx: Cm.Ctx
+  for +k: S.PSet
+  for +cells: List<&2, Cm.Cell>
+  for +done: List<&2, Cm.Answered>
+  {Cm.Cmd.matrix.rows(cx, k, cells, done, Nil{})
+    == Ba.Rows.spec(cx, k, cells, done) : List<&2, String>}
+
+law the_matrix_has_one_row_per_cell:
+  for +cx: Cm.Ctx
+  for +k: S.PSet
+  for +cells: List<&2, Cm.Cell>
+  for +done: List<&2, Cm.Answered>
+  {List.length(&2, String, Ba.Rows.spec(cx, k, cells, done))
+    == List.length(&2, Cm.Cell, cells) : Nat}
+
+law a_reused_answer_is_the_first_one_recorded_under_that_name:
+  for +done: List<&2, Cm.Answered>
+  for +want: String
+  {Cm.Cmd.matrix.lookup(done, want, None{})
+    == Ba.Rows.found(done, want) : Maybe<&2, String>}

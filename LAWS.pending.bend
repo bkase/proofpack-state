@@ -128,10 +128,20 @@ import ./proofs/denote.bend as PDn
 # C-01, C-02, C-03 -- closure.
 #
 # C-01 is the least-fixed-point characterisation: C(R) is the least
-# edge-closed set containing R. `Spec.closure` iterates X |-> X u post(X)
-# from R, which is that definition operationally; what is open is that the
-# iteration reaches the fixed point within the universe's size, which needs
-# the pigeonhole argument this release has not written.
+# edge-closed set containing R. Two of the three things that says are proved
+# and live in LAWS.bend -- that C(R) contains R, and that a round which
+# changes nothing has reached an edge-closed set.
+#
+# What is open is that the iteration *does* stabilise within the universe's
+# size, which is a pigeonhole argument, and leastness. Leastness has a
+# specific obstruction worth recording, because it is the same one that
+# blocks U-01's injectivity and Q-01's whole pass. The induction has to carry
+# "this round is still inside X" from round to round, so that hypothesis must
+# be reusable, so it must be `PSet.is_subset` -- and proving `is_subset` of
+# the *next* round needs the converse of the bridge this release does prove:
+# from "every member of a is a member of b" to "the fused difference count is
+# zero". That converse quantifies over ordinals, and a hypothesis quantified
+# over ordinals cannot be used twice under Bend's affine discipline.
 #
 # C-02 is that the production frontier traversal returns the same set as the
 # specification iteration. That is the interesting one, and it is the one the
@@ -435,17 +445,27 @@ law the_evaluator_computes_the_denotation:
 # position: a deduplicated batch returns what the undeduplicated one would
 # have, in the caller's order.
 #
-# Order is structural. `Cmd.matrix.rows` maps the cells in order with an
-# accumulator and reverses once at the end, so a cell's position in the output
-# is its position in the input, whether or not its answer was reused.
+# The order half is proved and lives in LAWS.bend:
+# `the_matrix_rows_are_the_cells_in_order` and
+# `the_matrix_has_one_row_per_cell`. `Cmd.matrix.rows` builds the output with
+# an accumulator and reverses once at the end, and that agrees with the same
+# walk written in order -- so a cell's position in the output is its position
+# in the input, whether or not its answer was reused.
 #
-# What is not proved is the reuse itself: that the answer looked up for a
-# duplicate is the answer that cell would have computed. It is an invariant
-# over the table of answers already produced -- that every entry in it was
-# computed for an inventory equal to the one the entry is named by -- and
-# `Cmd.matrix.lookup` matches names with `String.eq`, so the proof also needs
-# string equality to reflect into equality of the inventories those names
-# stand for. Neither the invariant nor that reflection is written here.
+# What a reused answer *is* is proved too:
+# `a_reused_answer_is_the_first_one_recorded_under_that_name`. The lookup
+# agrees with a plain find-first-by-name, so a duplicate reuses the recorded
+# answer of the first cell whose name it points at, and nothing the
+# deduplication invented.
+#
+# What is open is the step from there to "the answer that cell would have
+# computed". `Cmd.matrix.same` compares two inventories with `PSet.is_subset`
+# in both directions, which now gives equal *members*
+# (`a_subset_contains_every_member`); going from equal members to an equal
+# statistic needs the enumeration of a set to agree with its membership --
+# `List.contains(PSet.to_list(d, s), x) == PSet.member(d, s, x)` -- which
+# this release does not prove. That lemma is the one piece several of the
+# remaining obligations share.
 #
 # Backed by: tests.bend checks that three cells over two distinct inventories
 # report `cells 3 distinct 2` with the third row pointing at the first, and

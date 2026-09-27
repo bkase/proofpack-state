@@ -49,6 +49,7 @@
 #   proofs/insert.bend    inserting never loses a member
 #   proofs/only.bend      inserting adds nothing else
 #   proofs/subset.bend    the subset test, related to membership
+#   proofs/batch.bend     the matrix restores the caller's positions
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -66,6 +67,7 @@ import ./proofs/table.bend as PTb
 import ./proofs/insert.bend as PIns
 import ./proofs/only.bend as POn
 import ./proofs/subset.bend as PSb
+import ./proofs/batch.bend as PBa
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -449,3 +451,17 @@ def Laws.a_subset_contains_every_member(a, b, x, va, vb, sub, ma):
 def Laws.a_set_with_a_zero_count_has_no_members(d, s, bx, h, x, eh, dok,
   ebx, v, z):
   PSb.PSet.count_zero_mem(d, s, bx, h, x, eh, dok, ebx, v, z)
+
+def Laws.a_stable_round_has_reached_an_edge_closed_set(td, g, xs, v, w, st,
+  mp):
+  PEx.Spec.stable_is_closed(td, g, xs, v, w, st, mp)
+
+def Laws.the_matrix_rows_are_the_cells_in_order(cx, k, cells, done):
+  PBa.Rows.from_empty(cx, k, cells, done)
+
+def Laws.the_matrix_has_one_row_per_cell(cx, k, cells, done):
+  PBa.Rows.one_per_cell(cx, k, cells, done)
+
+def Laws.a_reused_answer_is_the_first_one_recorded_under_that_name(done,
+  want):
+  PBa.Rows.lookup_is_find(done, want)

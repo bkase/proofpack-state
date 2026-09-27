@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project": "ProofPack State",
-  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 5 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 7 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 3 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
   "laws": [
     {
       "id": "U-01",
@@ -129,11 +129,13 @@
       "depends_on": [
         "S-01"
       ],
-      "status": "specified_checked_at_runtime",
+      "status": "partially_proved",
       "production_symbol": null,
-      "proof_symbol": null,
-      "stated_in": "LAWS.pending.bend",
-      "backed_by": "spec/closure.bend is the definition operationally; the fixed point is reached within the universe size by construction of the fuel."
+      "proof_symbol": "Spec.stable_is_closed (proofs/extensive.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
+      "stated_in": "LAWS.bend (extensivity, and what stability gives) and LAWS.pending.bend (the fixed point and leastness)",
+      "backed_by": "spec/closure.bend is the definition operationally; the fixed point is reached within the universe size by construction of the fuel.",
+      "proved_part": "Two of the three things \"least fixed point\" says. C(R) contains R, pointwise. And a round that changes nothing has reached an edge-closed set: if Spec.step returns the operand it was given, then every successor of a member is a member -- no counting, and the hypothesis is a value equality, which is what a check can observe.",
+      "gap": "That the iteration is stable after n rounds -- the pigeonhole argument over the universe -- and leastness, that C(R) is inside every edge-closed superset of R. Leastness needs the induction to carry \"this round is still inside X\" from round to round, and that has to be a reusable hypothesis, so it has to be PSet.is_subset; proving is_subset of the next round needs the converse of the bridge this release proves (membership to a zero count), which quantifies over ordinals and so cannot be used twice under Bend affine discipline."
     },
     {
       "id": "C-02",
@@ -342,12 +344,15 @@
         "Q-01",
         "R-01"
       ],
-      "status": "specified_checked_at_runtime",
+      "status": "partially_proved",
       "production_symbol": "Cmd.matrix.lookup",
-      "proof_symbol": null,
+      "proof_symbol": "Rows.from_empty, Rows.one_per_cell, Rows.lookup_is_find (proofs/batch.bend)",
       "reason": "M3. No batch matrix command yet.",
       "backed_by": "`pp git matrix` deduplicates identical inventories and answers one cell per distinct inventory, reporting `distinct_inventories` and naming the cell each duplicate shares with. tests.bend checks that three cells over two distinct inventories report `cells 3 distinct 2` with the third row pointing at the first.",
-      "note": "Was recorded as not applicable while there was no batch command. `pp git matrix` shipped in M4, so the obligation is live."
+      "note": "Was recorded as not applicable while there was no batch command. `pp git matrix` shipped in M4, so the obligation is live.",
+      "stated_in": "LAWS.bend (order and what a reused answer is) and LAWS.pending.bend (that it is the answer the cell would have computed)",
+      "proved_part": "The order half, in full: Cmd.matrix.rows builds the output with an accumulator and reverses once, and it agrees with the same walk written in order, with one row per cell -- so a cell position in the output is its position in the input whatever deduplication did to its answer. And what a reused answer is: the lookup agrees with a plain find-first-by-name, so a duplicate reuses the recorded answer of the first cell whose name it points at and nothing the deduplication invented.",
+      "gap": "That the reused answer is the answer the duplicate cell would have computed. Cmd.matrix.same compares two inventories with PSet.is_subset both ways, which now gives equal members; going from equal members to an equal statistic needs the enumeration to agree with membership, which this release does not prove."
     },
     {
       "id": "I-01",

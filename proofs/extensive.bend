@@ -79,3 +79,62 @@ law Spec.closure_contains_its_roots:
 
 def Spec.closure_contains_its_roots(n, td, g, r, x, v, m):
   Spec.iter_keeps_a_member(1n+n, td, g, r, x, v, m)
+
+# ---------------------------------------------------------------------------
+# C-01, in part -- a round that changes nothing has reached a closed set.
+#
+# The fixed-point half of C-01 is that the iteration is stable after `n`
+# rounds, which needs a pigeonhole argument over the universe and is still
+# open. This is the other half of what "fixed point" means, and it needs no
+# counting: *if* a round changes nothing, then what it changed nothing about
+# is edge-closed -- every successor of a member is a member.
+#
+# It is stated pointwise, as every set law here is, and the hypothesis is a
+# value equality rather than a membership test, which is what a runtime check
+# can actually observe: `Spec.step` returns the operand it was given.
+# ---------------------------------------------------------------------------
+
+def PSet.member_at(+x: U32, s: S.PSet) -> Bool:
+  S.PSet.member(20n, s, x)
+
+law Spec.stable_is_closed:
+  for +td: Nat
+  for +g: G.Graph()
+  for +xs: S.PSet
+  for +v: U32
+  for +w: {Sh.PSet.wf(20n, xs, True{}) == True{} : Bool}
+  for +st: {Sp.Spec.step(td, g, 20n, xs) == xs : S.PSet}
+  for +mp: {S.PSet.member(20n, Sp.Spec.post(td, g, 20n, xs), v)
+    == True{} : Bool}
+  {S.PSet.member(20n, xs, v) == True{} : Bool}
+
+law Spec.or_right:
+  for +p: Bool
+  for +q: Bool
+  for +ok: {q == True{} : Bool}
+  {Bool.or(p, q) == True{} : Bool}
+
+def Spec.or_right(p, q, ok):
+  match p:
+    case True{}:
+      {==}
+    case False{}:
+      ok
+
+def Spec.stable_is_closed(td, g, xs, v, w, st, mp):
+  Equal.trans(Bool, S.PSet.member(20n, xs, v),
+    Bool.or(S.PSet.member(20n, xs, v),
+      S.PSet.member(20n, Sp.Spec.post(td, g, 20n, xs), v)), True{},
+    Equal.trans(Bool, S.PSet.member(20n, xs, v),
+      S.PSet.member(20n,
+        S.PSet.union(20n, xs, Sp.Spec.post(td, g, 20n, xs)), v),
+      Bool.or(S.PSet.member(20n, xs, v),
+        S.PSet.member(20n, Sp.Spec.post(td, g, 20n, xs), v)),
+      Equal.cong(S.PSet, Bool, PSet.member_at(v), xs,
+        S.PSet.union(20n, xs, Sp.Spec.post(td, g, 20n, xs)),
+        Equal.sym(S.PSet,
+          S.PSet.union(20n, xs, Sp.Spec.post(td, g, 20n, xs)), xs, st)),
+      So.PSet.union_member(xs, Sp.Spec.post(td, g, 20n, xs), v, w,
+        Dn.Spec.wf_post(td, g, 20n, xs))),
+    Spec.or_right(S.PSet.member(20n, xs, v),
+      S.PSet.member(20n, Sp.Spec.post(td, g, 20n, xs), v), mp))
