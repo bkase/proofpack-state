@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project": "ProofPack State",
-  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 9 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 1 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 10 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 not applicable until the milestone named in `reason`. Every obligation the release is subject to now has something proved about it. TRUST.md is the boundary this table summarises.",
   "laws": [
     {
       "id": "U-01",
@@ -494,12 +494,13 @@
       "statement": "Parsing is sound and complete within declared metadata grammar and explicit size limits.",
       "unlocks": "Git-to-graph correctness boundary",
       "depends_on": [],
-      "status": "specified_checked_at_runtime",
+      "status": "partially_proved",
       "production_symbol": null,
-      "proof_symbol": null,
-      "stated_in": "LAWS.pending.bend",
+      "proof_symbol": "Oid.of_hex_needs_width and Parse.a_record_fits_its_declared_size (proofs/parse.bend)",
+      "stated_in": "LAWS.bend (the parser never reads short) and LAWS.pending.bend (the grammar)",
       "backed_by": "tools/differential.sh over a corpus with a merge, a tag to a tag, a tag to a tree, a tag to a blob, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a gitlink.",
-      "gap": "There is no encoder here to invert and the grammar is Git own, so what would make this a law is a grammar predicate written in Bend plus a proof that the parser accepts exactly what satisfies it. The hard half is writing a predicate faithful to Git rather than to the parser: one read off the parser would make the law true by construction and worth nothing."
+      "gap": "Soundness and completeness for the declared grammar as a whole. The grammar it has to be complete for is Git own, so what would make it a law is a grammar predicate written in Bend and faithful to Git rather than read off the parser; one read off the parser would make the law true by construction and worth nothing. The differential corpus is what stands in for it.",
+      "proved_part": "The two parts that are statements about the parser alone rather than about agreeing with Git: an object id is read at exactly the format width, so a short one is an invalid id and not a silently truncated one; and a body is taken by its declared length, so a record whose length overruns the buffer is rejected and not read short. Those are the failure modes that matter -- a short id is a different id, and would intern as a new object."
     },
     {
       "id": "G-02",

@@ -370,14 +370,19 @@ law the_evaluator_computes_the_denotation:
 # G-01, G-03 -- the Git adapter.
 #
 # G-01 is about a byte grammar: that parsing Git's object metadata is sound
-# and complete within the declared grammar and the explicit size limits. It
-# is not a statement about a definition in this tree -- there is no encoder
-# here to invert, and "the grammar" is Git's, not ours -- so what would make
-# it a law is a written grammar predicate in Bend and a proof that the parser
-# accepts exactly what satisfies it. This release does not have that
-# predicate, and writing one that is *faithful* to Git rather than to the
-# parser is the hard half: a predicate read off the parser would make the law
-# true by construction and worth nothing.
+# and complete within the declared grammar and the explicit size limits. Two
+# parts of it are statements about the parser alone rather than about
+# agreeing with Git, and those are proved and live in LAWS.bend: an object id
+# is read at exactly the format's width, and a body is taken by its declared
+# length, so neither a short id nor a truncated record is ever accepted.
+#
+# The rest is not a statement about a definition in this tree -- there is no
+# encoder here to invert, and "the grammar" is Git's, not ours -- so what
+# would make it a law is a written grammar predicate in Bend and a proof that
+# the parser accepts exactly what satisfies it. This release does not have
+# that predicate, and writing one that is *faithful* to Git rather than to
+# the parser is the hard half: a predicate read off the parser would make the
+# law true by construction and worth nothing.
 #
 # Backed by: tools/differential.sh, which checks both policies and the
 # inventory against independent Git plumbing on three repositories, over a

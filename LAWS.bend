@@ -71,6 +71,9 @@ import ./index/store.bend as St
 import ./query/eval.bend as Qe
 import ./proofs/machine.bend as Ma
 import ./proofs/traverse.bend as Tv
+import ./proofs/parse.bend as Pa
+import ./adapters/git/bytes.bend as By
+import ./adapters/git/parse.bend as Gp
 import ./proofs/extensive.bend as Ex3
 import ./cli/main.bend as Cm
 import ./proofs/inventory.bend as Iv2
@@ -1886,3 +1889,42 @@ law the_traversal_returns_every_root_it_was_given:
   for +ok: {List.contains(~U32, ~U32.is_eq, roots, r) == True{} : Bool}
   {S.PSet.member(20n, Re.Reach.seen(20n,
       Re.Reach.closure(n, td, g, 20n, roots)), r) == True{} : Bool}
+
+# ===========================================================================
+# G-01, in part -- the parser never reads short.
+#
+# G-01 is soundness and completeness for the *declared* metadata grammar with
+# explicit limits (SPEC 8.3), and as a whole it is the obligation a proof can
+# least reach: the grammar it must be complete for is Git's, not this tree's,
+# so what would make all of it a law is a grammar predicate written in Bend
+# and faithful to Git rather than read off the parser -- and one read off the
+# parser would make the law true by construction and worth nothing.
+#
+# Two parts do not depend on that, because they are statements about the
+# parser alone, and they are the ones `adapters/git/oid.bend` and
+# `adapters/git/bytes.bend` claim in prose. An object id is read at exactly
+# the format's width, so a short one is an invalid id and not a silently
+# truncated one; and a body is taken by its declared length, so a record
+# whose length overruns the buffer is rejected and not read short.
+#
+# Those are the failure modes that matter. A short object id is a
+# *different* id rather than a malformed one: it would intern as a new object
+# and every count downstream would be wrong. A truncated body is a smaller
+# object, and its successors would simply be missing.
+# ===========================================================================
+
+law an_accepted_object_id_had_its_full_width:
+  for +f: Od.Fmt
+  for +bs: By.Bytes
+  for +ok: {Od.OidRead.ok(Od.Oid.of_hex(f, bs)) == True{} : Bool}
+  {C.Nat.upto(Od.Fmt.hex_len(f), List.length(&2, U32, bs))
+    == True{} : Bool}
+
+law an_accepted_record_had_its_declared_size:
+  for +oid: Od.Oid
+  for +k: Gp.GType
+  for +n: Nat
+  for +bs: By.Bytes
+  for +ok: {Pa.Parse.is_rec(Gp.Parse.recs.step.take(oid, k,
+    By.Bytes.split(n, bs))) == True{} : Bool}
+  {C.Nat.upto(n, List.length(&2, U32, bs)) == True{} : Bool}

@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 108 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 110 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -107,6 +107,11 @@ written -- each was missing the structural invariant `PSet.valid` states -- and
 each counterexample now runs on every build. They have been restated with the
 hypothesis they need, and `P-01` was then proved outright. `TRUST.md` §1 has
 the list.
+
+Every obligation this release is subject to now has something proved about
+it: 17 discharged in full, 10 in part with the remaining half stated
+precisely in `LAWS.pending.bend`, and 5 not applicable until a later
+milestone.
 
 **What is checked at run time instead.** The closure traversal (by the
 certificate `pp git verify` runs), dependency witnesses (by an independent

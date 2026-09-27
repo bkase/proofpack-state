@@ -53,6 +53,7 @@
 #   proofs/store.bend     what accepting a stored generation means
 #   proofs/machine.bend   a failure the evaluator notices is one it reports
 #   proofs/traverse.bend  the traversal never loses a vertex
+#   proofs/parse.bend     the parser never reads short
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -74,6 +75,7 @@ import ./proofs/batch.bend as PBa
 import ./proofs/store.bend as PSt
 import ./proofs/machine.bend as PMa
 import ./proofs/traverse.bend as PTv
+import ./proofs/parse.bend as PPa
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -493,3 +495,9 @@ def Laws.the_traversal_keeps_every_vertex_it_has_seen(fuel, td, g, seen,
 def Laws.the_traversal_returns_every_root_it_was_given(n, td, g, roots, r,
   ok):
   PTv.Reach.closure_keeps_its_roots(n, td, g, roots, r, ok)
+
+def Laws.an_accepted_object_id_had_its_full_width(f, bs, ok):
+  PPa.Oid.of_hex_needs_width(f, bs, ok)
+
+def Laws.an_accepted_record_had_its_declared_size(oid, k, n, bs, ok):
+  PPa.Parse.a_record_fits_its_declared_size(oid, k, n, bs, ok)
