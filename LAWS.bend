@@ -38,6 +38,7 @@ import Base
 import ./core/count.bend as C
 import ./core/ords.bend as Or
 import ./proofs/descend.bend as Dc
+import ./proofs/split.bend as Sp
 import ./closure/graph.bend as Gr
 import ./closure/reach.bend as Re
 import ./closure/explain.bend as Ex
@@ -578,3 +579,57 @@ law the_number_a_word_reads_as_determines_the_word:
   for +b: U32
   for +e: {U32.to_nat(a) == U32.to_nat(b) : Nat}
   {a == b : U32}
+
+# ===========================================================================
+# A3 -- the tile address is injective.
+#
+# `Words.bit(ws, x)` addresses a tile by two numbers: `x >> 5` picks the word
+# and `x & 31` picks the bit. SPEC 5.2 calls the sparse/dense crossover a
+# benchmark parameter rather than a semantic constant, and that is only true
+# if a leaf's offset list and the tile it spreads into hold exactly the same
+# ordinals -- which needs two different ordinals to land on two different
+# bits.
+#
+# The way in is the identity every such split rests on: an ordinal is its word
+# index scaled by 32 plus its bit index. With it, two ordinals with the same
+# address have the same `U32.to_nat`, and
+# `the_number_a_word_reads_as_determines_the_word` finishes. Nothing here
+# reasons about bit positions under a quantifier, which is what made the
+# direct route stall.
+# ===========================================================================
+
+law an_ordinal_is_its_word_index_scaled_plus_its_bit_index:
+  for +x: U32
+  {U32.to_nat(x)
+    == Nat.add(Sp.Nat.dbl(5n, U32.to_nat(U32.shrn(x, 5n))),
+         U32.to_nat(U32.and(x, 31))) : Nat}
+
+law the_tile_address_is_injective:
+  for +o: U32
+  for +x: U32
+  for +ei: {U32.to_nat(U32.shrn(o, 5n))
+    == U32.to_nat(U32.shrn(x, 5n)) : Nat}
+  for +eb: {U32.to_nat(U32.and(o, 31))
+    == U32.to_nat(U32.and(x, 31)) : Nat}
+  {o == x : U32}
+
+# ===========================================================================
+# S-03, at the representation -- a sparse leaf and its tile agree.
+#
+# This is what A3 was for. A sparse leaf is an ascending offset list; the same
+# leaf as words is that list spread into 128 zero words. They hold the same
+# ordinals: an offset in the list is a set bit, and a set bit is an offset in
+# the list. The second direction is the one that needed A3 -- without it,
+# "these two ordinals differ" says nothing about where in the tile they live.
+#
+# The hypothesis is the same one every leaf law carries: the tile has a word
+# for the ordinal being asked about.
+# ===========================================================================
+
+law a_sparse_leaf_and_its_tile_hold_the_same_ordinals:
+  for +offs: List<&2, U32>
+  for +x: U32
+  for +fits: {Wo.Words.has_word(Wo.Words.zeros(128n),
+    U32.to_nat(U32.shrn(x, 5n))) == True{} : Bool}
+  {Wo.Words.bit(S.PSet.spread(offs, Wo.Words.zeros(128n)), x)
+    == Or.Ords.elem(offs, x) : Bool}

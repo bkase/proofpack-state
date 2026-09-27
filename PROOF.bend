@@ -25,6 +25,8 @@
 #   proofs/collapse.bend  the Zero/Full branch collapses
 #   proofs/descend.bend   carrying an ordinal down a level
 #   proofs/inject.bend    the numeric reading of a word is injective
+#   proofs/split.bend     the division identity, and A3
+#   proofs/bridge.bend    a sparse leaf and its tile agree
 
 import Base
 import ./LAWS.bend as Laws
@@ -45,6 +47,8 @@ import ./proofs/witness.bend as PWit
 import ./proofs/collapse.bend as PCo
 import ./proofs/descend.bend as PDc
 import ./proofs/inject.bend as PIj
+import ./proofs/split.bend as PSp
+import ./proofs/bridge.bend as PBr
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -192,3 +196,12 @@ def Laws.inserting_adds_exactly_that_ordinal(s, x, v):
 
 def Laws.the_number_a_word_reads_as_determines_the_word(a, b, e):
   PIj.U32.to_nat_inj(a, b, e)
+
+def Laws.an_ordinal_is_its_word_index_scaled_plus_its_bit_index(x):
+  PSp.U32.to_nat_split(x)
+
+def Laws.the_tile_address_is_injective(o, x, ei, eb):
+  PSp.U32.address_inj(o, x, ei, eb)
+
+def Laws.a_sparse_leaf_and_its_tile_hold_the_same_ordinals(offs, x, fits):
+  PBr.PSet.sparse_matches_its_tile(offs, x, fits)
