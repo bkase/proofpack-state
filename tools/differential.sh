@@ -191,7 +191,8 @@ print(d["class"] if d else "ACCEPTED")'
 }
 sed 's/^objects 22/objects 23/'            "$store/src.pps" > "$bad/count.pps"
 sed 's/^object 1aa22346/object ZZZZZZZZ/'  "$store/src.pps" > "$bad/hex.pps"
-sed 's/ 2 2 1$/ 2 2 99/'                   "$store/src.pps" > "$bad/succ.pps"
+awk 'NR==6 { print $0 " 9999"; next } { print }' \
+  "$store/src.pps" > "$bad/succ.pps"
 sed '1s/.*/not a proofpack store/'         "$store/src.pps" > "$bad/magic.pps"
 for c in count hex succ magic; do
   check "a corrupt store is rejected ($c)" "CorruptIndex" "$(cls $c)"

@@ -123,30 +123,34 @@ def PSet.leaf_words(s: PSet) -> List<&2, U32>:
 def PSet.sparse_max() -> Nat:
   64n
 
-def PSet.compress.s(+ws: List<&2, U32>, sparse: Bool) -> PSet:
+def PSet.compress.sparse(+ws: List<&2, U32>, sparse: Bool) -> PSet:
   match sparse:
     case True{}:
       PSparse{Wo.Words.members(ws, 0)}
     case False{}:
       PDense{ws}
 
-def PSet.compress.f(+ws: List<&2, U32>, full: Bool) -> PSet:
+def PSet.compress.full(+ws: List<&2, U32>, +k: Nat, full: Bool) -> PSet:
   match full:
     case True{}:
       PFull{}
     case False{}:
-      PSet.compress.s(ws,
-        C.Nat.upto(Wo.Words.count(ws), PSet.sparse_max()))
+      PSet.compress.sparse(ws, C.Nat.upto(k, PSet.sparse_max()))
 
-def PSet.compress.z(+ws: List<&2, U32>, zero: Bool) -> PSet:
-  match zero:
-    case True{}:
+# Compression makes one pass, not three. `Words.count` already distinguishes
+# every case: zero members is `PZero`, a full 4096 is `PFull`, few enough is
+# sparse, and the rest stays dense. Counting three times -- all-zero,
+# all-ones, then the count -- was measurable on a real repository, where a
+# traversal touches a leaf thousands of times.
+def PSet.compress.pick(+ws: List<&2, U32>, +k: Nat) -> PSet:
+  match k:
+    case 0n:
       PZero{}
-    case False{}:
-      PSet.compress.f(ws, Wo.Words.all_ones(ws))
+    case 1n+p:
+      PSet.compress.full(ws, k, Nat.is_eq(k, 4096n))
 
 def PSet.compress(+ws: List<&2, U32>) -> PSet:
-  PSet.compress.z(ws, Wo.Words.all_zero(ws))
+  PSet.compress.pick(ws, Wo.Words.count(ws))
 
 # ---------------------------------------------------------------------------
 # Branch construction, with the Zero/Full collapses of SPEC 5.3.

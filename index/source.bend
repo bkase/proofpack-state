@@ -245,12 +245,26 @@ def Seed.ords(s: Seed) -> List<&2, U32>:
 
 # An object the repository does not have is IncompleteGraph, reported with
 # its identity rather than silently treated as a leaf (SPEC 3.2).
-def Idx.report_bad(+f: O.Fmt, bad: List<&2, O.Oid>, acc: String) -> String:
-  match bad:
-    case Nil{}:
-      acc
-    case Con{o, t}:
-      Idx.report_bad(f, t, acc ++ " " ++ O.Oid.show(f, o))
+#
+# Only the first few are named. A partial clone is missing thousands, and an
+# error message that lists them all is both useless and, built by appending
+# to a growing accumulator, quadratic -- on a 16k-object partial clone that
+# single line took two and a half minutes of the three the whole command
+# took. The append is right-nested now as well, so it is linear in what it
+# does print.
+def Idx.report_max() -> Nat:
+  8n
+
+def Idx.report_bad(+f: O.Fmt, +k: Nat, bad: List<&2, O.Oid>) -> String:
+  match k:
+    case 0n:
+      " ..."
+    case 1n+p:
+      match bad:
+        case Nil{}:
+          ""
+        case Con{o, t}:
+          " " ++ O.Oid.show(f, o) ++ Idx.report_bad(f, p, t)
 
 def Idx.assemble.tries(+f: O.Fmt, +n: Nat, +uni: I.Universe,
   +rows: List<&2, Im.Row>, +metas: List<&2, Im.Meta>,
@@ -276,8 +290,14 @@ def Idx.assemble.bad(+f: O.Fmt, +a: Im.FAcc, roots: List<&2, U32>,
     case True{}:
       Idx.assemble.go(f, a, roots, root_oids)
     case False{}:
-      BErr{"IncompleteGraph: the repository is missing required objects:"
-        ++ Idx.report_bad(f, Im.FAcc.bad(a), "")}
+      +missing = Im.FAcc.bad(a)
+      BErr{"IncompleteGraph: the repository is missing "
+        ++ Nat.show(List.length(&2, O.Oid, missing))
+        ++ " objects the full closure of these roots requires. A partial "
+        ++ "clone or a shallow history cannot serve as an import source "
+        ++ "(SPEC 8.1), and no object is fetched over the network during "
+        ++ "an import. Among the missing:"
+        ++ Idx.report_bad(f, Idx.report_max(), missing)}
 
 def Idx.assemble.ok(+f: O.Fmt, +a: Im.FAcc, roots: List<&2, U32>,
   root_oids: List<&2, O.Oid>, ok: Bool) -> Built:
