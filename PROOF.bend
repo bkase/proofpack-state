@@ -61,6 +61,7 @@
 #   proofs/interval.bend  a subtree's bit test is an interval of ordinals
 #   proofs/nodeenum.bend  a full node enumerates exactly its interval
 #   proofs/maskwidth.bend the same ordinal, masked at two adjacent widths
+#   proofs/lastord.bend   the last ordinal of a node's interval
 #   proofs/sum.bend       addition that does not overflow is addition
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
@@ -91,6 +92,7 @@ import ./proofs/leafenum.bend as PLe
 import ./proofs/interval.bend as PIt
 import ./proofs/nodeenum.bend as PNe
 import ./proofs/maskwidth.bend as PMw
+import ./proofs/lastord.bend as PLd
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
@@ -559,3 +561,10 @@ def Laws.clearing_the_top_bit_of_a_mask_narrows_it(x, k):
 
 def Laws.a_clear_top_bit_makes_two_masks_agree(x, k, hz):
   PMw.U32.mask_step(x, k, hz)
+
+def Laws.the_last_ordinal_of_a_node_fills_its_low_bits(base, j, lz):
+  PLd.U32.last_ordinal(base, j, lz)
+
+def Laws.the_last_ordinal_of_a_node_is_one_below_the_next(base, j, lz,
+  le):
+  PLd.U32.last_ordinal_value(base, j, lz, le)

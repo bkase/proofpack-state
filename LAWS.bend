@@ -2079,3 +2079,18 @@ law a_clear_top_bit_makes_two_masks_agree:
   for +hz: {Dc.U32.hi_zero(U32.and(x, W.U32.mask(1n+k)), k)
     == True{} : Bool}
   {U32.and(x, W.U32.mask(1n+k)) == U32.and(x, W.U32.mask(k)) : U32}
+
+law the_last_ordinal_of_a_node_fills_its_low_bits:
+  for +base: U32
+  for +j: Nat
+  for +lz: {Sa.U32.lo_zero(base, 1n+j) == True{} : Bool}
+  {(base + U32.shln(1, j) + U32.shln(1, j) - 1 : U32)
+    == U32.or(base, W.U32.mask(1n+j)) : U32}
+
+law the_last_ordinal_of_a_node_is_one_below_the_next:
+  for +base: U32
+  for +j: Nat
+  for +lz: {Sa.U32.lo_zero(base, 1n+j) == True{} : Bool}
+  for +le: {C.Nat.upto(1n+j, 32n) == True{} : Bool}
+  {U32.to_nat((base + U32.shln(1, j) + U32.shln(1, j) - 1 : U32))
+    == Nat.sub(Nat.add(U32.to_nat(base), Dc.Nat.pow2(1n+j)), 1n) : Nat}
