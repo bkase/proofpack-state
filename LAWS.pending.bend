@@ -408,6 +408,32 @@ law the_evaluator_computes_the_denotation:
 # cannot silently become a no-op.
 #
 # ===========================================================================
+# Q-04 -- batch deduplication.
+#
+# `pp git matrix` answers one cell per *distinct* inventory and points every
+# duplicate at the cell it shares with, reporting `distinct_inventories`
+# alongside `cells`. The obligation is that this changes no answer and no
+# position: a deduplicated batch returns what the undeduplicated one would
+# have, in the caller's order.
+#
+# Order is structural. `Cmd.matrix.rows` maps the cells in order with an
+# accumulator and reverses once at the end, so a cell's position in the output
+# is its position in the input, whether or not its answer was reused.
+#
+# What is not proved is the reuse itself: that the answer looked up for a
+# duplicate is the answer that cell would have computed. It is an invariant
+# over the table of answers already produced -- that every entry in it was
+# computed for an inventory equal to the one the entry is named by -- and
+# `Cmd.matrix.lookup` matches names with `String.eq`, so the proof also needs
+# string equality to reflect into equality of the inventories those names
+# stand for. Neither the invariant nor that reflection is written here.
+#
+# Backed by: tests.bend checks that three cells over two distinct inventories
+# report `cells 3 distinct 2` with the third row pointing at the first, and
+# that the shared row's answer is the one the first cell computed.
+# ===========================================================================
+
+# ===========================================================================
 # I-02, I-03, U-02 -- incremental reuse.
 #
 # Still not applicable. `pp` re-imports a generation rather than extending

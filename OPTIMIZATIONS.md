@@ -22,8 +22,9 @@ node, so a difference against a pruned subtree costs one match.
 
 **Law.** `S-04` (Boolean rewrites), instantiated at SPEC 5.3's shortcuts:
 `A u Zero = A`, `A n Full = A`, `A \ Full = Zero`, `Zero \ B = Zero`.
-Proved pointwise at the tile level as `tile_*_is_pointwise` in `LAWS.bend`;
-the node-level shortcuts are `LAWS.pending.bend`'s `S-02`.
+Proved pointwise at the tile level as `tile_*_is_pointwise` in `LAWS.bend`,
+and at the node level too: `S-02`'s `set_union_is_pointwise` and its two
+siblings, at the production depth, for structurally valid operands.
 
 **Precondition.** Same immutable node, same range, same generation. Pointer
 or node-id equality is a sound shortcut only inside the owning arena and
@@ -116,7 +117,10 @@ recorded.
 
 **Symbols.** `index/source.bend`: `Idx.tree_rows`, `Idx.filter_succ`.
 
-**Law.** `G-02` (Git policies) — stated in `LAWS.pending.bend`, not proved.
+**Law.** `G-02` (Git policies) — proved, both halves, in `LAWS.bend`:
+`a_filtered_row_drops_exactly_the_commit_targets` at a row, and
+`the_tree_data_policy_drops_exactly_the_parent_edges` at an edge over the two
+adjacency tables a built source stores.
 
 **Checked by.** `tools/differential.sh`: `tree-data` object counts and byte
 totals against `rev-parse` plus `ls-tree -r -t` with gitlinks excluded, on
@@ -158,10 +162,12 @@ order with an empty row for every blob.
 
 **Symbols.** `adapters/git/intern.bend`: `Uni.intern`.
 
-**Law.** `U-01` (identity mapping) — stated in `LAWS.pending.bend`. The
-injectivity is by construction: an ordinal is handed out once per distinct
-complete key, and the bucket compares the complete key, never a prefix or a
-digest.
+**Law.** `U-01` (identity mapping) — the round trip is proved in `LAWS.bend`
+as `interning_an_id_then_finding_it_gives_the_same_ordinal`: interning an id
+and then looking it up in the table interning returned gives the ordinal it
+returned, for any universe and any id. Injectivity is still by construction
+rather than proved: an ordinal is handed out once per distinct complete key,
+and the bucket compares the complete key, never a prefix or a digest.
 
 ---
 
@@ -173,8 +179,9 @@ below 64 members and as 128 bitmap words above it. `PSet.compress` picks, and
 
 **Symbols.** `core/set.bend`: `PSet.compress`, `PSet.sparse_max`.
 
-**Law.** `S-03` (representation conversion) — stated in
-`LAWS.pending.bend`, not proved.
+**Law.** `S-03` (representation conversion) — proved, in `LAWS.bend` as
+`compressing_a_leaf_keeps_its_members`: compression changes no member,
+whichever of its four representations it picks.
 
 **Precondition.** 64 is a benchmark parameter, not a semantic constant.
 Nothing outside `PSet.compress` and `PSet.add.leaf.fit` reads it, and
