@@ -22,6 +22,7 @@
 #   proofs/bitset.bend    setting a bit and reading it back
 #   proofs/leaf.bend      inserting into a leaf
 #   proofs/witness.bend   what a dependency witness guarantees
+#   proofs/collapse.bend  the Zero/Full branch collapses
 
 import Base
 import ./LAWS.bend as Laws
@@ -39,6 +40,7 @@ import ./proofs/ords.bend as POr
 import ./proofs/bitset.bend as PBs
 import ./proofs/leaf.bend as PLf
 import ./proofs/witness.bend as PWit
+import ./proofs/collapse.bend as PCo
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -162,3 +164,8 @@ def Laws.every_step_of_a_produced_witness_is_an_edge(td, g, rev, target):
 def Laws.a_produced_witness_ends_at_the_object_asked_about(td, g, rev,
   target, p):
   PWit.Explain.walk_ends_at_target(td, g, rev, target, p)
+
+# --- S-02, in part: the Zero/Full collapses ---------------------------------
+
+def Laws.collapsing_a_branch_keeps_its_members(p, lo, hi, h, x):
+  PCo.PSet.mem_mk(p, lo, hi, h, x)

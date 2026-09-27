@@ -451,3 +451,31 @@ law a_produced_witness_ends_at_the_object_asked_about:
   for +p: Maybe<&2, U32>
   {Ex.Explain.last_is(
     Ex.Explain.walk(td, g, rev, target, Nil{}, p), target) == True{} : Bool}
+
+# ===========================================================================
+# S-02, in part -- the Zero/Full collapses.
+#
+# SPEC 5.3 lets a branch whose halves are both empty become `PZero{}`, and one
+# whose halves are both full become `PFull{}`. That collapse is what makes
+# structural pruning work: a difference against a pruned subtree costs nothing
+# because the subtree is one node instead of a tree of them, and `PSet.mk`
+# performs it on every union, intersection and difference at a node.
+#
+# This says the collapse changes no member, at every depth and for every
+# ordinal, with no hypothesis at all -- not validity, not a range on the
+# ordinal -- because it only ever fires when both halves already answer the
+# same thing everywhere.
+#
+# It is the part of S-02 that the tree layer contributes by itself. The rest
+# of S-02 is at the two ends: the leaf laws, and carrying an ordinal down one
+# level, which is the addressing arithmetic `LAWS.pending.bend` lists.
+# ===========================================================================
+
+law collapsing_a_branch_keeps_its_members:
+  for +p: Nat
+  for +lo: S.PSet
+  for +hi: S.PSet
+  for +h: U32
+  for +x: U32
+  {S.PSet.mem(1n+p, S.PSet.mk(lo, hi), h, x)
+    == S.PSet.mem(1n+p, S.PBranch{lo, hi}, h, x) : Bool}
