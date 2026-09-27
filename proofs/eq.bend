@@ -307,3 +307,7 @@ def Cmp.lt_not_gt(-A: Type, e: {LT{} == GT{} : Cmp}) -> A:
 
 def Cmp.gt_not_eq(-A: Type, e: {GT{} == EQ{} : Cmp}) -> A:
   Empty.absurd(A, Cmp.gt_not_eq.go(e))
+
+def Maybe.sym(-A: Data, -a: Maybe<&2, A>, -b: Maybe<&2, A>,
+  e: {a == b : Maybe<&2, A>}) -> {b == a : Maybe<&2, A>}:
+  Equal.sym(Maybe<&2, A>, a, b, e)

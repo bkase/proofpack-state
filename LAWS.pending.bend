@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 10. That count is the point of the file, so the command "failing"
+# currently 11. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -37,6 +37,9 @@ import ./spec/query.bend as Den
 import ./index/source.bend as Idx
 import ./closure/cert.bend as Ct
 import ./query/eval.bend as Ev
+import ./adapters/git/oid.bend as Od
+import ./adapters/git/intern.bend as Ui
+import ./proofs/intern.bend as PIn
 
 # ===========================================================================
 # The addressing arithmetic.
@@ -372,3 +375,46 @@ law the_tree_data_policy_drops_exactly_the_parent_edges:
 # one: there is no graph append, no cache binding and no generation lifting in
 # this release, so there is nothing yet for these to constrain.
 # ===========================================================================
+
+# ===========================================================================
+# U-01 -- the half that is still open.
+#
+# The round trip is proved and lives in LAWS.bend: interning an id and then
+# looking it up in the table interning handed back finds the ordinal
+# interning handed back, for any universe and any id.
+#
+# Injectivity is the other direction, and it is not a property of one write:
+# it says that across every write ever made into this table, no two different
+# ids ended up sharing an ordinal. So it is stated over a universe that was
+# *built* by interning -- `Uni.of_list`, interning a list of ids into a fresh
+# universe, which is what the importer does as it discovers objects -- rather
+# than over an arbitrary `Universe`, because an arbitrary hand-built table can
+# obviously repeat an ordinal and nothing in the type rules that out.
+#
+# Proving it needs an invariant carried across every step -- every ordinal in
+# the table is below `next`, and no two slots share one -- and that invariant
+# quantifies over all keys of a trie. A function-typed hypothesis cannot be
+# used twice under Bend's affine discipline, and this proof needs it twice,
+# once for each of the two ids. The route that would work is to make the
+# invariant a decidable predicate over the table, so the hypothesis is data
+# and reusable, and then prove extraction from it by induction on the trie.
+# That is a development on its own and this release does not have it.
+#
+# Backed by: construction. `Uni.intern` assigns `next` and then increments it,
+# and the only writer of a slot is that branch, so a repeated ordinal would
+# require the same `next` to be handed out twice.
+# ===========================================================================
+
+law interning_gives_different_ids_different_ordinals:
+  for +f: Od.Fmt
+  for +os: List<&2, Od.Oid>
+  for +x: Od.Oid
+  for +y: Od.Oid
+  for +a: U32
+  for +b: U32
+  for +fx: {Ui.Uni.find(Ui.Uni.table(PIn.Uni.of_list(f, os)), x) == Some{a}
+    : Maybe<&2, U32>}
+  for +fy: {Ui.Uni.find(Ui.Uni.table(PIn.Uni.of_list(f, os)), y) == Some{b}
+    : Maybe<&2, U32>}
+  for +same: {a == b : U32}
+  {Od.Oid.eq(x, y) == True{} : Bool}

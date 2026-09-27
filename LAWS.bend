@@ -50,6 +50,8 @@ import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
 import ./core/trie.bend as Tr
 import ./adapters/git/import.bend as Im
+import ./adapters/git/intern.bend as Ui
+import ./adapters/git/oid.bend as Od
 import ./index/source.bend as Sc
 import ./core/word.bend as W
 import ./core/words.bend as Wo
@@ -1061,3 +1063,50 @@ law comparing_two_ordinals_compares_their_values:
   for +a: U32
   for +b: U32
   {U32.cmp(a, b) == Nat.cmp(U32.to_nat(a), U32.to_nat(b)) : Cmp}
+
+# ===========================================================================
+# U-01 (round trip) -- interning an object id, then looking it up.
+#
+# The identity table is what makes `identify` a function at all: the first
+# mention of an object id is given the next ordinal, every later mention has
+# to answer the same one, and an object can be referenced long before it is
+# fetched. If a second mention could get a second ordinal, two rows of the
+# same generation would describe the same object and every count in the
+# system would be wrong.
+#
+# This is the round-trip half of U-01, and it holds for any universe and any
+# id, without a well-formedness hypothesis: whichever branch `intern` takes,
+# looking the id up in the table it hands back finds the ordinal it handed
+# back. The already-known branch does not touch the table; the fresh branch
+# writes a slot, and the write is visible to the read because a trie reads
+# back what was written and `Oid.eq` holds of an id and itself.
+#
+# The other half of U-01 -- that two *different* ids never share an ordinal
+# -- is a statement about the whole table rather than about one write, and it
+# is still open; it is stated in LAWS.pending.bend.
+# ===========================================================================
+
+law interning_an_id_then_finding_it_gives_the_same_ordinal:
+  for +u: Ui.Universe
+  for +o: Od.Oid
+  {Ui.Uni.find(Ui.Uni.table(Ui.Interned.uni(Ui.Uni.intern(u, o))), o)
+    == Some{Ui.Interned.ord(Ui.Uni.intern(u, o))} : Maybe<&2, U32>}
+
+# ===========================================================================
+# A trie reads back what was written.
+#
+# The identity table, the object store and the ordinal index are all this one
+# structure: a path-compressed 32-ary trie keyed on a machine word. The law
+# is the one thing a caller needs of it, and it needs no hypothesis -- `set`
+# builds the path it descends and `get` takes the same branch from the same
+# half-width, so a read at the key just written cannot miss.
+# ===========================================================================
+
+law reading_a_trie_at_the_key_just_written_gives_that_value:
+  for -A: Data
+  for +d: Nat
+  for +t: Tr.Trie<A>
+  for +x: U32
+  for +v: A
+  {Tr.Trie.at(A, d, Tr.Trie.set(A, d, t, x, v), x) == Some{v}
+    : Maybe<&2, A>}

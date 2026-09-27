@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 69 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 71 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -68,6 +68,9 @@ the set algebra itself:
 * `S-04`: the emptiness test only accepts a set with no members, so the three
   admitted Boolean rewrites preserve membership.
 * `P-01`: inserting an ordinal leaves it present.
+* `U-01` (round trip): interning an object id and then looking it up finds
+  the ordinal that interning returned -- resting on the trie reading back
+  what was written, which needs no hypothesis at all.
 * plus the addressing arithmetic all of that rests on -- that `U32` addition
   adds, that a word is determined by the number it reads as, that the tile
   address is injective, and that the enumeration walk and the tile address
@@ -75,8 +78,9 @@ the set algebra itself:
 
 Partly proved, with the remaining half stated precisely: `G-02` (the
 tree-data filter at a row), `E-01` (two of the three parts of a dependency
-witness), `C-03` (closing nothing gives nothing), `D-01` (what structural
-validity rules out). Section 4 below lists each law with the optimization it
+witness), `C-03` (closing nothing gives nothing), `C-04` (what an accepted
+certificate means), `U-01` (the lookup round trip; injectivity is open),
+`D-01` (what structural validity rules out). Section 4 below lists each law with the optimization it
 unlocks.
 
 Four of the laws in `LAWS.pending.bend` turned out to be **false** as first
@@ -494,7 +498,8 @@ is a runtime check or a differential rather than a theorem.
 | **Q-01** validated rewrites | `rewriting_preserves_denotation` | safe algebraic query optimization | each rewrite is an instance of a proved tile law; the counterexamples for the forbidden ones are permanent tests |
 | **Q-03** compiler soundness | `the_evaluator_computes_the_denotation` | the end-to-end refinement `observe(execute(compile(q))) = [[q]]` | the `tests.bend` differential against `spec/query.bend`, and the Git differential |
 | **G-02** Git policies | `the_tree_data_policy_drops_exactly_the_parent_edges` | history versus current-tree requirements as a proved projection | `tools/differential.sh`: `tree-data` counts and bytes against `rev-parse` plus `ls-tree -r -t` with gitlinks excluded |
-| **U-01**, **E-01**, **G-01**, **G-03**, **S-04** | registered but not written as laws | dense ordinals; checked witnesses; the parser contract; inventory projection; Boolean pruning | injectivity by construction in `intern.bend`; `Explain.valid` on every witness; the differential's corpus (merge, tag chains, symlink, empty blob, non-UTF-8 name, gitlink); the structural shortcuts being instances of proved tile laws |
+| **U-01** identity mapping | `interning_an_id_then_finding_it_gives_the_same_ordinal`, on `reading_a_trie_at_the_key_just_written_gives_that_value` | dense ordinals with no identity confusion: an object may be referenced long before it is fetched, and the second mention gets the first mention's ordinal | injectivity -- the other half -- by construction in `intern.bend`: only the fresh branch writes a slot, and it hands out `next` and then increments it |
+| **E-01**, **G-01**, **G-03**, **S-04** | registered but not written as laws | checked witnesses; the parser contract; inventory projection; Boolean pruning | `Explain.valid` on every witness; the differential's corpus (merge, tag chains, symlink, empty blob, non-UTF-8 name, gitlink); the structural shortcuts being instances of proved tile laws |
 
 ### 4.3 Not applicable yet
 

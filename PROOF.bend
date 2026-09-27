@@ -39,9 +39,13 @@
 #   proofs/closure.bend   closing nothing gives nothing
 #   proofs/cert.bend      what an accepted certificate means
 #   proofs/order.bend     comparison agrees with the numeric order
+#   proofs/trie.bend      a trie reads back what was written
+#   proofs/intern.bend    interning an id and finding it again
 
 import Base
 import ./LAWS.bend as Laws
+import ./proofs/trie.bend as PTr
+import ./proofs/intern.bend as PIn
 import ./proofs/nat.bend as N
 import ./proofs/word.bend as PW
 import ./proofs/popcount.bend as PP
@@ -312,3 +316,10 @@ def Laws.an_accepted_certificate_has_layered_predecessors(td, g, sd,
 
 def Laws.comparing_two_ordinals_compares_their_values(a, b):
   POrder.U32.cmp_spec(a, b)
+
+def Laws.interning_an_id_then_finding_it_gives_the_same_ordinal(u, o):
+  PIn.Uni.intern_round_trip(u, o)
+
+def Laws.reading_a_trie_at_the_key_just_written_gives_that_value(A, d, t,
+  x, v):
+  PTr.Trie.at_set(A, d, t, x, v)

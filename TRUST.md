@@ -39,6 +39,7 @@ The proofs cover:
 | `S-03` | compression changes no member, whichever of its four representations it picks |
 | `S-04` | the emptiness test only accepts a set with no members, and the three admitted Boolean rewrites follow |
 | `C-03` (part) | closing the empty set gives the empty set |
+| `U-01` (part) | the lookup round trip: interning an object id and then looking it up in the table interning returned gives the ordinal it returned, for any universe and any id, with no well-formedness hypothesis. It rests on a trie reading back what was written, which is proved outright. Injectivity -- that two different ids never share an ordinal -- is a property of every write the table ever took and is still open |
 | addressing | an ordinal is below a power of two exactly when it fits in that many bits; rebasing into a node's upper half keeps it inside the child; the tile address is injective; a bit index is below a word's width; `U32` addition adds when neither operand is large; the enumeration walk and the tile address name the same positions |
 
 `LAWS.pending.bend` states, in the same syntax, the obligations this release
