@@ -50,6 +50,7 @@
 #   proofs/only.bend      inserting adds nothing else
 #   proofs/subset.bend    the subset test, related to membership
 #   proofs/batch.bend     the matrix restores the caller's positions
+#   proofs/store.bend     what accepting a stored generation means
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -68,6 +69,7 @@ import ./proofs/insert.bend as PIns
 import ./proofs/only.bend as POn
 import ./proofs/subset.bend as PSb
 import ./proofs/batch.bend as PBa
+import ./proofs/store.bend as PSt
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -465,3 +467,9 @@ def Laws.the_matrix_has_one_row_per_cell(cx, k, cells, done):
 def Laws.a_reused_answer_is_the_first_one_recorded_under_that_name(done,
   want):
   PBa.Rows.lookup_is_find(done, want)
+
+def Laws.an_accepted_store_declared_the_objects_it_holds(c, d, ec, ok):
+  PSt.Store.accepted_count(c, d, ec, ok)
+
+def Laws.a_rejected_store_says_why(u, d, eu, no):
+  PSt.Store.rejection_is_reported(u, d, eu, no)

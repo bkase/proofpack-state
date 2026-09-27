@@ -475,13 +475,13 @@
       ],
       "status": "partially_proved",
       "production_symbol": "PSet.valid / Store.decode",
-      "proof_symbol": "PSet.valid_is_node (proofs/collapse.bend)",
+      "proof_symbol": "PSet.valid_is_node (proofs/collapse.bend), Store.accepted_count and Store.rejection_is_reported (proofs/store.bend)",
       "reason": "M2. No decoder yet; core/set.bend PSet.valid is the structural check it will be stated over.",
       "stated_in": "LAWS.pending.bend",
       "backed_by": "index/store.bend validates a decoded generation structurally on load -- magic, declared format, declared object count against the objects actually present, hex width, and every successor index in range -- and rejects with CorruptIndex rather than answering. SPEC 6.5 requires that and says a checksum is not a substitute. tools/differential.sh corrupts a stored generation four ways and checks each is rejected, deriving each corruption from the file so it cannot silently become a no-op.",
       "note": "Was recorded as not applicable while there was no derived store. M2 shipped one, so the obligation is live.",
-      "proved_part": "What structural validity rules out: at any depth above a leaf, a valid set is PZero, PFull or a branch -- never a sparse or dense payload. That is the fact the pointwise laws' validity hypothesis rests on, and the reason a decoded generation is checked on load rather than trusted.",
-      "gap": "That decode inverts encode. The differential checks the round trip observationally -- a stored generation answers identically to the import that produced it, on both policies -- and rejects four kinds of corruption, each derived from the file so it cannot silently become a no-op."
+      "proved_part": "What structural validity rules out -- at any depth above a leaf a valid set is PZero, PFull or a branch, never a payload -- and what accepting a decode means: an accepted store declared exactly as many objects as the file holds, and a rejected one always reports a stable error class rather than failing silently. Those are the two ways a loader can be quietly wrong.",
+      "gap": "That decode inverts encode. It is a round trip through text -- the encoder renders numbers and hex digests into a line format and the decoder parses them back -- so it needs the show/parse round trip for Nat, U32 and object ids before anything about generations can be said. The differential checks the round trip observationally instead: a stored generation answers identically to the import that produced it, on both policies, and four kinds of corruption are rejected, each derived from the file so it cannot silently become a no-op."
     },
     {
       "id": "G-01",

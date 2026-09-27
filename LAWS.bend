@@ -67,6 +67,7 @@ import ./proofs/insert.bend as In
 import ./proofs/only.bend as On
 import ./proofs/subset.bend as Sb
 import ./proofs/batch.bend as Ba
+import ./index/store.bend as St
 import ./proofs/extensive.bend as Ex3
 import ./cli/main.bend as Cm
 import ./proofs/inventory.bend as Iv2
@@ -1736,3 +1737,41 @@ law a_reused_answer_is_the_first_one_recorded_under_that_name:
   for +want: String
   {Cm.Cmd.matrix.lookup(done, want, None{})
     == Ba.Rows.found(done, want) : Maybe<&2, String>}
+
+# ===========================================================================
+# D-01, in part -- what accepting a stored generation means.
+#
+# A store file is untrusted input. SPEC 6.5 requires bounds, node references
+# and universe bindings to be validated on load and says plainly that a
+# checksum is not a substitute; `index/store.bend` checks the magic line, the
+# declared format, the declared object count against the objects actually
+# present, each object id's hex width, and each successor index against the
+# declared universe, and answers `CorruptIndex` rather than a wrong answer.
+#
+# Two things about that are laws rather than prose. The count is the check a
+# truncated or padded file trips, and the one `tools/differential.sh`
+# corrupts: a decode that is accepted declared exactly as many objects as the
+# file holds. And a rejection is never silent -- a field-level check failing
+# sets a flag deep inside a fold with no message, and `Store.decode.named` is
+# what turns that into a stable machine-readable class (SPEC 9.3).
+#
+# Accepting a file with no check, or rejecting it with no reason, are the two
+# ways a loader can be quietly wrong. Neither can happen. What is still open
+# is that decode inverts encode, which is a round trip through text.
+# ===========================================================================
+
+law an_accepted_store_declared_the_objects_it_holds:
+  for +c: Bool
+  for +d: St.Dec
+  for +ec: {c == Nat.is_eq(St.Dec.n(d), St.Dec.seen(d)) : Bool}
+  for +ok: {St.Dec.ok(St.Store.decode.fin(d)) == True{} : Bool}
+  {Nat.is_eq(St.Dec.n(d), St.Dec.seen(d)) == True{} : Bool}
+
+law a_rejected_store_says_why:
+  for +u: Bool
+  for +d: St.Dec
+  for +eu: {u == Bool.and(Bool.not(St.Dec.ok(d)),
+    String.is_empty(St.Dec.err(d))) : Bool}
+  for +no: {St.Dec.ok(St.Store.decode.named(d)) == False{} : Bool}
+  {String.is_empty(St.Dec.err(St.Store.decode.named(d)))
+    == False{} : Bool}
