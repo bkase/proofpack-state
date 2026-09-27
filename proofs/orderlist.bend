@@ -13,6 +13,7 @@ import Base
 import ./eq.bend as E
 import ./nat.bend as N
 import ./order.bend as Or
+import ./childtest.bend as Ct2
 import ../core/count.bend as C
 import ../core/word.bend as W
 
@@ -170,3 +171,211 @@ def Ords.below_nil(l):
 
 def Ords.asc_reverse(l, dl):
   Ords.asc_reverse_go(l, Nil{}, dl, {==}, Ords.below_nil(l))
+
+# ---------------------------------------------------------------------------
+# What a comparison tells the merge.
+# ---------------------------------------------------------------------------
+
+law Nat.cmp_lt_gt:
+  for +m: Nat
+  for +n: Nat
+  for +e: {Nat.cmp(m, n) == LT{} : Cmp}
+  {C.Nat.gt(n, m) == True{} : Bool}
+
+def Nat.cmp_lt_gt(m, n, e):
+  %Nat.cmp_is_lt(m, n)
+    : {_ == True{} : Bool}
+  %E.Cmp.sym(Nat.cmp(m, n), LT{}, e)
+    : {Cmp.is_lt(_) == True{} : Bool}
+  {==}
+
+law Nat.cmp_gt_gt:
+  for +m: Nat
+  for +n: Nat
+  for +e: {Nat.cmp(m, n) == GT{} : Cmp}
+  {C.Nat.gt(m, n) == True{} : Bool}
+
+law Nat.cmp_flip:
+  for +m: Nat
+  for +n: Nat
+  for +e: {Nat.cmp(m, n) == GT{} : Cmp}
+  {Nat.cmp(n, m) == LT{} : Cmp}
+
+def Nat.cmp_flip(m, n, e):
+  match m:
+    case 0n:
+      match n:
+        case 0n:
+          E.Cmp.noconf_eq_gt({Nat.cmp(0n, 0n) == LT{} : Cmp}, e)
+        case 1n+q:
+          E.Cmp.noconf_lt_gt({Nat.cmp(1n+q, 0n) == LT{} : Cmp}, e)
+    case 1n+p:
+      match n:
+        case 0n:
+          {==}
+        case 1n+q:
+          Nat.cmp_flip(p, q, e)
+
+def Nat.cmp_gt_gt(m, n, e):
+  %Nat.cmp_is_lt(n, m)
+    : {_ == True{} : Bool}
+  %E.Cmp.sym(Nat.cmp(n, m), LT{}, Nat.cmp_flip(m, n, e))
+    : {Cmp.is_lt(_) == True{} : Bool}
+  {==}
+
+law U32.lt_of_cmp_lt:
+  for +x: U32
+  for +y: U32
+  for +e: {U32.cmp(x, y) == LT{} : Cmp}
+  {U32.is_lt(x, y) == True{} : Bool}
+
+def Cmp.nat_of_u32_lt(+x: U32, +y: U32,
+  +e: {U32.cmp(x, y) == LT{} : Cmp})
+  -> {Nat.cmp(U32.to_nat(x), U32.to_nat(y)) == LT{} : Cmp}:
+  %Or.U32.cmp_spec(x, y)
+    : {_ == LT{} : Cmp}
+  e
+
+def U32.lt_of_cmp_lt(x, y, e):
+  U32.lt_of_nat(x, y,
+    Nat.cmp_lt_gt(U32.to_nat(x), U32.to_nat(y),
+      Cmp.nat_of_u32_lt(x, y, e)))
+
+law Nat.cmp_of_gt:
+  for +m: Nat
+  for +n: Nat
+  for +g: {C.Nat.gt(m, n) == True{} : Bool}
+  {Nat.cmp(m, n) == GT{} : Cmp}
+
+def Nat.cmp_of_gt(m, n, g):
+  match m:
+    case 0n:
+      E.Bool.noconf({Nat.cmp(0n, n) == GT{} : Cmp}, g)
+    case 1n+p:
+      match n:
+        case 0n:
+          {==}
+        case 1n+q:
+          Nat.cmp_of_gt(p, q, g)
+
+law U32.ne_of_lt:
+  for +y: U32
+  for +h: U32
+  for +lt: {U32.is_lt(y, h) == True{} : Bool}
+  {U32.is_eq(h, y) == False{} : Bool}
+
+law U32.ne_of_gt:
+  for +h: U32
+  for +y: U32
+  for +lt: {U32.is_lt(h, y) == True{} : Bool}
+  {U32.is_eq(h, y) == False{} : Bool}
+
+law Ords.lt_value:
+  for +x: U32
+  for +y: U32
+  for +lt: {U32.is_lt(x, y) == True{} : Bool}
+  {C.Nat.gt(U32.to_nat(y), U32.to_nat(x)) == True{} : Bool}
+
+def Ords.lt_value(x, y, lt):
+  %U32.is_lt_nat(x, y)
+    : {_ == True{} : Bool}
+  lt
+
+def U32.ne_of_lt(y, h, lt):
+  %E.Cmp.sym(U32.cmp(h, y),
+    Nat.cmp(U32.to_nat(h), U32.to_nat(y)), Or.U32.cmp_spec(h, y))
+    : {Cmp.is_eq(_) == False{} : Bool}
+  %E.Cmp.sym(Nat.cmp(U32.to_nat(h), U32.to_nat(y)), GT{},
+    Nat.cmp_of_gt(U32.to_nat(h), U32.to_nat(y),
+      Ords.lt_value(y, h, lt)))
+    : {Cmp.is_eq(_) == False{} : Bool}
+  {==}
+
+def U32.ne_of_gt(h, y, lt):
+  %E.Cmp.sym(U32.cmp(h, y),
+    Nat.cmp(U32.to_nat(h), U32.to_nat(y)), Or.U32.cmp_spec(h, y))
+    : {Cmp.is_eq(_) == False{} : Bool}
+  %E.Cmp.sym(Nat.cmp(U32.to_nat(h), U32.to_nat(y)), LT{},
+    Nat.cmp_flip(U32.to_nat(y), U32.to_nat(h),
+      Nat.cmp_of_gt(U32.to_nat(y), U32.to_nat(h),
+        Ords.lt_value(h, y, lt))))
+    : {Cmp.is_eq(_) == False{} : Bool}
+  {==}
+
+law Ords.not_contains_of_lt_all:
+  for +xs: List<&2, U32>
+  for +y: U32
+  for +la: {Ords.lt_all(y, xs) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, xs, y) == False{} : Bool}
+
+def Ords.not_contains_of_lt_all(xs, y, la):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      %E.Bool.sym(U32.is_eq(h, y), False{},
+        U32.ne_of_lt(y, h,
+          E.Bool.and_l(U32.is_lt(y, h), Ords.lt_all(y, t), la)))
+        : {Bool.or(_, List.contains(~U32, ~U32.is_eq, t, y))
+          == False{} : Bool}
+      Ords.not_contains_of_lt_all(t, y,
+        E.Bool.and_r(U32.is_lt(y, h), Ords.lt_all(y, t), la))
+
+law Ords.not_contains_of_gt_all:
+  for +xs: List<&2, U32>
+  for +y: U32
+  for +ga: {Ords.gt_all(y, xs) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, xs, y) == False{} : Bool}
+
+def Ords.not_contains_of_gt_all(xs, y, ga):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      %E.Bool.sym(U32.is_eq(h, y), False{},
+        U32.ne_of_gt(h, y,
+          E.Bool.and_l(U32.is_lt(h, y), Ords.gt_all(y, t), ga)))
+        : {Bool.or(_, List.contains(~U32, ~U32.is_eq, t, y))
+          == False{} : Bool}
+      Ords.not_contains_of_gt_all(t, y,
+        E.Bool.and_r(U32.is_lt(h, y), Ords.gt_all(y, t), ga))
+
+law Ords.lt_all_trans:
+  for +t: List<&2, U32>
+  for +y: U32
+  for +h: U32
+  for +lt: {U32.is_lt(y, h) == True{} : Bool}
+  for +la: {Ords.lt_all(h, t) == True{} : Bool}
+  {Ords.lt_all(y, t) == True{} : Bool}
+
+law Nat.le_of_gt_lt:
+  for +m: Nat
+  for +n: Nat
+  for +g: {C.Nat.gt(n, m) == True{} : Bool}
+  {C.Nat.upto(m, n) == True{} : Bool}
+
+def Nat.le_of_gt_lt(m, n, g):
+  match m:
+    case 0n:
+      {==}
+    case 1n+p:
+      match n:
+        case 0n:
+          E.Bool.noconf({C.Nat.upto(1n+p, 0n) == True{} : Bool}, g)
+        case 1n+q:
+          Nat.le_of_gt_lt(p, q, g)
+
+def Ords.lt_all_trans(t, y, h, lt, la):
+  match t:
+    case Nil{}:
+      {==}
+    case Con{z, u}:
+      E.Bool.and_both(U32.is_lt(y, z), Ords.lt_all(y, u),
+        U32.lt_of_nat(y, z,
+          Ct2.Nat.gt_up(U32.to_nat(h), U32.to_nat(z), U32.to_nat(y),
+            Nat.le_of_gt_lt(U32.to_nat(h), U32.to_nat(z),
+              Ords.lt_value(h, z,
+                E.Bool.and_l(U32.is_lt(h, z), Ords.lt_all(h, u), la))),
+            Ords.lt_value(y, h, lt))),
+        Ords.lt_all_trans(u, y, h, lt,
+          E.Bool.and_r(U32.is_lt(h, z), Ords.lt_all(h, u), la)))

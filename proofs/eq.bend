@@ -38,6 +38,66 @@ def Bool.code(b: Bool) -> Type:
 def Bool.sym(-a: Bool, -b: Bool, e: {a == b : Bool}) -> {b == a : Bool}:
   Equal.sym(Bool, a, b, e)
 
+# The same trick for `Cmp`: a code that is `Unit` at one tag and `Empty` at
+# the other two, so an equation between two different tags proves anything.
+def Cmp.code_lt(c: Cmp) -> Type:
+  match c:
+    case LT{}:
+      Unit
+    case EQ{}:
+      Empty
+    case GT{}:
+      Empty
+
+def Cmp.code_eq(c: Cmp) -> Type:
+  match c:
+    case LT{}:
+      Empty
+    case EQ{}:
+      Unit
+    case GT{}:
+      Empty
+
+def Cmp.code_gt(c: Cmp) -> Type:
+  match c:
+    case LT{}:
+      Empty
+    case EQ{}:
+      Empty
+    case GT{}:
+      Unit
+
+def Cmp.lt_is(-c: Cmp, e: {LT{} == c : Cmp}) -> Cmp.code_lt(c):
+  %e : Cmp.code_lt(_)
+  Unit{}
+
+def Cmp.eq_is(-c: Cmp, e: {EQ{} == c : Cmp}) -> Cmp.code_eq(c):
+  %e : Cmp.code_eq(_)
+  Unit{}
+
+def Cmp.gt_is(-c: Cmp, e: {GT{} == c : Cmp}) -> Cmp.code_gt(c):
+  %e : Cmp.code_gt(_)
+  Unit{}
+
+# The six impossible equations between tags.
+def Cmp.noconf_lt_eq(-A: Type, e: {LT{} == EQ{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.lt_is(EQ{}, e))
+
+def Cmp.noconf_lt_gt(-A: Type, e: {LT{} == GT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.lt_is(GT{}, e))
+
+def Cmp.noconf_eq_lt(-A: Type, e: {EQ{} == LT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.eq_is(LT{}, e))
+
+def Cmp.noconf_eq_gt(-A: Type, e: {EQ{} == GT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.eq_is(GT{}, e))
+
+def Cmp.noconf_gt_lt(-A: Type, e: {GT{} == LT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.gt_is(LT{}, e))
+
+def Cmp.noconf_gt_eq(-A: Type, e: {GT{} == EQ{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.gt_is(EQ{}, e))
+
 def Cmp.sym(-a: Cmp, -b: Cmp, e: {a == b : Cmp}) -> {b == a : Cmp}:
   Equal.sym(Cmp, a, b, e)
 
