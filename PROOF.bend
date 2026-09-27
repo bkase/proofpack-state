@@ -23,6 +23,7 @@
 #   proofs/leaf.bend      inserting into a leaf
 #   proofs/witness.bend   what a dependency witness guarantees
 #   proofs/collapse.bend  the Zero/Full branch collapses
+#   proofs/descend.bend   carrying an ordinal down a level
 
 import Base
 import ./LAWS.bend as Laws
@@ -41,6 +42,7 @@ import ./proofs/bitset.bend as PBs
 import ./proofs/leaf.bend as PLf
 import ./proofs/witness.bend as PWit
 import ./proofs/collapse.bend as PCo
+import ./proofs/descend.bend as PDc
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -169,3 +171,16 @@ def Laws.a_produced_witness_ends_at_the_object_asked_about(td, g, rev,
 
 def Laws.collapsing_a_branch_keeps_its_members(p, lo, hi, h, x):
   PCo.PSet.mem_mk(p, lo, hi, h, x)
+
+# --- the addressing arithmetic ----------------------------------------------
+
+def Laws.an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits(
+  x, k, ok):
+  PDc.U32.is_lt_shln(x, k, ok)
+
+def Laws.rebasing_into_the_upper_half_keeps_the_ordinal_in_range(x, k, hi,
+  no):
+  PDc.U32.hi_zero_sub(x, k, hi, no)
+
+def Laws.halving_a_half_width_moves_the_bit_down(k, ok):
+  PDc.U32.shr_shln_one(k, ok)

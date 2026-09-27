@@ -37,6 +37,7 @@
 import Base
 import ./core/count.bend as C
 import ./core/ords.bend as Or
+import ./proofs/descend.bend as Dc
 import ./closure/graph.bend as Gr
 import ./closure/reach.bend as Re
 import ./closure/explain.bend as Ex
@@ -479,3 +480,48 @@ law collapsing_a_branch_keeps_its_members:
   for +x: U32
   {S.PSet.mem(1n+p, S.PSet.mk(lo, hi), h, x)
     == S.PSet.mem(1n+p, S.PBranch{lo, hi}, h, x) : Bool}
+
+# ===========================================================================
+# The addressing arithmetic: carrying an ordinal down a level.
+#
+# Every operation on the set tree splits an interval by comparing the ordinal
+# with the half-width `h` and, in the upper half, rebasing by `x - h`. For a
+# descent to preserve "this ordinal is inside this interval", `x - h` has to
+# be subtraction and the result has to land inside the child. Until now that
+# was assumed; `LAWS.pending.bend` listed it as the fact that several
+# obligations were waiting on.
+#
+# It is provable without any arithmetic on `Nat`, because the half-width is
+# never an arbitrary number: `PSet.half(d)` is `U32.shln(1, 11n+d)`, a single
+# set bit. For a power of two the whole question is bitwise.
+#
+# `U32.hi_zero(x, k)` reads "x fits in k bits". The first law says that is
+# exactly `x < 2^k`. The second says an ordinal that fits in k+1 bits but not
+# in k -- so it is in the upper half -- fits in k once rebased. Together they
+# are what a node needs to hand its child.
+#
+# `Word.sub` is `Word.adc` with the borrow flag set, and the second law's
+# proof is that for a subtrahend with a single bit the carry is `True{}` at
+# every position: each output bit is the input bit, except at `k`, where the
+# set bit clears.
+# ===========================================================================
+
+law an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits:
+  for +x: U32
+  for +k: Nat
+  for +ok: {C.Nat.gt(32n, k) == True{} : Bool}
+  {U32.is_lt(x, U32.shln(1, k)) == Dc.U32.hi_zero(x, k) : Bool}
+
+law rebasing_into_the_upper_half_keeps_the_ordinal_in_range:
+  for +x: U32
+  for +k: Nat
+  for +hi: {Dc.U32.hi_zero(x, 1n+k) == True{} : Bool}
+  for +no: {Dc.U32.hi_zero(x, k) == False{} : Bool}
+  {Dc.U32.hi_zero(U32.sub(x, U32.shln(1, k)), k) == True{} : Bool}
+
+# And the half-width the child is given really is half: one shift right of a
+# single set bit is the bit one position down.
+law halving_a_half_width_moves_the_bit_down:
+  for +k: Nat
+  for +ok: {C.Nat.gt(32n, 1n+k) == True{} : Bool}
+  {U32.shr(U32.shln(1, 1n+k)) == U32.shln(1, k) : U32}
