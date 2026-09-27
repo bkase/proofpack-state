@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 85 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 87 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -67,7 +67,10 @@ the set algebra itself:
   representations it picks.
 * `S-04`: the emptiness test only accepts a set with no members, so the three
   admitted Boolean rewrites preserve membership.
-* `P-01`: inserting an ordinal leaves it present.
+* `P-01`: inserting an ordinal leaves it present, and inserting never loses
+  a member that was already there -- so a set folded up from a list has every
+  ordinal on that list, which is how the universe, a filter's result and a
+  projected inventory all get built.
 * `U-01` (round trip): interning an object id and then looking it up finds
   the ordinal that interning returned -- resting on the trie reading back
   what was written, which needs no hypothesis at all.

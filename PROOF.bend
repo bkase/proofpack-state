@@ -46,6 +46,7 @@
 #   proofs/rewrite.bend   every admitted query rewrite keeps the denotation
 #   proofs/extensive.bend the closure contains what it closes
 #   proofs/table.bend     what a table built from a list answers
+#   proofs/insert.bend    inserting never loses a member
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
 #   proofs/intern.bend    interning an id and finding it again
@@ -59,6 +60,7 @@ import ./proofs/denote.bend as PDn
 import ./proofs/rewrite.bend as PRw
 import ./proofs/extensive.bend as PEx
 import ./proofs/table.bend as PTb
+import ./proofs/insert.bend as PIns
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
 import ./proofs/intern.bend as PIn
@@ -395,3 +397,9 @@ def Laws.a_table_built_from_a_list_answers_the_same_descent_over_the_list(A,
 def Laws.the_tree_data_policy_drops_exactly_the_parent_edges(rows, metas, u,
   v, m, hm):
   PPl.Idx.tree_data_edge(rows, metas, u, v, m, hm)
+
+def Laws.inserting_keeps_every_member(s, y, x, v, ok):
+  PIns.PSet.insert_keeps(s, y, x, v, ok)
+
+def Laws.a_set_built_from_a_list_has_every_ordinal_on_it(xs, x, ok):
+  PIns.PSet.from_list_contains(xs, x, ok)

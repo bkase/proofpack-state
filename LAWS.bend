@@ -63,6 +63,7 @@ import ./spec/query.bend as Q
 import ./proofs/denote.bend as Dn
 import ./proofs/extensive.bend as Ex2
 import ./proofs/table.bend as Tb
+import ./proofs/insert.bend as In
 import ./proofs/missing.bend as M
 
 # ===========================================================================
@@ -1402,3 +1403,38 @@ law the_tree_data_policy_drops_exactly_the_parent_edges:
            Sc.Idx.is_commit(Sc.Source.meta_of.un(
              Tr.Trie.at(Im.Meta, 32n,
                Tr.Trie.of_list(Im.Meta, 32n, metas), v)))))) : Bool}
+
+# ===========================================================================
+# P-01, the other half -- inserting never loses a member.
+#
+# `inserting_adds_exactly_that_ordinal` says the ordinal just inserted is
+# present. It does not say the ones already there still are, and nothing built
+# out of repeated insertion can be reasoned about until it does: every set
+# that enters the algebra from outside is a fold of `PSet.insert` over a list
+# -- the universe of `Full`, a type filter's result, a receiver's inventory
+# projected into the source universe -- and each step has to keep what the
+# steps before it put in.
+#
+# The shape hypothesis is doing real work. Above a leaf `PSet.add` treats a
+# sparse or dense payload as an empty subtree and replaces it with a fresh
+# branch, while `PSet.mem` reads it as a set of members: for that one shape
+# inserting really does lose members, and it is exactly the shape `PSet.wf`
+# rules out. `every_structurally_valid_set_is_well_shaped` discharges the
+# hypothesis for anything the store accepted.
+#
+# The second law is the two halves put together, at the fold.
+# ===========================================================================
+
+law inserting_keeps_every_member:
+  for +s: S.PSet
+  for +y: U32
+  for +x: U32
+  for +v: {Sh.PSet.wf(20n, s, True{}) == True{} : Bool}
+  for +ok: {S.PSet.member(20n, s, x) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.insert(20n, s, y), x) == True{} : Bool}
+
+law a_set_built_from_a_list_has_every_ordinal_on_it:
+  for +xs: List<&2, U32>
+  for +x: U32
+  for +ok: {List.contains(~U32, ~U32.is_eq, xs, x) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.from_list(20n, xs), x) == True{} : Bool}
