@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project": "ProofPack State",
-  "status": "Per-obligation status as of this release. 14 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 6 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 7 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+  "status": "Per-obligation status as of this release. 14 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 7 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 6 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
   "laws": [
     {
       "id": "U-01",
@@ -162,10 +162,10 @@
       ],
       "status": "partially_proved",
       "production_symbol": null,
-      "proof_symbol": "Spec.closure_empty (proofs/closure.bend)",
+      "proof_symbol": "Spec.closure_empty (proofs/closure.bend), Spec.closure_of_empty (proofs/nothing.bend)",
       "stated_in": "LAWS.bend (empty preservation) and LAWS.pending.bend (the rest)",
       "backed_by": "tests.bend: union preservation, extensivity, idempotence and closure-of-empty on the counterexample graph.",
-      "proved_part": "Closing the empty set gives the empty set, which is what licenses rewriting Reach(Empty) to Empty without traversing.",
+      "proved_part": "Closing the empty set gives the empty set, which is what licenses rewriting Reach(Empty) to Empty without traversing -- both at PZero itself and, now, pointwise: closing any set the emptiness test accepts gives a set the emptiness test accepts, which is what the optimizer actually holds, since it decides with PSet.empty_p and may be looking at a set with no members that is not PZero.",
       "gap": "Extensivity, monotonicity, idempotence and union preservation. All four need the subset test related to membership -- PSet.is_subset is a count, so it needs the set-level fused count and the fact that a zero count means no members. The tile-level fused count is proved (Q-02); the set-level one is not."
     },
     {
@@ -288,12 +288,13 @@
         "S-04",
         "C-03"
       ],
-      "status": "specified_checked_at_runtime",
+      "status": "partially_proved",
       "production_symbol": null,
-      "proof_symbol": null,
-      "stated_in": "LAWS.pending.bend",
+      "proof_symbol": "Simp.union_sound, Simp.inter_sound, Simp.diff_sound, Simp.reach_sound (proofs/rewrite.bend); Eval.wf (proofs/denote.bend)",
+      "stated_in": "LAWS.bend (every rewrite) and LAWS.pending.bend (the whole pass)",
       "backed_by": "tests.bend counterexamples; the rewrites are instances of Boolean laws proved at the tile level.",
-      "gap": "The set-level content is proved (S-02 and S-04). What is left is the lift to expressions: an induction over the AST, which needs the denotation of every subexpression to be structurally valid -- so it needs PSet.valid to be preserved by union, intersection, difference, filter and closure, which is not proved."
+      "gap": "The whole pass. Rw.simplify also recurses inside Reach and Filter, and the induction there needs that a subexpression simplified to a set with the same members -- not the same representation -- closes and filters to a set with the same members. That is closure respecting pointwise equality, and it needs a set equality a proof can carry: PSet.is_subset is the decidable one and relating it to membership needs the set-level fused count, the same missing piece C-03 names. An equality stated pointwise cannot be used, because it is quantified over ordinals and an affine hypothesis cannot be used twice.",
+      "proved_part": "Every rewrite the optimizer performs keeps the denotation: the expression it produces has exactly the members the expression it replaced had, at the production depth, for every ordinal, stated over the emptiness decision as the rewriter computes it. Four laws, one per rewrite family, plus every_denotation_is_well_shaped, which discharges their shape hypothesis for any expression whose literals are well shaped."
     },
     {
       "id": "Q-02",

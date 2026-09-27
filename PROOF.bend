@@ -41,6 +41,9 @@
 #   proofs/order.bend     comparison agrees with the numeric order
 #   proofs/shape.bend     the part of structural validity the algebra uses
 #   proofs/preserve.bend  the set operations keep that shape
+#   proofs/nothing.bend   an empty set enumerates to nothing
+#   proofs/denote.bend    every denotation is well shaped
+#   proofs/rewrite.bend   every admitted query rewrite keeps the denotation
 #   proofs/trie.bend      a trie reads back what was written
 #   proofs/intern.bend    interning an id and finding it again
 
@@ -48,6 +51,9 @@ import Base
 import ./LAWS.bend as Laws
 import ./proofs/shape.bend as PSh
 import ./proofs/preserve.bend as PPr
+import ./proofs/nothing.bend as PNo
+import ./proofs/denote.bend as PDn
+import ./proofs/rewrite.bend as PRw
 import ./proofs/trie.bend as PTr
 import ./proofs/intern.bend as PIn
 import ./proofs/nat.bend as N
@@ -348,3 +354,26 @@ def Laws.intersection_keeps_a_set_well_shaped(d, a, b, va, vb):
 
 def Laws.difference_keeps_a_set_well_shaped(d, a, b, va, vb):
   PPr.PSet.wf_diff(d, a, b, va, vb)
+
+def Laws.an_empty_set_enumerates_to_nothing(d, s, z):
+  PNo.PSet.to_list_of_empty(d, s, z)
+
+def Laws.closing_a_set_with_no_members_gives_a_set_with_no_members(n, td, g,
+  p, r, z):
+  PNo.Spec.closure_of_empty(n, td, g, p, r, z)
+
+def Laws.simplifying_a_union_keeps_every_member(src, a, b, x, va, vb):
+  PRw.Simp.union_sound(src, a, b, x, va, vb)
+
+def Laws.simplifying_an_intersection_keeps_every_member(src, a, b, x, va,
+  vb):
+  PRw.Simp.inter_sound(src, a, b, x, va, vb)
+
+def Laws.simplifying_a_difference_keeps_every_member(src, a, b, x, va, vb):
+  PRw.Simp.diff_sound(src, a, b, x, va, vb)
+
+def Laws.simplifying_a_reachability_keeps_every_member(src, p, a, x):
+  PRw.Simp.reach_sound(src, p, a, x)
+
+def Laws.every_denotation_is_well_shaped(src, e, ok):
+  PDn.Eval.wf(src, e, ok)

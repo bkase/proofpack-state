@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 75 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 82 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -71,6 +71,10 @@ the set algebra itself:
 * `U-01` (round trip): interning an object id and then looking it up finds
   the ordinal that interning returned -- resting on the trie reading back
   what was written, which needs no hypothesis at all.
+* `Q-01`: every rewrite the query optimizer performs keeps the denotation,
+  stated over the emptiness decision as the rewriter computes it. The set
+  operations keep a set in the shape the pointwise laws need, so every
+  denotation is well shaped and the rewrites' hypothesis discharges itself.
 * plus the addressing arithmetic all of that rests on -- that `U32` addition
   adds, that a word is determined by the number it reads as, that the tile
   address is injective, and that the enumeration walk and the tile address
@@ -78,9 +82,10 @@ the set algebra itself:
 
 Partly proved, with the remaining half stated precisely: `G-02` (the
 tree-data filter at a row), `E-01` (two of the three parts of a dependency
-witness), `C-03` (closing nothing gives nothing), `C-04` (what an accepted
-certificate means), `U-01` (the lookup round trip; injectivity is open),
-`D-01` (what structural validity rules out). Section 4 below lists each law with the optimization it
+witness), `C-03` (closing nothing gives nothing, now pointwise as well as at
+`PZero`), `C-04` (what an accepted certificate means), `U-01` (the lookup
+round trip; injectivity is open), `Q-01` (every rewrite; the whole pass is
+open), `D-01` (what structural validity rules out). Section 4 below lists each law with the optimization it
 unlocks.
 
 Four of the laws in `LAWS.pending.bend` turned out to be **false** as first

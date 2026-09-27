@@ -58,6 +58,9 @@ import ./core/word.bend as W
 import ./core/words.bend as Wo
 import ./core/set.bend as S
 import ./query/ast.bend as A
+import ./query/rewrite.bend as Rw
+import ./spec/query.bend as Q
+import ./proofs/denote.bend as Dn
 import ./proofs/missing.bend as M
 
 # ===========================================================================
@@ -1168,3 +1171,132 @@ law difference_keeps_a_set_well_shaped:
   for +va: {Sh.PSet.wf(d, a, True{}) == True{} : Bool}
   for +vb: {Sh.PSet.wf(d, b, True{}) == True{} : Bool}
   {Sh.PSet.wf(d, S.PSet.diff(d, a, b), True{}) == True{} : Bool}
+
+# ===========================================================================
+# An empty set enumerates to nothing, and closing it gives nothing.
+#
+# `closing_nothing_gives_nothing` above is the equation at `PZero{}` itself.
+# It is not enough for the optimizer, which decides with `PSet.empty_p` and so
+# may be holding a set with no members that is not `PZero{}` -- a literal read
+# from a store whose leaves are all empty, say. These are the versions that
+# cover those.
+#
+# The first is the one that does the work: a set the emptiness test accepts
+# walks to the empty list, not merely to a list with no members. Enumeration
+# is where the algebra hands over to everything else -- the traversal takes
+# the successors of a set by walking it to a list -- so this is what carries
+# emptiness across that boundary. The dense case is the real content: a tile's
+# members come back from a walk that shifts a word down thirty-two times and
+# conses when the low bit is one, so "no bits set" has to be carried through
+# the walk in the shape the walk has.
+# ===========================================================================
+
+law an_empty_set_enumerates_to_nothing:
+  for +d: Nat
+  for +s: S.PSet
+  for +z: {S.PSet.empty_p(d, s) == True{} : Bool}
+  {S.PSet.to_list(d, s) == Nil{} : List<&2, U32>}
+
+law closing_a_set_with_no_members_gives_a_set_with_no_members:
+  for +n: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +p: Nat
+  for +r: S.PSet
+  for +z: {S.PSet.empty_p(1n+p, r) == True{} : Bool}
+  {S.PSet.empty_p(1n+p, Sp2.Spec.closure(n, td, g, 1n+p, r))
+    == True{} : Bool}
+
+# ===========================================================================
+# Q-01 -- every admitted rewrite keeps the denotation.
+#
+# `query/rewrite.bend` simplifies an expression before it is compiled, and
+# SPEC 3.5 admits a rewrite only if a law says the denotation is unchanged.
+# These are those laws, one per rewrite the optimizer performs: the expression
+# it produces has exactly the members the expression it replaced had, at the
+# production depth, for every ordinal.
+#
+# The rewriter decides with `Rw.is_empty_expr`, which answers `True{}` only
+# for `Empty` itself and for a literal whose set has no members. Each law is
+# stated over that decision as the rewriter computes it, so there is no gap
+# between the rewrite that is proved and the rewrite that runs.
+#
+# Validation is not part of this and does not need to be: a literal carries
+# its set value, so an expression with an unresolved input cannot be built at
+# all, and no rewrite can skip a check that has already happened. That is
+# SPEC 3.5's "validation precedes elimination", structurally rather than as a
+# proof obligation.
+#
+# The hypothesis is that the operands' denotations are well shaped, which is
+# what the pointwise laws need; `every_denotation_is_well_shaped` below
+# discharges it for any expression whose literals are.
+#
+# What is deliberately absent: the two closure rewrites SPEC 4.1 forbids --
+# C(A n B) = C(A) n C(B) and C(A \ B) = C(A) \ C(B) -- and pushing a type
+# filter through reachability. `tests/forbidden.bend` runs the
+# counterexamples, so adding one later fails the build rather than quietly
+# changing answers.
+# ===========================================================================
+
+law simplifying_a_union_keeps_every_member:
+  for +src: Sc.Source
+  for +a: A.SetExpr
+  for +b: A.SetExpr
+  for +x: U32
+  for +va: {Sh.PSet.wf(20n, Q.Den.eval(src, a), True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, Q.Den.eval(src, b), True{}) == True{} : Bool}
+  {S.PSet.member(20n, Q.Den.eval(src,
+      Rw.Rw.union(a, b, Rw.Rw.is_empty_expr(a), Rw.Rw.is_empty_expr(b))), x)
+    == S.PSet.member(20n, Q.Den.eval(src, A.EUnion{a, b}), x) : Bool}
+
+law simplifying_an_intersection_keeps_every_member:
+  for +src: Sc.Source
+  for +a: A.SetExpr
+  for +b: A.SetExpr
+  for +x: U32
+  for +va: {Sh.PSet.wf(20n, Q.Den.eval(src, a), True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, Q.Den.eval(src, b), True{}) == True{} : Bool}
+  {S.PSet.member(20n, Q.Den.eval(src,
+      Rw.Rw.inter(a, b, Rw.Rw.is_empty_expr(a), Rw.Rw.is_empty_expr(b))), x)
+    == S.PSet.member(20n, Q.Den.eval(src, A.EInter{a, b}), x) : Bool}
+
+law simplifying_a_difference_keeps_every_member:
+  for +src: Sc.Source
+  for +a: A.SetExpr
+  for +b: A.SetExpr
+  for +x: U32
+  for +va: {Sh.PSet.wf(20n, Q.Den.eval(src, a), True{}) == True{} : Bool}
+  for +vb: {Sh.PSet.wf(20n, Q.Den.eval(src, b), True{}) == True{} : Bool}
+  {S.PSet.member(20n, Q.Den.eval(src,
+      Rw.Rw.diff(a, b, Rw.Rw.is_empty_expr(a), Rw.Rw.is_empty_expr(b))), x)
+    == S.PSet.member(20n, Q.Den.eval(src, A.EDiff{a, b}), x) : Bool}
+
+law simplifying_a_reachability_keeps_every_member:
+  for +src: Sc.Source
+  for +p: Sc.Policy
+  for +a: A.SetExpr
+  for +x: U32
+  {S.PSet.member(20n, Q.Den.eval(src,
+      Rw.Rw.reach(p, a, Rw.Rw.is_empty_expr(a))), x)
+    == S.PSet.member(20n, Q.Den.eval(src, A.EReach{p, a}), x) : Bool}
+
+# ===========================================================================
+# Every denotation is well shaped.
+#
+# The hypothesis the four laws above carry, discharged for any expression
+# whose literals carry it. `SetExpr.wf_lits` is that condition -- `ELit` holds
+# a set value outright, so an expression can name a badly shaped set the same
+# way a decoded file can, and nothing but a check rules it out.
+#
+# Everything else is proved: `Empty`, `Full`, the three Boolean operations,
+# reachability and filtering. Reachability is the interesting one -- the
+# specification closure iterates `X |-> X u post(X)`, and `post` builds a set
+# from a list of successors, so each round is a union of a well-shaped set
+# with a set built by insertion.
+# ===========================================================================
+
+law every_denotation_is_well_shaped:
+  for +src: Sc.Source
+  for +e: A.SetExpr
+  for +ok: {Dn.SetExpr.wf_lits(e) == True{} : Bool}
+  {Sh.PSet.wf(20n, Q.Den.eval(src, e), True{}) == True{} : Bool}

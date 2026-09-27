@@ -24,6 +24,7 @@ import ../core/count.bend as C
 import ./shape.bend as Sh
 import ./leaf.bend as Lf
 import ./leafops.bend as Lo
+import ../core/ords.bend as O
 import ../core/words.bend as Wo
 import ../core/set.bend as S
 
@@ -453,3 +454,202 @@ def PSet.wf_diff(d, a, b, va, vb):
                   Sh.PSet.wf_lo(p, bl, bh, vb)),
                 PSet.wf_diff(p, ah, bh, Sh.PSet.wf_hi(p, al, ah, va),
                   Sh.PSet.wf_hi(p, bl, bh, vb)))
+
+# ---------------------------------------------------------------------------
+# Insert, and building a set from a list.
+#
+# Every set that enters a query from outside the algebra is built this way --
+# the universe of `Full`, the result of a type filter, the successors of a
+# frontier -- so preservation here is what makes the rest of it apply.
+# ---------------------------------------------------------------------------
+
+law Words.len_set_at:
+  for +ws: List<&2, U32>
+  for +i: Nat
+  for +b: Nat
+  {List.length(&2, U32, Wo.Words.set.at(ws, i, b))
+    == List.length(&2, U32, ws) : Nat}
+
+def Words.len_set_at(ws, i, b):
+  match ws:
+    case Nil{}:
+      {==}
+    case Con{w, t}:
+      match i:
+        case 0n:
+          {==}
+        case 1n+j:
+          %E.Nat.sym(List.length(&2, U32, Wo.Words.set.at(t, j, b)),
+            List.length(&2, U32, t), Words.len_set_at(t, j, b))
+            : {1n+_ == 1n+List.length(&2, U32, t) : Nat}
+          {==}
+
+law Words.len_set:
+  for +ws: List<&2, U32>
+  for +x: U32
+  {List.length(&2, U32, Wo.Words.set(ws, x))
+    == List.length(&2, U32, ws) : Nat}
+
+def Words.len_set(ws, x):
+  Words.len_set_at(ws, U32.to_nat(U32.shrn(x, 5n)),
+    U32.to_nat(U32.and(x, 31)))
+
+law PSet.wf_add_leaf_pick:
+  for +offs: List<&2, U32>
+  for +small: Bool
+  {Sh.PSet.wf.leaf(S.PSet.add.leaf.pick(offs, small)) == True{} : Bool}
+
+def PSet.wf_add_leaf_pick(offs, small):
+  match small:
+    case True{}:
+      {==}
+    case False{}:
+      Nat.is_eq_128(
+        List.length(&2, U32, S.PSet.spread(offs, Wo.Words.zeros(128n))),
+        Equal.trans(Nat,
+          List.length(&2, U32, S.PSet.spread(offs, Wo.Words.zeros(128n))),
+          List.length(&2, U32, Wo.Words.zeros(128n)), 128n,
+          Lf.Words.length_spread(offs, Wo.Words.zeros(128n)),
+          Lf.Words.length_zeros(128n)))
+
+law PSet.wf_add_leaf:
+  for +s: S.PSet
+  for +x: U32
+  for +v: {Sh.PSet.wf.leaf(s) == True{} : Bool}
+  {Sh.PSet.wf.leaf(S.PSet.add.leaf(s, x)) == True{} : Bool}
+
+def PSet.wf_add_leaf(s, x, v):
+  match s:
+    case S.PZero{}:
+      {==}
+    case S.PFull{}:
+      {==}
+    case S.PBranch{l, h}:
+      {==}
+    case S.PSparse{offs}:
+      PSet.wf_add_leaf_pick(O.Ords.insert(offs, x),
+        C.Nat.upto(List.length(&2, U32, O.Ords.insert(offs, x)),
+          S.PSet.sparse_max()))
+    case S.PDense{ws}:
+      Nat.is_eq_128(List.length(&2, U32, Wo.Words.set(ws, x)),
+        Equal.trans(Nat, List.length(&2, U32, Wo.Words.set(ws, x)),
+          List.length(&2, U32, ws), 128n,
+          Words.len_set(ws, x),
+          Lf.Nat.is_eq_reflect(List.length(&2, U32, ws), 128n, v)))
+
+law PSet.wf_add:
+  for +d: Nat
+  for +s: S.PSet
+  for +h: U32
+  for +x: U32
+  for +b: Bool
+  for +v: {Sh.PSet.wf(d, s, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, S.PSet.add(d, s, h, x, b), True{}) == True{} : Bool}
+
+def PSet.wf_add(d, s, h, x, b, v):
+  match d:
+    case 0n:
+      PSet.wf_add_leaf(s, x, v)
+    case 1n+p:
+      match s:
+        case S.PFull{}:
+          Sh.PSet.wf_full(1n+p)
+        case S.PBranch{lo, hi}:
+          match b:
+            case True{}:
+              Sh.PSet.wf_branch(p,
+                S.PSet.add(p, lo, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h))), hi,
+                PSet.wf_add(p, lo, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h)), Sh.PSet.wf_lo(p, lo, hi, v)),
+                Sh.PSet.wf_hi(p, lo, hi, v))
+            case False{}:
+              Sh.PSet.wf_branch(p, lo,
+                S.PSet.add(p, hi, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h))),
+                Sh.PSet.wf_lo(p, lo, hi, v),
+                PSet.wf_add(p, hi, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h)),
+                  Sh.PSet.wf_hi(p, lo, hi, v)))
+        case S.PZero{}:
+          match b:
+            case True{}:
+              Sh.PSet.wf_branch(p,
+                S.PSet.add(p, S.PZero{}, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h))), S.PZero{},
+                PSet.wf_add(p, S.PZero{}, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h)), Sh.PSet.wf_zero(p)),
+                Sh.PSet.wf_zero(p))
+            case False{}:
+              Sh.PSet.wf_branch(p, S.PZero{},
+                S.PSet.add(p, S.PZero{}, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h))),
+                Sh.PSet.wf_zero(p),
+                PSet.wf_add(p, S.PZero{}, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h)), Sh.PSet.wf_zero(p)))
+        case S.PSparse{o}:
+          match b:
+            case True{}:
+              Sh.PSet.wf_branch(p,
+                S.PSet.add(p, S.PZero{}, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h))), S.PZero{},
+                PSet.wf_add(p, S.PZero{}, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h)), Sh.PSet.wf_zero(p)),
+                Sh.PSet.wf_zero(p))
+            case False{}:
+              Sh.PSet.wf_branch(p, S.PZero{},
+                S.PSet.add(p, S.PZero{}, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h))),
+                Sh.PSet.wf_zero(p),
+                PSet.wf_add(p, S.PZero{}, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h)), Sh.PSet.wf_zero(p)))
+        case S.PDense{w}:
+          match b:
+            case True{}:
+              Sh.PSet.wf_branch(p,
+                S.PSet.add(p, S.PZero{}, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h))), S.PZero{},
+                PSet.wf_add(p, S.PZero{}, U32.shr(h), x,
+                  U32.is_lt(x, U32.shr(h)), Sh.PSet.wf_zero(p)),
+                Sh.PSet.wf_zero(p))
+            case False{}:
+              Sh.PSet.wf_branch(p, S.PZero{},
+                S.PSet.add(p, S.PZero{}, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h))),
+                Sh.PSet.wf_zero(p),
+                PSet.wf_add(p, S.PZero{}, U32.shr(h), U32.sub(x, h),
+                  U32.is_lt(U32.sub(x, h), U32.shr(h)), Sh.PSet.wf_zero(p)))
+
+law PSet.wf_insert:
+  for +d: Nat
+  for +s: S.PSet
+  for +x: U32
+  for +v: {Sh.PSet.wf(d, s, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, S.PSet.insert(d, s, x), True{}) == True{} : Bool}
+
+def PSet.wf_insert(d, s, x, v):
+  PSet.wf_add(d, s, S.PSet.half(d), x,
+    U32.is_lt(x, S.PSet.half(d)), v)
+
+law PSet.wf_of_list:
+  for +d: Nat
+  for +xs: List<&2, U32>
+  for +s: S.PSet
+  for +v: {Sh.PSet.wf(d, s, True{}) == True{} : Bool}
+  {Sh.PSet.wf(d, S.PSet.of_list(d, xs, s), True{}) == True{} : Bool}
+
+def PSet.wf_of_list(d, xs, s, v):
+  match xs:
+    case Nil{}:
+      v
+    case Con{x, t}:
+      PSet.wf_of_list(d, t, S.PSet.insert(d, s, x),
+        PSet.wf_insert(d, s, x, v))
+
+law PSet.wf_from_list:
+  for +d: Nat
+  for +xs: List<&2, U32>
+  {Sh.PSet.wf(d, S.PSet.from_list(d, xs), True{}) == True{} : Bool}
+
+def PSet.wf_from_list(d, xs):
+  PSet.wf_of_list(d, xs, S.PZero{}, Sh.PSet.wf_zero(d))

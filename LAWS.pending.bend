@@ -40,6 +40,7 @@ import ./query/eval.bend as Ev
 import ./adapters/git/oid.bend as Od
 import ./adapters/git/intern.bend as Ui
 import ./proofs/intern.bend as PIn
+import ./proofs/denote.bend as PDn
 
 # ===========================================================================
 # The addressing arithmetic -- closed.
@@ -261,10 +262,29 @@ law a_produced_witness_starts_at_a_requested_root:
 # ===========================================================================
 # Q-01, Q-03 -- the query compiler.
 #
-# Q-01: every rewrite `Rw.simplify` performs preserves denotation. The
-# rewrites it performs are small and each is an instance of a Boolean law
-# already proved at the tile level; what is open is the statement over the
-# whole expression.
+# Q-01 is now proved for every rewrite the optimizer performs, and those laws
+# live in LAWS.bend: `simplifying_a_union_keeps_every_member` and its three
+# siblings say that the expression each rewrite produces has exactly the
+# members the expression it replaced had, at the production depth, for every
+# ordinal, over the decision `Rw.is_empty_expr` as the rewriter computes it.
+# `every_denotation_is_well_shaped` discharges their shape hypothesis for any
+# expression whose literals are well shaped.
+#
+# What is open is the whole pass. `Rw.simplify` also recurses *inside*
+# `Reach` and `Filter`, and there the induction needs something the rewrite
+# laws do not: that a subexpression which has been simplified to a set with
+# the same members -- not the same representation -- closes and filters to a
+# set with the same members. That is the statement that closure respects
+# pointwise equality, and it needs a set equality that a proof can carry.
+# `PSet.is_subset` is the decidable one, and relating it to membership needs
+# the set-level fused count, which is the same missing piece C-03 names
+# below. An equality stated as "the same at every ordinal" instead cannot be
+# used: it is a hypothesis quantified over ordinals, and Bend's affine values
+# will not let an induction use one twice, which this proof needs -- once for
+# each operand.
+#
+# So the whole-pass law is stated below with the hypothesis the per-rewrite
+# laws need, and it is the congruence step alone that is missing.
 #
 # Q-03 is SPEC 3.6's compiler contract itself:
 #
@@ -277,8 +297,9 @@ law a_produced_witness_starts_at_a_requested_root:
 
 law rewriting_preserves_denotation:
   for +src: Idx.Source
-  for e: A.SetExpr
+  for +e: A.SetExpr
   for +x: U32
+  for +ok: {PDn.SetExpr.wf_lits(e) == True{} : Bool}
   {S.PSet.member(20n, Den.Den.eval(src, Rw.Rw.simplify(e)), x)
     == S.PSet.member(20n, Den.Den.eval(src, e), x) : Bool}
 
