@@ -21,6 +21,7 @@
 #   proofs/ords.bend      the sparse leaf's offset list
 #   proofs/bitset.bend    setting a bit and reading it back
 #   proofs/leaf.bend      inserting into a leaf
+#   proofs/witness.bend   what a dependency witness guarantees
 
 import Base
 import ./LAWS.bend as Laws
@@ -37,6 +38,7 @@ import ./proofs/addr.bend as PAd
 import ./proofs/ords.bend as POr
 import ./proofs/bitset.bend as PBs
 import ./proofs/leaf.bend as PLf
+import ./proofs/witness.bend as PWit
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -151,3 +153,12 @@ def Laws.setting_a_bit_reads_it_back(ws, x):
 
 def Laws.a_bit_index_is_below_the_word_width(x):
   PAd.U32.low_five_bound(x)
+
+# --- E-01: dependency witnesses ---------------------------------------------
+
+def Laws.every_step_of_a_produced_witness_is_an_edge(td, g, rev, target):
+  PWit.Explain.path_steps(td, g, rev, target)
+
+def Laws.a_produced_witness_ends_at_the_object_asked_about(td, g, rev,
+  target, p):
+  PWit.Explain.walk_ends_at_target(td, g, rev, target, p)

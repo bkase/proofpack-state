@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 14. That count is the point of the file, so the command "failing"
+# currently 15. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -28,6 +28,7 @@ import ./core/words.bend as Wo
 import ./core/trie.bend as T
 import ./closure/graph.bend as G
 import ./closure/reach.bend as R
+import ./closure/explain.bend as Ex
 import ./spec/closure.bend as Sp
 import ./query/ast.bend as A
 import ./query/rewrite.bend as Rw
@@ -263,6 +264,38 @@ law an_accepted_certificate_means_an_exact_closure:
     == S.PSet.member(sd,
         Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
         x) : Bool}
+
+# ===========================================================================
+# E-01 -- the third part of a dependency witness.
+#
+# Two of SPEC 4.4's three parts are proved and live in LAWS.bend: every step
+# of a produced witness is a real policy edge, and the witness ends at the
+# object asked about. What is left is that it *starts* at a requested root,
+# and that is not a fact about the walk -- the walk is correct. It is a fact
+# about the levels it walks: a breadth-first layering from the roots has its
+# level 0 inside the roots and every later level reachable in one edge from
+# the one before, and only then does walking back from the target land on a
+# root rather than stopping early.
+#
+# So this is C-02 wearing a different hat, and it is stated here with the
+# layering as an explicit hypothesis rather than as a claim about
+# `Reach.closure`'s output.
+#
+# Backed by: `Explain.valid` checks all three parts on every witness
+# `pp git explain` emits, so a witness that does not start at a root is
+# rejected rather than returned; tests.bend runs one.
+# ===========================================================================
+
+law a_produced_witness_starts_at_a_requested_root:
+  for +td: Nat
+  for +g: G.Graph()
+  for +n: Nat
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  for +target: U32
+  {Ex.Explain.first_in(
+    Ex.Explain.path(td, g, R.Reach.levels(sd, R.Reach.closure(n, td, g, sd,
+      roots)), target), roots) == True{} : Bool}
 
 # ===========================================================================
 # Q-01, Q-03 -- the query compiler.

@@ -37,6 +37,9 @@
 import Base
 import ./core/count.bend as C
 import ./core/ords.bend as Or
+import ./closure/graph.bend as Gr
+import ./closure/reach.bend as Re
+import ./closure/explain.bend as Ex
 import ./core/trie.bend as Tr
 import ./adapters/git/import.bend as Im
 import ./index/source.bend as Sc
@@ -408,3 +411,43 @@ law setting_a_bit_reads_it_back:
 law a_bit_index_is_below_the_word_width:
   for +x: U32
   {C.Nat.gt(32n, U32.to_nat(U32.and(x, 31))) == True{} : Bool}
+
+# ===========================================================================
+# E-01 -- what a dependency witness guarantees.
+#
+# SPEC 4.4 asks that a returned explanation begin at a requested root, end at
+# the requested object, and take a real policy edge at every step.
+# `pp git explain` checks all three on every witness it emits, and the check
+# does not trust the producer -- a cached or heuristic witness is accepted on
+# the same terms as a freshly walked one.
+#
+# Two of the three hold for a produced witness with no hypothesis at all, and
+# they are the two below. Every step is a real edge because the predecessor
+# search only ever returns a vertex it has just tested `Graph.edge` on; and
+# the witness ends at the object asked about because the walk starts there and
+# only ever prepends.
+#
+# The third -- that it *starts* at a root -- is not here, and the reason is
+# worth stating: it depends on the levels being a genuine breadth-first
+# layering from the roots, which is the traversal obligation C-02. A walk over
+# levels that are not such a layering can stop early, and then its first
+# vertex is not a root. That is exactly why the check tests all three, and why
+# tests.bend keeps a witness that starts off-root and must be rejected.
+# ===========================================================================
+
+law every_step_of_a_produced_witness_is_an_edge:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +rev: Re.Levels
+  for +target: U32
+  {Ex.Explain.steps_ok(td, g, Ex.Explain.path.go(td, g, rev, target),
+    True{}) == True{} : Bool}
+
+law a_produced_witness_ends_at_the_object_asked_about:
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +rev: Re.Levels
+  for +target: U32
+  for +p: Maybe<&2, U32>
+  {Ex.Explain.last_is(
+    Ex.Explain.walk(td, g, rev, target, Nil{}, p), target) == True{} : Bool}
