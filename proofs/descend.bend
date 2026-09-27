@@ -22,6 +22,7 @@
 
 import Base
 import ./eq.bend as E
+import ./nat.bend as N
 import ../core/count.bend as C
 import ../core/word.bend as W
 
@@ -683,3 +684,289 @@ def U32.hi_zero_sub(x, k, hi, no):
           Word.bit_of_not_hi_zero(32n, k, w, hi, no)))
         : {Word.hi_zero(32n, W.U32.word(_), k) == True{} : Bool}
       Word.hi_zero_clear(32n, k, w, hi)
+
+# ---------------------------------------------------------------------------
+# From "fits in k bits" to a numeric bound.
+#
+# The tile laws index by `Nat` -- `Words.at(ws, i, b)` walks `i` words down a
+# list -- so the bitwise invariant has to become a bound on `U32.to_nat` for
+# the leaf to use it. This is the only place `Nat` arithmetic appears in this
+# file.
+# ---------------------------------------------------------------------------
+
+def Nat.pow2(k: Nat) -> Nat:
+  match k:
+    case 0n:
+      1n
+    case 1n+j:
+      Nat.double(Nat.pow2(j))
+
+law Nat.gt_one_is_zero:
+  for +m: Nat
+  for +ok: {C.Nat.gt(1n, m) == True{} : Bool}
+  {m == 0n : Nat}
+
+def Nat.gt_one_is_zero(m, ok):
+  match m:
+    case 0n:
+      {==}
+    case 1n+j:
+      E.Bool.noconf({1n+j == 0n : Nat}, ok)
+
+law Nat.gt_double:
+  for +a: Nat
+  for +m: Nat
+  for +ok: {C.Nat.gt(a, m) == True{} : Bool}
+  {C.Nat.gt(Nat.double(a), 1n+Nat.double(m)) == True{} : Bool}
+
+def Nat.gt_double(a, m, ok):
+  match a:
+    case 0n:
+      E.Bool.noconf({C.Nat.gt(Nat.double(0n), 1n+Nat.double(m))
+        == True{} : Bool}, ok)
+    case 1n+p:
+      match m:
+        case 0n:
+          {==}
+        case 1n+q:
+          Nat.gt_double(p, q, ok)
+
+law Nat.gt_down:
+  for +n: Nat
+  for +i: Nat
+  for +ok: {C.Nat.gt(n, 1n+i) == True{} : Bool}
+  {C.Nat.gt(n, i) == True{} : Bool}
+
+def Nat.gt_down(n, i, ok):
+  match n:
+    case 0n:
+      E.Bool.noconf({C.Nat.gt(0n, i) == True{} : Bool}, ok)
+    case 1n+p:
+      match i:
+        case 0n:
+          {==}
+        case 1n+j:
+          Nat.gt_down(p, j, ok)
+
+law Word.to_nat_bound:
+  for +n: Nat
+  for +k: Nat
+  for +w: Word(n)
+  for +hz: {Word.hi_zero(n, w, k) == True{} : Bool}
+  {C.Nat.gt(Nat.pow2(k), Word.to_nat(n, w)) == True{} : Bool}
+
+law Nat.pow2_pos:
+  for +k: Nat
+  {C.Nat.gt(Nat.pow2(k), 0n) == True{} : Bool}
+
+law Nat.double_pos:
+  for +a: Nat
+  for +ok: {C.Nat.gt(a, 0n) == True{} : Bool}
+  {C.Nat.gt(Nat.double(a), 0n) == True{} : Bool}
+
+def Nat.double_pos(a, ok):
+  match a:
+    case 0n:
+      E.Bool.noconf({C.Nat.gt(Nat.double(0n), 0n) == True{} : Bool}, ok)
+    case 1n+p:
+      {==}
+
+def Nat.pow2_pos(k):
+  match k:
+    case 0n:
+      {==}
+    case 1n+j:
+      Nat.double_pos(Nat.pow2(j), Nat.pow2_pos(j))
+
+law Bool.and_left:
+  for +a: Bool
+  for +b: Bool
+  for +ok: {Bool.and(a, b) == True{} : Bool}
+  {a == True{} : Bool}
+
+def Bool.and_left(a, b, ok):
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      E.Bool.noconf({False{} == True{} : Bool}, ok)
+
+law Bool.and_right:
+  for +a: Bool
+  for +b: Bool
+  for +ok: {Bool.and(a, b) == True{} : Bool}
+  {b == True{} : Bool}
+
+def Bool.and_right(a, b, ok):
+  match a:
+    case True{}:
+      ok
+    case False{}:
+      E.Bool.noconf({b == True{} : Bool}, ok)
+
+# The bit-zero case: the whole word fits in no bits, so it is zero.
+law Word.to_nat_bound.zero:
+  for +p: Nat
+  for +b: Bool
+  for +t: Word(p)
+  for +nb: {Bool.not(b) == True{} : Bool}
+  for +ih: {C.Nat.gt(1n, Word.to_nat(p, t)) == True{} : Bool}
+  {C.Nat.gt(Nat.pow2(0n), Word.to_nat(1n+p, WCon{b, t})) == True{} : Bool}
+
+def Word.to_nat_bound.zero(p, b, t, nb, ih):
+  match b:
+    case True{}:
+      E.Bool.noconf({C.Nat.gt(1n, Word.to_nat(1n+p, WCon{True{}, t}))
+        == True{} : Bool}, nb)
+    case False{}:
+      %Equal.sym(Nat, Word.to_nat(p, t), 0n,
+        Nat.gt_one_is_zero(Word.to_nat(p, t), ih))
+        : {C.Nat.gt(1n, Nat.double(_)) == True{} : Bool}
+      {==}
+
+# The general case: one more bit doubles the bound.
+law Word.to_nat_bound.succ:
+  for +p: Nat
+  for +j: Nat
+  for +b: Bool
+  for +t: Word(p)
+  for +ih: {C.Nat.gt(Nat.pow2(j), Word.to_nat(p, t)) == True{} : Bool}
+  {C.Nat.gt(Nat.pow2(1n+j), Word.to_nat(1n+p, WCon{b, t}))
+    == True{} : Bool}
+
+def Word.to_nat_bound.succ(p, j, b, t, ih):
+  match b:
+    case True{}:
+      Nat.gt_double(Nat.pow2(j), Word.to_nat(p, t), ih)
+    case False{}:
+      Nat.gt_down(Nat.double(Nat.pow2(j)), Nat.double(Word.to_nat(p, t)),
+        Nat.gt_double(Nat.pow2(j), Word.to_nat(p, t), ih))
+
+def Word.to_nat_bound(n, k, w, hz):
+  match n:
+    case 0n:
+      match w:
+        case WNil{}:
+          Nat.pow2_pos(k)
+    case 1n+p:
+      match k:
+        case 0n:
+          match w:
+            case WCon{b, t}:
+              Word.to_nat_bound.zero(p, b, t,
+                Bool.and_left(Bool.not(b), Word.hi_zero(p, t, 0n), hz),
+                Word.to_nat_bound(p, 0n, t,
+                  Bool.and_right(Bool.not(b), Word.hi_zero(p, t, 0n), hz)))
+        case 1n+j:
+          match w:
+            case WCon{b, t}:
+              Word.to_nat_bound.succ(p, j, b, t,
+                Word.to_nat_bound(p, j, t, hz))
+
+# ---------------------------------------------------------------------------
+# Shifting down. `Words.bit(ws, x)` reads word `x >> 5`, so the leaf's
+# invariant -- the ordinal fits in 12 bits -- has to become a bound on
+# `x >> 5`, which fits in 7. A right shift drops the low bit and pads a zero
+# at the top, so "fits in k bits" after the shift is "fits in k+1" before.
+# ---------------------------------------------------------------------------
+
+law Word.hi_zero_shr_pad:
+  for +n: Nat
+  for +w: Word(n)
+  for +k: Nat
+  {Word.hi_zero(1n+n, Word.shr.pad(n, w), k)
+    == Word.hi_zero(n, w, k) : Bool}
+
+def Word.hi_zero_shr_pad(n, w, k):
+  match n:
+    case 0n:
+      match w:
+        case WNil{}:
+          match k:
+            case 0n:
+              {==}
+            case 1n+j:
+              {==}
+    case 1n+q:
+      match w:
+        case WCon{b, t}:
+          match k:
+            case 0n:
+              %E.Bool.sym(Word.hi_zero(1n+q, Word.shr.pad(q, t), 0n),
+                Word.hi_zero(q, t, 0n), Word.hi_zero_shr_pad(q, t, 0n))
+                : {Bool.and(Bool.not(b), _)
+                  == Bool.and(Bool.not(b), Word.hi_zero(q, t, 0n)) : Bool}
+              {==}
+            case 1n+j:
+              Word.hi_zero_shr_pad(q, t, j)
+
+law Word.hi_zero_shr:
+  for +n: Nat
+  for +w: Word(n)
+  for +k: Nat
+  {Word.hi_zero(n, Word.shr(n, w), k)
+    == Word.hi_zero(n, w, 1n+k) : Bool}
+
+def Word.hi_zero_shr(n, w, k):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match w:
+        case WCon{b, t}:
+          Word.hi_zero_shr_pad(p, t, k)
+
+law U32.hi_zero_shr:
+  for +x: U32
+  for +k: Nat
+  {U32.hi_zero(U32.shr(x), k) == U32.hi_zero(x, 1n+k) : Bool}
+
+def U32.hi_zero_shr(x, k):
+  match x:
+    case U32{w}:
+      Word.hi_zero_shr(32n, w, k)
+
+law U32.hi_zero_shrn:
+  for +x: U32
+  for +m: Nat
+  for +k: Nat
+  {U32.hi_zero(U32.shrn(x, m), k) == U32.hi_zero(x, Nat.add(m, k)) : Bool}
+
+def U32.hi_zero_shrn(x, m, k):
+  match m:
+    case 0n:
+      {==}
+    case 1n+i:
+      %E.Bool.sym(U32.hi_zero(U32.shr(U32.shrn(x, i)), k),
+        U32.hi_zero(U32.shrn(x, i), 1n+k),
+        U32.hi_zero_shr(U32.shrn(x, i), k))
+        : {_ == U32.hi_zero(x, Nat.add(1n+i, k)) : Bool}
+      %N.Nat.add_succ(i, k)
+        : {U32.hi_zero(U32.shrn(x, i), 1n+k) == U32.hi_zero(x, _) : Bool}
+      U32.hi_zero_shrn(x, i, 1n+k)
+
+# Every word fits in its own width, which is what makes the production entry
+# point need no hypothesis about the ordinal: a depth-20 tree covers 2^32
+# ordinals, and a `U32` has 32 bits.
+law Word.hi_zero_self:
+  for +n: Nat
+  for +w: Word(n)
+  {Word.hi_zero(n, w, n) == True{} : Bool}
+
+def Word.hi_zero_self(n, w):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match w:
+        case WCon{b, t}:
+          Word.hi_zero_self(p, t)
+
+law U32.hi_zero_full:
+  for +x: U32
+  {U32.hi_zero(x, 32n) == True{} : Bool}
+
+def U32.hi_zero_full(x):
+  match x:
+    case U32{w}:
+      Word.hi_zero_self(32n, w)

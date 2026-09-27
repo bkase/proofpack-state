@@ -525,3 +525,31 @@ law halving_a_half_width_moves_the_bit_down:
   for +k: Nat
   for +ok: {C.Nat.gt(32n, 1n+k) == True{} : Bool}
   {U32.shr(U32.shln(1, 1n+k)) == U32.shln(1, k) : U32}
+
+# ===========================================================================
+# P-01 -- inserting, at the depth the product runs at.
+#
+# The leaf case above is the interesting half of the work; this is the whole
+# claim. `Idx.sd()` is 20, and a depth-20 tree covers 4096 * 2^20 = 2^32
+# ordinals -- every `U32` -- so there is no range hypothesis left to state:
+# every ordinal is inside the tree. What survives is the structural
+# invariant, which is what `PSet.valid` says and what every stored generation
+# is checked against on load (law D-01).
+#
+# The descent is where the addressing laws above are spent: `PSet.add` and
+# `PSet.mem` take the same branch from the same half-width at every node, so
+# the only thing that could go wrong is the rebasing, and the rebasing is
+# proved.
+#
+# What P-01 also asks, and what is *not* here, is that every retained old root
+# still denotes what it did. That was never going to be an equation: it is a
+# statement about sharing, and Bend's affine values make it true by
+# construction, since a persistent update copies the path it changes and
+# cannot reach the nodes it did not copy.
+# ===========================================================================
+
+law inserting_adds_exactly_that_ordinal:
+  for +s: S.PSet
+  for +x: U32
+  for +v: {S.PSet.valid(20n, s, True{}) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.insert(20n, s, x), x) == True{} : Bool}

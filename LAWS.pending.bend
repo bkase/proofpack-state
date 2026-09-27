@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 15. That count is the point of the file, so the command "failing"
+# currently 14. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -145,22 +145,14 @@ law compressing_a_leaf_keeps_its_members:
   {S.PSet.mem.leaf(S.PSet.compress(ws), x)
     == Wo.Words.bit(ws, x) : Bool}
 
-# P-01: a persistent update must not disturb the set it was derived from.
-# Here as the weaker, checkable half -- the new root has the member added --
-# because "every retained old root has an unchanged denotation" is a statement
-# about sharing that Bend's affine values make true by construction and that
-# this release does not state formally.
-#
-# The leaf case is proved and lives in LAWS.bend as
-# `inserting_into_a_leaf_keeps_that_ordinal`. What is left is the descent, and
-# only the descent: insert and membership take the same branch from the same
-# half-width at every node, so the tree layer adds nothing but addressing.
-# Needs A2.
-law inserting_adds_exactly_that_ordinal:
-  for +s: S.PSet
-  for +x: U32
-  for +v: {S.PSet.valid(20n, s, True{}) == True{} : Bool}
-  {S.PSet.member(20n, S.PSet.insert(20n, s, x), x) == True{} : Bool}
+# P-01's checkable half is now proved and lives in LAWS.bend as
+# `inserting_adds_exactly_that_ordinal`. What remains of P-01 is the part that
+# was never going to be an equation: that every *retained old root* still has
+# the denotation it had. That is a statement about sharing, and Bend's affine
+# values make it true by construction -- a persistent update copies the path
+# it changes and cannot reach the nodes it did not copy -- so this release
+# records it as a property of the substrate rather than stating it as a law
+# over a symbol that cannot observe it.
 
 # ===========================================================================
 # C-01, C-02, C-03 -- closure.

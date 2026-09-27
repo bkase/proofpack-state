@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 10 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 3 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 2 refuted as first stated and restated with the hypotheses they need, still open; 12 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. `addressing_arithmetic` names what most of the open ones reduce to. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 11 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 2 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 2 refuted as first stated and restated with the hypotheses they need, still open; 12 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. `addressing_arithmetic` names what most of the open ones reduce to. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -103,15 +103,15 @@
    "depends_on": [
     "S-02"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": "PSet.insert / PSet.add.leaf",
-   "proof_symbol": "PSet.mem_add_leaf (proofs/leaf.bend)",
+   "proof_symbol": "PSet.mem_insert (proofs/leaf.bend)",
    "reason": "M2. No persistent derived store in this release: pp imports per invocation.",
-   "stated_in": "LAWS.bend (the leaf) and LAWS.pending.bend (the descent)",
-   "backed_by": "Bend's affine values for the sharing half; tests.bend and tools/differential.sh for the rest.",
+   "stated_in": "LAWS.bend",
+   "backed_by": "Bend's affine values for the sharing half.",
    "note": "Was recorded as not applicable while there was no persistent set. core/set.bend has had PSet.insert since M1, so the obligation is live.",
-   "proved_part": "At a leaf: inserting an ordinal leaves it present, for every leaf shape, given that the leaf's tile has a word for that ordinal. Discharged as `inserting_into_a_leaf_keeps_that_ordinal`, with the sparse half `inserting_into_an_ordinal_list_keeps_that_ordinal` unconditional and the dense half `setting_a_bit_reads_it_back` unconditional.",
-   "gap": "The descent. Insert and membership take the same branch from the same half-width at every node, so the tree layer adds nothing but addressing; carrying 'the ordinal is inside this interval' down one level needs addressing fact A2 (U32.sub is subtraction when it does not borrow).",
+   "proved_part": "Inserting an ordinal into a structurally valid set leaves it present, at the production depth (20, which covers every U32 ordinal), with no hypothesis on the ordinal. Discharged as `inserting_adds_exactly_that_ordinal`, with the leaf case, the sparse list, the dense tile and the descent each proved separately.",
+   "gap": "The sharing half: that every retained old root still denotes what it did. That is a property of Bend's affine values -- a persistent update copies the path it changes and cannot reach the nodes it did not copy -- and not an equation over any symbol that can observe it.",
    "refuted_as_first_stated": "The original statement had no hypothesis and was false: a PDense leaf narrower than 128 words loses the bit it was just given, because Words.set past the end of a tile changes nothing. tests.bend runs that counterexample permanently."
   },
   {
@@ -524,11 +524,11 @@
  "gate": "tools/gate.sh",
  "public_laws": "LAWS.bend (proved) and LAWS.pending.bend (open claims)",
  "addressing_arithmetic": {
-  "note": "Most of what is still open reduces to these facts about how a U32 ordinal addresses the structures. None is about sets, closure or queries. LAWS.pending.bend states them in full.",
-  "A1": "U32.is_lt agrees with the order on U32.to_nat.",
-  "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. Open.",
+  "note": "Two of the four are now proved, and they are the two the set tree descends on. A3 is what the sparse/dense bridge in S-02 and S-03 still needs. LAWS.pending.bend states them in full.",
+  "A1": "U32.is_lt agrees with the order on U32.to_nat. Open in general; the power-of-two case, which is the one the tree needs, is proved.",
+  "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. PROVED, as `rebasing_into_the_upper_half_keeps_the_ordinal_in_range`, together with A1 in the form that matters (`an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits`). The half-width is always a power of two, which makes the whole question bitwise.",
   "A3": "The tile address is injective: x is determined by x>>5 and x&31. Open.",
-  "A4": "x < 4096 implies x>>5 < 128. Open; the laws that need it carry it explicitly.",
+  "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
   "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`."
  }
 }

@@ -43,6 +43,9 @@ def Cmp.sym(-a: Cmp, -b: Cmp, e: {a == b : Cmp}) -> {b == a : Cmp}:
 def U32.sym(-a: U32, -b: U32, e: {a == b : U32}) -> {b == a : U32}:
   Equal.sym(U32, a, b, e)
 
+def Nat.sym(-a: Nat, -b: Nat, e: {a == b : Nat}) -> {b == a : Nat}:
+  Equal.sym(Nat, a, b, e)
+
 def Bool.empty(e: {False{} == True{} : Bool}) -> Empty:
   %Bool.sym(False{}, True{}, e) : Bool.code(_)
   Unit{}

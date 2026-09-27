@@ -184,3 +184,6 @@ def Laws.rebasing_into_the_upper_half_keeps_the_ordinal_in_range(x, k, hi,
 
 def Laws.halving_a_half_width_moves_the_bit_down(k, ok):
   PDc.U32.shr_shln_one(k, ok)
+
+def Laws.inserting_adds_exactly_that_ordinal(s, x, v):
+  PLf.PSet.mem_insert(s, x, v)
