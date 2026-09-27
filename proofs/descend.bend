@@ -22,6 +22,7 @@
 
 import Base
 import ./eq.bend as E
+import ./inject.bend as Ij
 import ./nat.bend as N
 import ../core/count.bend as C
 import ../core/word.bend as W
@@ -970,3 +971,206 @@ def U32.hi_zero_full(x):
   match x:
     case U32{w}:
       Word.hi_zero_self(32n, w)
+
+# ---------------------------------------------------------------------------
+# The converse bound: a number below 2^k fits in k bits. Needed wherever a
+# proof knows a numeric bound and a lemma wants the bitwise one.
+# ---------------------------------------------------------------------------
+
+law Nat.double_lt:
+  for +p: Nat
+  for +t: Nat
+  for +nb: Nat
+  for +ok: {C.Nat.gt(Nat.double(p), Nat.add(Nat.double(t), nb))
+    == True{} : Bool}
+  {C.Nat.gt(p, t) == True{} : Bool}
+
+def Nat.double_lt(p, t, nb, ok):
+  match p:
+    case 0n:
+      E.Bool.noconf({C.Nat.gt(0n, t) == True{} : Bool}, ok)
+    case 1n+q:
+      match t:
+        case 0n:
+          {==}
+        case 1n+u:
+          Nat.double_lt(q, u, nb, ok)
+
+law Nat.double_zero:
+  for +t: Nat
+  for +z: {Nat.double(t) == 0n : Nat}
+  {t == 0n : Nat}
+
+def Nat.double_zero(t, z):
+  match t:
+    case 0n:
+      {==}
+    case 1n+p:
+      Ij.Nat.noconf({1n+p == 0n : Nat}, 1n+Nat.double(p),
+        E.Nat.sym(2n+Nat.double(p), 0n, z))
+
+law Word.to_nat_fits:
+  for +n: Nat
+  for +k: Nat
+  for +w: Word(n)
+  for +ok: {C.Nat.gt(Nat.pow2(k), Word.to_nat(n, w)) == True{} : Bool}
+  {Word.hi_zero(n, w, k) == True{} : Bool}
+
+def Bool.nat2(b: Bool) -> Nat:
+  match b:
+    case False{}:
+      0n
+    case True{}:
+      1n
+
+law Word.to_nat_fits.peel:
+  for +p: Nat
+  for +j: Nat
+  for +b: Bool
+  for +t: Word(p)
+  for +ok: {C.Nat.gt(Nat.pow2(1n+j),
+    Word.to_nat(1n+p, WCon{b, t})) == True{} : Bool}
+  {C.Nat.gt(Nat.double(Nat.pow2(j)),
+    Nat.add(Nat.double(Word.to_nat(p, t)), Bool.nat2(b)))
+    == True{} : Bool}
+
+law Nat.add_one2:
+  for +a: Nat
+  {Nat.add(a, 1n) == 1n+a : Nat}
+
+def Nat.add_one2(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      %E.Nat.sym(Nat.add(p, 1n), 1n+p, Nat.add_one2(p))
+        : {1n+_ == 2n+p : Nat}
+      {==}
+
+def Word.to_nat_fits.peel(p, j, b, t, ok):
+  match b:
+    case False{}:
+      %E.Nat.sym(Nat.add(Nat.double(Word.to_nat(p, t)), 0n),
+        Nat.double(Word.to_nat(p, t)),
+        N.Nat.add_zero(Nat.double(Word.to_nat(p, t))))
+        : {C.Nat.gt(Nat.double(Nat.pow2(j)), _) == True{} : Bool}
+      ok
+    case True{}:
+      %E.Nat.sym(Nat.add(Nat.double(Word.to_nat(p, t)), 1n),
+        1n+Nat.double(Word.to_nat(p, t)),
+        Nat.add_one2(Nat.double(Word.to_nat(p, t))))
+        : {C.Nat.gt(Nat.double(Nat.pow2(j)), _) == True{} : Bool}
+      ok
+
+law Bool.nat2_zero:
+  for +b: Bool
+  for +z: {Bool.nat2(b) == 0n : Nat}
+  {False{} == b : Bool}
+
+def Bool.nat2_zero(b, z):
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      Ij.Nat.noconf({False{} == True{} : Bool}, 0n,
+        E.Nat.sym(1n, 0n, z))
+
+law Word.to_nat_fits.split:
+  for +p: Nat
+  for +b: Bool
+  for +t: Word(p)
+  for +ok: {C.Nat.gt(1n, Word.to_nat(1n+p, WCon{b, t})) == True{} : Bool}
+  {Nat.add(Nat.double(Word.to_nat(p, t)), Bool.nat2(b)) == 0n : Nat}
+
+law Word.to_nat_cons3:
+  for +n: Nat
+  for +b: Bool
+  for +t: Word(n)
+  {Word.to_nat(1n+n, WCon{b, t})
+    == Nat.add(Nat.double(Word.to_nat(n, t)), Bool.nat2(b)) : Nat}
+
+def Word.to_nat_cons3(n, b, t):
+  match b:
+    case False{}:
+      E.Nat.sym(Nat.add(Nat.double(Word.to_nat(n, t)), 0n),
+        Nat.double(Word.to_nat(n, t)),
+        N.Nat.add_zero(Nat.double(Word.to_nat(n, t))))
+    case True{}:
+      E.Nat.sym(Nat.add(Nat.double(Word.to_nat(n, t)), 1n),
+        1n+Nat.double(Word.to_nat(n, t)),
+        Nat.add_one2(Nat.double(Word.to_nat(n, t))))
+
+def Word.to_nat_fits.split(p, b, t, ok):
+  Equal.trans(Nat, Nat.add(Nat.double(Word.to_nat(p, t)), Bool.nat2(b)),
+    Word.to_nat(1n+p, WCon{b, t}), 0n,
+    E.Nat.sym(Word.to_nat(1n+p, WCon{b, t}),
+      Nat.add(Nat.double(Word.to_nat(p, t)), Bool.nat2(b)),
+      Word.to_nat_cons3(p, b, t)),
+    Nat.gt_one_is_zero(Word.to_nat(1n+p, WCon{b, t}), ok))
+
+law Word.to_nat_fits.zero.tail:
+  for +p: Nat
+  for +t: Word(p)
+  for +z: {Nat.double(Word.to_nat(p, t)) == 0n : Nat}
+  {C.Nat.gt(Nat.pow2(0n), Word.to_nat(p, t)) == True{} : Bool}
+
+def Word.to_nat_fits.zero.tail(p, t, z):
+  %E.Nat.sym(Word.to_nat(p, t), 0n,
+    Nat.double_zero(Word.to_nat(p, t), z))
+    : {C.Nat.gt(1n, _) == True{} : Bool}
+  {==}
+
+law Nat.add_zero_left2:
+  for +a: Nat
+  for +b: Nat
+  for +z: {Nat.add(a, b) == 0n : Nat}
+  {a == 0n : Nat}
+
+def Nat.add_zero_left2(a, b, z):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      Ij.Nat.noconf({1n+p == 0n : Nat}, Nat.add(p, b),
+        E.Nat.sym(1n+Nat.add(p, b), 0n, z))
+
+law Nat.add_zero_right2:
+  for +a: Nat
+  for +b: Nat
+  for +z: {Nat.add(a, b) == 0n : Nat}
+  {b == 0n : Nat}
+
+def Nat.add_zero_right2(a, b, z):
+  match a:
+    case 0n:
+      z
+    case 1n+p:
+      Ij.Nat.noconf({b == 0n : Nat}, Nat.add(p, b),
+        E.Nat.sym(1n+Nat.add(p, b), 0n, z))
+
+def Word.to_nat_fits(n, k, w, ok):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match k:
+        case 0n:
+          match w:
+            case WCon{b, t}:
+              # The value is zero, so the head bit is clear and the tail is
+              # zero too -- derived as equations rather than matched on,
+              # because a helper that matched would have to recurse back.
+              %Bool.nat2_zero(b,
+                Nat.add_zero_right2(Nat.double(Word.to_nat(p, t)),
+                  Bool.nat2(b), Word.to_nat_fits.split(p, b, t, ok)))
+                : {Word.hi_zero(1n+p, WCon{_, t}, 0n) == True{} : Bool}
+              Word.to_nat_fits(p, 0n, t,
+                Word.to_nat_fits.zero.tail(p, t,
+                  Nat.add_zero_left2(Nat.double(Word.to_nat(p, t)),
+                    Bool.nat2(b), Word.to_nat_fits.split(p, b, t, ok))))
+        case 1n+j:
+          match w:
+            case WCon{b, t}:
+              Word.to_nat_fits(p, j, t,
+                Nat.double_lt(Nat.pow2(j), Word.to_nat(p, t),
+                  Bool.nat2(b), Word.to_nat_fits.peel(p, j, b, t, ok)))

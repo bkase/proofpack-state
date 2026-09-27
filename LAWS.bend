@@ -41,6 +41,7 @@ import ./proofs/descend.bend as Dc
 import ./proofs/split.bend as Sp
 import ./proofs/adder.bend as Ad
 import ./proofs/enum.bend as En
+import ./proofs/collapse.bend as Co
 import ./closure/graph.bend as Gr
 import ./closure/reach.bend as Re
 import ./closure/explain.bend as Ex
@@ -760,3 +761,23 @@ law a_valid_leaf_and_its_tile_hold_the_same_ordinals:
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {S.PSet.mem.leaf(s, x)
     == Wo.Words.bit(S.PSet.leaf_words(s), x) : Bool}
+
+# ===========================================================================
+# D-01, in part -- what structural validity rules out.
+#
+# Above the leaf level the node operations read a sparse or dense payload as
+# empty, while `PSet.mem` reads it as a member. That is the whole reason the
+# pointwise laws carry a validity hypothesis, and `tests.bend` runs the
+# counterexample.
+#
+# This says what `PSet.valid` actually excludes: at any depth above a leaf, a
+# valid set is `PZero{}`, `PFull{}` or a branch -- never a payload. It is why
+# a decoded generation is checked structurally on load rather than trusted
+# (SPEC 6.5, which also says plainly that a checksum is not a substitute).
+# ===========================================================================
+
+law a_valid_set_has_no_payload_above_a_leaf:
+  for +p: Nat
+  for +s: S.PSet
+  for +ok: {S.PSet.valid(1n+p, s, True{}) == True{} : Bool}
+  {Co.PSet.is_node(s) == True{} : Bool}

@@ -237,3 +237,6 @@ def Laws.a_tile_compression_calls_full_has_every_member(ws, x, wide, full,
 
 def Laws.a_valid_leaf_and_its_tile_hold_the_same_ordinals(s, x, v, inr):
   PFa.PSet.leaf_faithful(s, x, v, inr)
+
+def Laws.a_valid_set_has_no_payload_above_a_leaf(p, s, ok):
+  PCo.PSet.valid_is_node(p, s, ok)

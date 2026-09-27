@@ -18,7 +18,6 @@
 import Base
 import ./eq.bend as E
 import ./nat.bend as N
-import ./descend.bend as Dc
 import ../core/count.bend as C
 import ../core/word.bend as W
 

@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 11 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 2 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 2 refuted as first stated and restated with the hypotheses they need, still open; 12 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. `addressing_arithmetic` names what most of the open ones reduce to. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 11 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 5 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 0 refuted as first stated and restated with the hypotheses they need, still open; 11 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. `addressing_arithmetic` names what the open ones reduce to -- as of this release the whole S-02/S-03 family reduces to one claim about walking versus addressing. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -459,13 +459,15 @@
     "U-01",
     "S-02"
    ],
-   "status": "specified_checked_at_runtime",
+   "status": "partially_proved",
    "production_symbol": "PSet.valid / Store.decode",
-   "proof_symbol": null,
+   "proof_symbol": "PSet.valid_is_node (proofs/collapse.bend)",
    "reason": "M2. No decoder yet; core/set.bend PSet.valid is the structural check it will be stated over.",
    "stated_in": "LAWS.pending.bend",
    "backed_by": "index/store.bend validates a decoded generation structurally on load -- magic, declared format, declared object count against the objects actually present, hex width, and every successor index in range -- and rejects with CorruptIndex rather than answering. SPEC 6.5 requires that and says a checksum is not a substitute. tools/differential.sh corrupts a stored generation four ways and checks each is rejected, deriving each corruption from the file so it cannot silently become a no-op.",
-   "note": "Was recorded as not applicable while there was no derived store. M2 shipped one, so the obligation is live."
+   "note": "Was recorded as not applicable while there was no derived store. M2 shipped one, so the obligation is live.",
+   "proved_part": "What structural validity rules out: at any depth above a leaf, a valid set is PZero, PFull or a branch -- never a sparse or dense payload. That is the fact the pointwise laws' validity hypothesis rests on, and the reason a decoded generation is checked on load rather than trusted.",
+   "gap": "That decode inverts encode. The differential checks the round trip observationally -- a stored generation answers identically to the import that produced it, on both policies -- and rejects four kinds of corruption, each derived from the file so it cannot silently become a no-op."
   },
   {
    "id": "G-01",
@@ -532,6 +534,7 @@
   "A3": "PROVED, as `the_tile_address_is_injective`. The route is the division identity -- an ordinal is its word index scaled by 32 plus its bit index -- which turns equal addresses into equal `U32.to_nat`, and then `the_number_a_word_reads_as_determines_the_word` finishes. An earlier attempt stalled on word extensionality, whose natural statement takes a hypothesis quantified over bit positions that Bend's affine values will not let an induction use twice; the division identity avoids quantifying over bit positions entirely.",
   "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
   "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`.",
-  "A5": "The walk and the tile address name the same positions. Open; it is what is left of S-03, and through S-03 what is left of S-02's leaf."
+  "A5": "The walk and the tile address name the same positions. Open; it is what is left of S-03, and through S-03 what is left of S-02's leaf.",
+  "converse": "A number below 2^k fits in k bits (Word.to_nat_fits). Proved, so a range hypothesis can be derived from a numeric bound wherever a lemma needs the bitwise form."
  }
 }

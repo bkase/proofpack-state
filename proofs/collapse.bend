@@ -238,3 +238,46 @@ def PSet.mem_mk(p, lo, hi, h, x):
 
 # `is_zero` and `is_full` are decisions about a constructor, so answering
 # `True{}` names the constructor.
+
+# ---------------------------------------------------------------------------
+# What structural validity buys (law D-01, and the hypothesis S-02 carries).
+#
+# Above the leaf level the node operations read a sparse or dense payload as
+# empty, while `PSet.mem` reads it as a member -- which is why the pointwise
+# laws need `PSet.valid`. This says what `PSet.valid` actually rules out: at
+# any depth above a leaf, a valid set is `PZero{}`, `PFull{}` or a branch,
+# never a payload. It is the reason a decoded generation is checked on load
+# (SPEC 6.5) rather than trusted.
+# ---------------------------------------------------------------------------
+
+def PSet.is_node(s: S.PSet) -> Bool:
+  match s:
+    case S.PZero{}:
+      True{}
+    case S.PFull{}:
+      True{}
+    case S.PBranch{lo, hi}:
+      True{}
+    case S.PSparse{o}:
+      False{}
+    case S.PDense{w}:
+      False{}
+
+law PSet.valid_is_node:
+  for +p: Nat
+  for +s: S.PSet
+  for +ok: {S.PSet.valid(1n+p, s, True{}) == True{} : Bool}
+  {PSet.is_node(s) == True{} : Bool}
+
+def PSet.valid_is_node(p, s, ok):
+  match s:
+    case S.PZero{}:
+      {==}
+    case S.PFull{}:
+      {==}
+    case S.PBranch{lo, hi}:
+      {==}
+    case S.PSparse{o}:
+      E.Bool.noconf({PSet.is_node(S.PSparse{o}) == True{} : Bool}, ok)
+    case S.PDense{w}:
+      E.Bool.noconf({PSet.is_node(S.PDense{w}) == True{} : Bool}, ok)
