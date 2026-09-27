@@ -70,13 +70,14 @@
    "depends_on": [
     "S-02"
    ],
-   "status": "restated_and_open",
+   "status": "partially_proved",
    "production_symbol": null,
-   "proof_symbol": null,
+   "proof_symbol": "PSet.compress_zero, PSet.compress_full, Words.elem_members (proofs/compress.bend, proofs/enum.bend)",
    "stated_in": "LAWS.pending.bend",
    "backed_by": "tests.bend: the sparse/dense crossover at 64 and 65 members preserves membership and size.",
    "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
-   "gap": "A pigeonhole argument: PSet.compress decides a leaf is PFull by finding 4096 set bits, and concluding every bit is set from that count needs an argument over 128 words of at most 32 bits each."
+   "gap": "One claim, and not about sets: that the walk and the tile address name the same positions, `Words.holds(ws, 0, x) == Words.bit(ws, x)`. The two facts it needs, the division identity and what U32 addition computes, are both proved; what remains is the case analysis joining them.",
+   "proved_part": "Three of compression's four arms. The empty and full arms follow from the count alone -- the second is a pigeonhole over 128 words of at most 32 bits each -- the dense arm is the identity, and the sparse arm's enumeration is proved to list exactly what its walk holds, unconditionally."
   },
   {
    "id": "S-04",
@@ -529,6 +530,7 @@
   "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. PROVED, as `rebasing_into_the_upper_half_keeps_the_ordinal_in_range`, together with A1 in the form that matters (`an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits`). The half-width is always a power of two, which makes the whole question bitwise.",
   "A3": "PROVED, as `the_tile_address_is_injective`. The route is the division identity -- an ordinal is its word index scaled by 32 plus its bit index -- which turns equal addresses into equal `U32.to_nat`, and then `the_number_a_word_reads_as_determines_the_word` finishes. An earlier attempt stalled on word extensionality, whose natural statement takes a hypothesis quantified over bit positions that Bend's affine values will not let an induction use twice; the division identity avoids quantifying over bit positions entirely.",
   "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
-  "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`."
+  "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`.",
+  "A5": "The walk and the tile address name the same positions. Open; it is what is left of S-03, and through S-03 what is left of S-02's leaf."
  }
 }

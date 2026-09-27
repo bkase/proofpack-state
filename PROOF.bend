@@ -29,6 +29,8 @@
 #   proofs/bridge.bend    a sparse leaf and its tile agree
 #   proofs/count.bend     what a bit count says about the bits
 #   proofs/adder.bend     what U32 addition computes
+#   proofs/enum.bend      enumerating a tile
+#   proofs/compress.bend  what compression decides
 
 import Base
 import ./LAWS.bend as Laws
@@ -53,6 +55,8 @@ import ./proofs/split.bend as PSp
 import ./proofs/bridge.bend as PBr
 import ./proofs/count.bend as PCt
 import ./proofs/adder.bend as PAdd
+import ./proofs/enum.bend as PEn
+import ./proofs/compress.bend as PCp
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -218,3 +222,13 @@ def Laws.a_tile_counting_zero_has_no_bit_set(ws, z, i, b, bok):
 
 def Laws.adding_two_small_ordinals_adds_their_values(a, b, k, za, zb, ok):
   PAdd.U32.to_nat_add(a, b, k, za, zb, ok)
+
+def Laws.enumerating_a_tile_lists_what_the_walk_holds(ws, x):
+  PEn.Words.elem_members(ws, x)
+
+def Laws.a_tile_compression_calls_empty_has_no_members(ws, x, z):
+  PCp.PSet.compress_zero(ws, x, z)
+
+def Laws.a_tile_compression_calls_full_has_every_member(ws, x, wide, full,
+  inr):
+  PCp.PSet.compress_full(ws, x, wide, full, inr)

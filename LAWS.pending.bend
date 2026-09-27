@@ -25,6 +25,7 @@ import Base
 import ./core/count.bend as C
 import ./core/set.bend as S
 import ./core/words.bend as Wo
+import ./proofs/enum.bend as En
 import ./core/trie.bend as T
 import ./closure/graph.bend as G
 import ./closure/reach.bend as R
@@ -142,16 +143,26 @@ law set_intersection_is_pointwise:
   {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
     == Bool.and(S.PSet.member(20n, a, x), S.PSet.member(20n, b, x)) : Bool}
 
-# S-03: the sparse/dense crossover is a storage decision, not a semantic one.
-# Restated with the two conditions the counterexample needs -- a full-width
-# tile, and an ordinal the leaf actually covers.
-law compressing_a_leaf_keeps_its_members:
+# S-03 has been taken apart. Three of compression's four arms are proved and
+# live in LAWS.bend: the empty and full arms follow from the count alone
+# (the second is a pigeonhole over 128 words of 32 bits), the dense arm is
+# the identity, and the sparse arm's enumeration is proved to list exactly
+# what its walk holds.
+#
+# What is left of S-03 is one claim, and it is not about sets at all: that the
+# walk and the tile address name the same positions. `Words.holds` walks the
+# words building ordinals by `ord + 1` and `ord + 32`; `Words.bit` addresses
+# word `x >> 5`, bit `x & 31`. They agree, and the two facts needed to show it
+# -- the division identity and what `U32` addition computes -- are both
+# proved in LAWS.bend. What remains is the case analysis joining them: that an
+# ordinal below the next word's base cannot be found later in the walk, and
+# one at or above this word's base cannot be found in it.
+law the_walk_agrees_with_the_tile_address:
   for +ws: List<&2, U32>
   for +x: U32
   for +wide: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{} : Bool}
   for +inr: {U32.is_lt(x, 4096) == True{} : Bool}
-  {S.PSet.mem.leaf(S.PSet.compress(ws), x)
-    == Wo.Words.bit(ws, x) : Bool}
+  {En.Words.holds(ws, 0, x) == Wo.Words.bit(ws, x) : Bool}
 
 # P-01's checkable half is now proved and lives in LAWS.bend as
 # `inserting_adds_exactly_that_ordinal`. What remains of P-01 is the part that

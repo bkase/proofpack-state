@@ -40,6 +40,7 @@ import ./core/ords.bend as Or
 import ./proofs/descend.bend as Dc
 import ./proofs/split.bend as Sp
 import ./proofs/adder.bend as Ad
+import ./proofs/enum.bend as En
 import ./closure/graph.bend as Gr
 import ./closure/reach.bend as Re
 import ./closure/explain.bend as Ex
@@ -691,3 +692,44 @@ law adding_two_small_ordinals_adds_their_values:
   for +ok: {C.Nat.gt(32n, k) == True{} : Bool}
   {U32.to_nat(U32.add(a, b))
     == Nat.add(U32.to_nat(a), U32.to_nat(b)) : Nat}
+
+# ===========================================================================
+# S-03, at the enumeration -- what the sparse list holds.
+#
+# The remaining arm of compression enumerates the tile: `Words.members` walks
+# the words and, within each, the bits, consing an ordinal for each set bit.
+# This law says the list it produces holds exactly what that walk holds --
+# `Words.holds` is the same walk written as a predicate -- with no hypothesis
+# at all. It covers the enumeration itself, the reversal at the end, and the
+# accumulator threaded through both.
+#
+# What is left of S-03 after this, and it is the only thing left, is that the
+# walk and the tile address name the same positions:
+# `Words.holds(ws, 0, x) == Words.bit(ws, x)`. That is an addressing claim,
+# stated in `LAWS.pending.bend`, and the two facts it needs -- the division
+# identity and what `U32` addition computes -- are both proved above.
+# ===========================================================================
+
+law enumerating_a_tile_lists_what_the_walk_holds:
+  for +ws: List<&2, U32>
+  for +x: U32
+  {Or.Ords.elem(Wo.Words.members(ws, 0), x)
+    == En.Words.holds(ws, 0, x) : Bool}
+
+# ===========================================================================
+# S-03, at the count -- the two arms compression decides by counting.
+# ===========================================================================
+
+law a_tile_compression_calls_empty_has_no_members:
+  for +ws: List<&2, U32>
+  for +x: U32
+  for +z: {Wo.Words.count(ws) == 0n : Nat}
+  {Wo.Words.bit(ws, x) == False{} : Bool}
+
+law a_tile_compression_calls_full_has_every_member:
+  for +ws: List<&2, U32>
+  for +x: U32
+  for +wide: {List.length(&2, U32, ws) == 128n : Nat}
+  for +full: {Wo.Words.count(ws) == 4096n : Nat}
+  for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
+  {Wo.Words.bit(ws, x) == True{} : Bool}
