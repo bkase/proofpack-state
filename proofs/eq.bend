@@ -320,3 +320,29 @@ def List.sym(-A: Data, -a: List<&2, A>, -b: List<&2, A>,
 def Maybe.sym(-A: Data, -a: Maybe<&2, A>, -b: Maybe<&2, A>,
   e: {a == b : Maybe<&2, A>}) -> {b == a : Maybe<&2, A>}:
   Equal.sym(Maybe<&2, A>, a, b, e)
+
+law Bool.and_l:
+  for +a: Bool
+  for +b: Bool
+  for +ok: {Bool.and(a, b) == True{} : Bool}
+  {a == True{} : Bool}
+
+def Bool.and_l(a, b, ok):
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      ok
+
+law Bool.and_r:
+  for +a: Bool
+  for +b: Bool
+  for +ok: {Bool.and(a, b) == True{} : Bool}
+  {b == True{} : Bool}
+
+def Bool.and_r(a, b, ok):
+  match a:
+    case True{}:
+      ok
+    case False{}:
+      Bool.noconf({b == True{} : Bool}, ok)

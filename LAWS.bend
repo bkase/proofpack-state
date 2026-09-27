@@ -64,6 +64,8 @@ import ./proofs/denote.bend as Dn
 import ./proofs/extensive.bend as Ex2
 import ./proofs/table.bend as Tb
 import ./proofs/insert.bend as In
+import ./proofs/only.bend as On
+import ./proofs/inventory.bend as Iv2
 import ./adapters/git/inventory.bend as Iv
 import ./adapters/git/intern.bend as Ui2
 import ./proofs/missing.bend as M
@@ -1474,3 +1476,64 @@ law the_projection_contains_every_id_the_universe_names:
   for +ok: {List.contains(~Od.Oid, ~Od.Oid.eq, oids, o) == True{} : Bool}
   {S.PSet.member(20n, Iv.Inventory.present(Iv.Inv.project(u, oids)), x)
     == True{} : Bool}
+
+# ===========================================================================
+# P-01, pointwise -- inserting adds nothing else.
+#
+# The third direction, and the one that makes the first two into a
+# characterisation: an ordinal present after an insert was either the one
+# inserted or present before. Together with `inserting_adds_exactly_that_
+# ordinal` and `inserting_keeps_every_member` that is `PSet.insert` pinned
+# down at every ordinal.
+#
+# This is where the addressing arithmetic earns its keep. Setting the bit of
+# `y` changes the word `y >> 5` at position `y & 31` and nothing else, so a
+# bit that reads set afterwards and was not set before is at that word and
+# that position -- and `the_tile_address_is_injective` turns that back into
+# `x = y`. The descent needs the same fact about subtraction: it rebases both
+# ordinals by the half-width, so the induction ends with them rebased and has
+# to get back, which is clearing a bit both words have set, and that is
+# injective.
+# ===========================================================================
+
+law inserting_adds_nothing_else:
+  for +s: S.PSet
+  for +y: U32
+  for +x: U32
+  for +v: {Sh.PSet.wf(20n, s, True{}) == True{} : Bool}
+  for +ok: {S.PSet.member(20n, S.PSet.insert(20n, s, y), x)
+    == True{} : Bool}
+  {Bool.or(U32.is_eq(y, x), S.PSet.member(20n, s, x)) == True{} : Bool}
+
+law a_set_built_from_a_list_has_only_the_ordinals_on_it:
+  for +xs: List<&2, U32>
+  for +x: U32
+  for +ok: {S.PSet.member(20n, S.PSet.from_list(20n, xs), x)
+    == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, xs, x) == True{} : Bool}
+
+# ===========================================================================
+# G-03, closed -- the projection is exactly what the report named.
+#
+# The other direction of the projection law. `Inv.ords` is proof-only: it is
+# the list of ordinals the identity table returned for the reported ids, in
+# the order they were reported, and the product never materialises it -- it
+# folds straight into the set. So this says the projection contains nothing
+# the table did not name, which with the law above pins the projection down
+# in both directions.
+#
+# An object the receiver has that the source graph never mentions is *not*
+# silently discarded by either law: it has no ordinal, so it is not in the
+# set, and `Inv.project` counts and reports it as out-of-scope, because "we
+# have 4000 objects you have never heard of" is a fact about the receiver and
+# not about the requirement (SPEC 8.1).
+# ===========================================================================
+
+law the_projection_contains_only_ordinals_the_table_named:
+  for +u: Ui2.Universe
+  for +oids: List<&2, Od.Oid>
+  for +x: U32
+  for +ok: {S.PSet.member(20n,
+    Iv.Inventory.present(Iv.Inv.project(u, oids)), x) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq,
+    Iv2.Inv.ords(Ui2.Uni.table(u), oids), x) == True{} : Bool}

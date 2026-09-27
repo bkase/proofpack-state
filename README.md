@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 88 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 91 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -67,10 +67,10 @@ the set algebra itself:
   representations it picks.
 * `S-04`: the emptiness test only accepts a set with no members, so the three
   admitted Boolean rewrites preserve membership.
-* `P-01`: inserting an ordinal leaves it present, and inserting never loses
-  a member that was already there -- so a set folded up from a list has every
-  ordinal on that list, which is how the universe, a filter's result and a
-  projected inventory all get built.
+* `P-01`: `PSet.insert` pinned down at every ordinal -- the ordinal inserted
+  is present, nothing already there is lost, and nothing else is added -- so a
+  set folded up from a list has exactly the ordinals on that list, which is
+  how the universe, a filter's result and a projected inventory all get built.
 * `U-01` (round trip): interning an object id and then looking it up finds
   the ordinal that interning returned -- resting on the trie reading back
   what was written, which needs no hypothesis at all.
@@ -83,13 +83,14 @@ the set algebra itself:
   address is injective, and that the enumeration walk and the tile address
   name the same positions.
 
-`G-02` is now proved in full: the tree-data filter at a row, and the lift to
-`Graph.edge` over the two assembled adjacency tables.
+Two of the three Git-adapter obligations are now proved in full. `G-02`: the
+tree-data filter at a row, and the lift to `Graph.edge` over the two
+assembled adjacency tables. `G-03`: the inventory projection contains the
+ordinal of every reported id the universe names, and nothing else.
 
 Partly proved, with the remaining half stated precisely: `E-01` (two of the three parts of a dependency
 witness), `C-03` (closing nothing gives nothing, pointwise as well as at
-`PZero`, and the closure contains every member of its roots), `G-03` (the
-projection names every id the universe knows), `C-04` (what an accepted certificate means), `U-01` (the lookup
+`PZero`, and the closure contains every member of its roots), `C-04` (what an accepted certificate means), `U-01` (the lookup
 round trip; injectivity is open), `Q-01` (every rewrite; the whole pass is
 open), `D-01` (what structural validity rules out). Section 4 below lists each law with the optimization it
 unlocks.
@@ -510,7 +511,7 @@ is a runtime check or a differential rather than a theorem.
 | **Q-03** compiler soundness | `the_evaluator_computes_the_denotation` | the end-to-end refinement `observe(execute(compile(q))) = [[q]]` | the `tests.bend` differential against `spec/query.bend`, and the Git differential |
 | **G-02** Git policies | `a_filtered_row_drops_exactly_the_commit_targets`, `the_tree_data_policy_drops_exactly_the_parent_edges`, on `a_table_built_from_a_list_answers_the_same_descent_over_the_list` | history versus current-tree requirements as a proved projection: the policy can be applied to a row instead of re-deriving a graph | `tools/differential.sh`: `tree-data` counts and bytes against `rev-parse` plus `ls-tree -r -t` with gitlinks excluded |
 | **U-01** identity mapping | `interning_an_id_then_finding_it_gives_the_same_ordinal`, on `reading_a_trie_at_the_key_just_written_gives_that_value` | dense ordinals with no identity confusion: an object may be referenced long before it is fetched, and the second mention gets the first mention's ordinal | injectivity -- the other half -- by construction in `intern.bend`: only the fresh branch writes a slot, and it hands out `next` and then increments it |
-| **G-03** inventory projection | `the_projection_contains_every_id_the_universe_names` | partial receiver caches: a receiver's report is projected into the source universe without assuming its store is graph-closed | the converse -- that nothing else is in the projection -- by `tools/differential.sh`: inventory totals against `cat-file --batch-all-objects`, and no reported-missing object actually present in the receiver |
+| **G-03** inventory projection | `the_projection_contains_every_id_the_universe_names`, `the_projection_contains_only_ordinals_the_table_named` | partial receiver caches: a receiver's report is projected into the source universe without assuming its store is graph-closed | `tools/differential.sh`: inventory totals against `cat-file --batch-all-objects`, and no reported-missing object actually present in the receiver |
 | **E-01**, **G-01**, **S-04** | registered but not written as laws | checked witnesses; the parser contract; Boolean pruning | `Explain.valid` on every witness; the differential's corpus (merge, tag chains, symlink, empty blob, non-UTF-8 name, gitlink); the structural shortcuts being instances of proved tile laws |
 
 ### 4.3 Not applicable yet

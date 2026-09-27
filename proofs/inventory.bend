@@ -26,6 +26,7 @@ import ./eq.bend as E
 import ./shape.bend as Sh
 import ./preserve.bend as Pr
 import ./insert.bend as Ins
+import ./only.bend as Only
 import ../core/set.bend as S
 import ../core/trie.bend as T
 import ../adapters/git/oid.bend as O
@@ -35,32 +36,6 @@ import ../adapters/git/inventory.bend as Iv
 # ---------------------------------------------------------------------------
 # Deciding equality of two object ids decides equality of the digests.
 # ---------------------------------------------------------------------------
-
-law Bool.and_l:
-  for +a: Bool
-  for +b: Bool
-  for +ok: {Bool.and(a, b) == True{} : Bool}
-  {a == True{} : Bool}
-
-def Bool.and_l(a, b, ok):
-  match a:
-    case True{}:
-      {==}
-    case False{}:
-      ok
-
-law Bool.and_r:
-  for +a: Bool
-  for +b: Bool
-  for +ok: {Bool.and(a, b) == True{} : Bool}
-  {b == True{} : Bool}
-
-def Bool.and_r(a, b, ok):
-  match a:
-    case True{}:
-      ok
-    case False{}:
-      E.Bool.noconf({b == True{} : Bool}, ok)
 
 law Oid.eq_reflect:
   for +a: O.Oid
@@ -74,62 +49,62 @@ def Oid.eq_reflect(a, b, ok):
       match b:
         case O.Oid{b0, b1, b2, b3, b4, b5, b6, b7}:
           %E.U32.eq_reflect(a0, b0,
-            Bool.and_l(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))
+            E.Bool.and_l(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{_, b1, b2, b3, b4, b5, b6, b7} : O.Oid}
           %E.U32.eq_reflect(a1, b1,
-            Bool.and_l(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-              Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok)))
+            E.Bool.and_l(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+              E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok)))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, _, b2, b3, b4, b5, b6, b7} : O.Oid}
           %E.U32.eq_reflect(a2, b2,
-            Bool.and_l(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
-              Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-                Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))
+            E.Bool.and_l(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
+              E.Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+                E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, a1, _, b3, b4, b5, b6, b7} : O.Oid}
           %E.U32.eq_reflect(a3, b3,
-            Bool.and_l(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
-              Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
-                Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-                  Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok)))))
+            E.Bool.and_l(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
+              E.Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
+                E.Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+                  E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok)))))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, a1, a2, _, b4, b5, b6, b7} : O.Oid}
           %E.U32.eq_reflect(a4, b4,
-            Bool.and_l(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
-              Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
-                Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
-                  Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-                    Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))))
+            E.Bool.and_l(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
+              E.Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
+                E.Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
+                  E.Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+                    E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, a1, a2, a3, _, b5, b6, b7} : O.Oid}
           %E.U32.eq_reflect(a5, b5,
-            Bool.and_l(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)),
-              Bool.and_r(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
-                Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
-                  Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
-                    Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-                      Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok)))))))
+            E.Bool.and_l(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)),
+              E.Bool.and_r(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
+                E.Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
+                  E.Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
+                    E.Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+                      E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok)))))))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, a1, a2, a3, a4, _, b6, b7} : O.Oid}
           %E.U32.eq_reflect(a6, b6,
-            Bool.and_l(U32.is_eq(a6, b6), U32.is_eq(a7, b7),
-              Bool.and_r(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)),
-                Bool.and_r(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
-                  Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
-                    Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
-                      Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-                        Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))))))
+            E.Bool.and_l(U32.is_eq(a6, b6), U32.is_eq(a7, b7),
+              E.Bool.and_r(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)),
+                E.Bool.and_r(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
+                  E.Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
+                    E.Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
+                      E.Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+                        E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))))))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, a1, a2, a3, a4, a5, _, b7} : O.Oid}
           %E.U32.eq_reflect(a7, b7,
-            Bool.and_r(U32.is_eq(a6, b6), U32.is_eq(a7, b7),
-              Bool.and_r(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)),
-                Bool.and_r(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
-                  Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
-                    Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
-                      Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
-                        Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))))))
+            E.Bool.and_r(U32.is_eq(a6, b6), U32.is_eq(a7, b7),
+              E.Bool.and_r(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)),
+                E.Bool.and_r(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))),
+                  E.Bool.and_r(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))),
+                    E.Bool.and_r(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))),
+                      E.Bool.and_r(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7)))))),
+                        E.Bool.and_r(U32.is_eq(a0, b0), Bool.and(U32.is_eq(a1, b1), Bool.and(U32.is_eq(a2, b2), Bool.and(U32.is_eq(a3, b3), Bool.and(U32.is_eq(a4, b4), Bool.and(U32.is_eq(a5, b5), Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))), ok))))))))
             : {O.Oid{a0, a1, a2, a3, a4, a5, a6, a7}
               == O.Oid{a0, a1, a2, a3, a4, a5, a6, _} : O.Oid}
           {==}
@@ -333,3 +308,115 @@ def Inv.project_finds(u, oids, o, x, f, ok):
   Inv.fold_finds(oids, Oid.head_eq(oids, o), I.Uni.table(u),
     Iv.Inv{S.PSet.empty(), 0n, 0n, 0n}, o, x, {==}, f,
     Sh.PSet.wf_zero(20n), ok)
+
+# ---------------------------------------------------------------------------
+# And nothing else. The fold is the set built from the ordinals the table
+# named, so "the projection has nothing the report did not mention" is that
+# list, plus the fact that a set built from a list has only what is on it
+# (proofs/only.bend).
+#
+# `Inv.ords` is proof-only: the product folds directly into the set and never
+# materialises this list. It is the specification of what the fold put in.
+# ---------------------------------------------------------------------------
+
+def Inv.ords.pick(m: Maybe<&2, U32>, rest: List<&2, U32>) ->
+  List<&2, U32>:
+  match m:
+    case None{}:
+      rest
+    case Some{k}:
+      Con{k, rest}
+
+def Inv.ords(+tbl: T.Trie<I.Bucket()>, oids: List<&2, O.Oid>) ->
+  List<&2, U32>:
+  match oids:
+    case Nil{}:
+      Nil{}
+    case Con{o, t}:
+      Inv.ords.pick(I.Uni.find(tbl, o), Inv.ords(tbl, t))
+
+def Inv.head_find(+tbl: T.Trie<I.Bucket()>, oids: List<&2, O.Oid>) ->
+  Maybe<&2, U32>:
+  match oids:
+    case Nil{}:
+      None{}
+    case Con{o, t}:
+      I.Uni.find(tbl, o)
+
+law Inv.fold_of_list:
+  for +oids: List<&2, O.Oid>
+  for +m: Maybe<&2, U32>
+  for +tbl: T.Trie<I.Bucket()>
+  for +acc: Iv.Inventory
+  for +em: {m == Inv.head_find(tbl, oids) : Maybe<&2, U32>}
+  {Iv.Inventory.present(Iv.Inv.fold(tbl, oids, acc))
+    == S.PSet.of_list(20n, Inv.ords(tbl, oids),
+         Iv.Inventory.present(acc)) : S.PSet}
+
+def Inv.fold_of_list(oids, m, tbl, acc, em):
+  match oids:
+    case Nil{}:
+      {==}
+    case Con{o, t}:
+      match m:
+        case None{}:
+          match acc:
+            case Iv.Inv{present, in_scope, out_of_scope, total}:
+              %em : {Iv.Inventory.present(Iv.Inv.fold(tbl, t,
+                  Iv.Inv.add.hit(present, in_scope, out_of_scope, _)))
+                == S.PSet.of_list(20n,
+                     Inv.ords.pick(_, Inv.ords(tbl, t)), present) : S.PSet}
+              Inv.fold_of_list(t, Inv.head_find(tbl, t), tbl,
+                Iv.Inv{present, in_scope, 1n+out_of_scope, 0n}, {==})
+        case Some{k}:
+          match acc:
+            case Iv.Inv{present, in_scope, out_of_scope, total}:
+              %em : {Iv.Inventory.present(Iv.Inv.fold(tbl, t,
+                  Iv.Inv.add.hit(present, in_scope, out_of_scope, _)))
+                == S.PSet.of_list(20n,
+                     Inv.ords.pick(_, Inv.ords(tbl, t)), present) : S.PSet}
+              Inv.fold_of_list(t, Inv.head_find(tbl, t), tbl,
+                Iv.Inv{S.PSet.insert(20n, present, k), 1n+in_scope,
+                  out_of_scope, 0n}, {==})
+
+law Inv.project_only:
+  for +u: I.Universe
+  for +oids: List<&2, O.Oid>
+  for +x: U32
+  for +ok: {S.PSet.member(20n,
+    Iv.Inventory.present(Iv.Inv.project(u, oids)), x) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, Inv.ords(I.Uni.table(u), oids), x)
+    == True{} : Bool}
+
+def Inv.member_at(+x: U32, s: S.PSet) -> Bool:
+  S.PSet.member(20n, s, x)
+
+def Inv.project_only(u, oids, x, ok):
+  Only.PSet.from_list_only(Inv.ords(I.Uni.table(u), oids), x,
+    Equal.trans(Bool,
+      S.PSet.member(20n,
+        S.PSet.from_list(20n, Inv.ords(I.Uni.table(u), oids)), x),
+      S.PSet.member(20n,
+        Iv.Inventory.present(Iv.Inv.project(u, oids)), x), True{},
+      Equal.cong(S.PSet, Bool, Inv.member_at(x),
+        S.PSet.from_list(20n, Inv.ords(I.Uni.table(u), oids)),
+        Iv.Inventory.present(Iv.Inv.project(u, oids)),
+        Equal.trans(S.PSet,
+          S.PSet.from_list(20n, Inv.ords(I.Uni.table(u), oids)),
+          Iv.Inventory.present(Iv.Inv.fold(I.Uni.table(u), oids,
+            Iv.Inv{S.PSet.empty(), 0n, 0n, 0n})),
+          Iv.Inventory.present(Iv.Inv.project(u, oids)),
+          Equal.sym(S.PSet,
+            Iv.Inventory.present(Iv.Inv.fold(I.Uni.table(u), oids,
+              Iv.Inv{S.PSet.empty(), 0n, 0n, 0n})),
+            S.PSet.from_list(20n, Inv.ords(I.Uni.table(u), oids)),
+            Inv.fold_of_list(oids,
+              Inv.head_find(I.Uni.table(u), oids), I.Uni.table(u),
+              Iv.Inv{S.PSet.empty(), 0n, 0n, 0n}, {==})),
+          Equal.sym(S.PSet,
+            Iv.Inventory.present(Iv.Inv.project(u, oids)),
+            Iv.Inventory.present(Iv.Inv.fold(I.Uni.table(u), oids,
+              Iv.Inv{S.PSet.empty(), 0n, 0n, 0n})),
+            Inv.present_finish(Iv.Inv.fold(I.Uni.table(u), oids,
+              Iv.Inv{S.PSet.empty(), 0n, 0n, 0n}))))),
+      ok))

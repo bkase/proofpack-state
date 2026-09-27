@@ -353,21 +353,18 @@ law the_evaluator_computes_the_denotation:
 # blob, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a
 # gitlink with no submodule present.
 #
-# G-03 is half proved. `the_projection_contains_every_id_the_universe_names`
-# in LAWS.bend is the direction that decides whether an answer can be
-# trusted: every id on a receiver's report that the source universe names has
-# its ordinal in the projection, so the projection cannot under-report and
-# make `pp` claim an object is missing that the receiver has.
+# G-03 is closed. `the_projection_contains_every_id_the_universe_names` is
+# the direction that decides whether an answer can be trusted -- every id on
+# a receiver's report that the source universe names has its ordinal in the
+# projection, so it cannot under-report and make `pp` claim an object is
+# missing that the receiver has. `the_projection_contains_only_ordinals_the_
+# table_named` is the converse, over the proof-only list of ordinals the
+# identity table returned for the reported ids.
 #
-# What is open is the converse -- that the projection contains *nothing
-# else*. It reduces to a statement about the set, not about the adapter: that
-# a set built by folding insertion over a list has only the ordinals on that
-# list. That is the converse of `inserting_adds_exactly_that_ordinal`, which
-# this release proves in one direction only: inserting `y` leaves `x` present
-# when it was, but nothing says it leaves `x` absent when it was not. Proving
-# that is the pointwise form of P-01 -- `mem(insert(s, y), x)` equals
-# `or(x = y, mem(s, x))` -- and it needs the sparse leaf's offset insert and
-# the tile's bit set to be pointwise too, in the direction that adds nothing.
+# The converse used to be recorded here as waiting on the pointwise form of
+# P-01 -- that inserting `y` leaves `x` absent when it was absent. That is
+# now proved as `inserting_adds_nothing_else`, and with it the whole of
+# `PSet.insert` is pinned down at every ordinal.
 #
 # G-02 is closed. The row-level half was proved earlier; the lift to
 # `Graph.edge` is now proved too and lives in LAWS.bend as

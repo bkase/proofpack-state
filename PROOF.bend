@@ -47,6 +47,7 @@
 #   proofs/extensive.bend the closure contains what it closes
 #   proofs/table.bend     what a table built from a list answers
 #   proofs/insert.bend    inserting never loses a member
+#   proofs/only.bend      inserting adds nothing else
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -62,6 +63,7 @@ import ./proofs/rewrite.bend as PRw
 import ./proofs/extensive.bend as PEx
 import ./proofs/table.bend as PTb
 import ./proofs/insert.bend as PIns
+import ./proofs/only.bend as POn
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -409,3 +411,13 @@ def Laws.a_set_built_from_a_list_has_every_ordinal_on_it(xs, x, ok):
 def Laws.the_projection_contains_every_id_the_universe_names(u, oids, o, x,
   f, ok):
   PIv.Inv.project_finds(u, oids, o, x, f, ok)
+
+def Laws.inserting_adds_nothing_else(s, y, x, v, ok):
+  POn.PSet.insert_only(s, y, x, v, ok)
+
+def Laws.a_set_built_from_a_list_has_only_the_ordinals_on_it(xs, x, ok):
+  POn.PSet.from_list_only(xs, x, ok)
+
+def Laws.the_projection_contains_only_ordinals_the_table_named(u, oids, x,
+  ok):
+  PIv.Inv.project_only(u, oids, x, ok)
