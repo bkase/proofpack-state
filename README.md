@@ -79,12 +79,12 @@ the set algebra itself:
   operations keep a set in the shape the pointwise laws need, so every
   denotation is well shaped and the rewrites' hypothesis discharges itself.
 * the enumeration: `PSet.to_list` lists exactly the ordinals `PSet.member`
-  accepts, for an ordinal inside the universe and a tree of the shape
-  `PSet.ok` -- which is what `PSet.valid` enforces, restated as the
-  enumeration needs it; deriving the one from the other is still open. The leaf arm is the shift law over the leaf law, the
-  full-node arm is the count-down being the node's interval, and the branch
-  arm is the two walks -- one comparing against the half, one masking one bit
-  narrower -- arriving at the same ordinal.
+  accepts, for an ordinal inside the universe and any set that passed
+  `PSet.valid` -- the check a decoded set is already put through. The leaf
+  arm is the shift law over the leaf law, the full-node arm is the count-down
+  being the node's interval, and the branch arm is the two walks -- one
+  comparing against the half, one masking one bit narrower -- arriving at the
+  same ordinal.
 * plus the addressing arithmetic all of that rests on -- that `U32` addition
   adds, that a word is determined by the number it reads as, that the tile
   address is injective, and that the enumeration walk and the tile address

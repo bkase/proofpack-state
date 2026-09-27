@@ -45,8 +45,9 @@ import ./proofs/denote.bend as PDn
 # ===========================================================================
 # What the remaining gaps have in common.
 #
-# Ten obligations are proved in part. Their open halves route through two
-# pieces, one of which is now closed.
+# Ten obligations are proved in part. Their open halves routed through two
+# pieces; the second is now closed, and what is left of them routes through
+# the first.
 #
 #   1. The converse of the subset bridge. `a_subset_contains_every_member`
 #      turns a zero fused-difference count into a statement about an ordinal.
@@ -70,18 +71,17 @@ import ./proofs/denote.bend as PDn
 #      does), Q-04's reuse needs it (equal members must give equal
 #      statistics), and Q-03's contract needs Q-01.
 #
-#      This is now proved and published, as
-#      `enumerating_a_set_lists_exactly_its_members`, for a tree whose shape
-#      is `PSet.ok` and an ordinal inside the universe. One piece of it is
-#      still open, and it is the shape hypothesis itself: `PSet.ok` is what
-#      the enumeration needs of a leaf -- its members fit in the twelve bits
-#      a leaf covers -- and `PSet.valid` says so, but the step from one to
-#      the other is not proved. For a sparse leaf that step is an induction
-#      over the offsets, each of which `PSet.valid` has already compared
-#      against 4096. For a dense leaf it is a bound on the tile walk: 128
-#      words, thirty-two ordinals each, starting at zero. Until those are
-#      proved, a caller has to supply `PSet.ok` rather than derive it from
-#      the validity check a stored set has already passed.
+#      This is closed. It is proved and published twice: once as
+#      `enumerating_a_set_lists_exactly_its_members`, for a tree of the shape
+#      `PSet.ok` and an ordinal inside the universe, and once as
+#      `a_valid_set_lists_exactly_its_members`, for any set that passed
+#      `PSet.valid` -- the check a decoded set is already put through -- so a
+#      caller proves nothing about the set's shape to use it.
+#
+#      What the three obligations above still need is not the enumeration but
+#      the first piece: an equality between sets that a proof can carry from
+#      one round to the next without using an ordinal-quantified hypothesis
+#      twice.
 #
 # The rest are their own problems: C-01's pigeonhole, C-04's exactness
 # argument, D-01's text round trip, and G-01's grammar predicate.
