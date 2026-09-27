@@ -360,3 +360,41 @@ def Idx.import(+repo: String, refs: List<&2, String>) -> IO(Built):
     fo : Gi.Out <- Gi.Git.object_format(repo)
     +f0 : Gi.Out = fo
     Idx.import.checked(repo, refs, f0, U32.is_zero(Gi.Out.status(f0)))
+
+# ---------------------------------------------------------------------------
+# Reading the per-ordinal tables back out, in ordinal order. The store
+# encoder needs them; nothing on a query path does, so the O(n * depth) walk
+# is paid once per import rather than per query.
+# ---------------------------------------------------------------------------
+
+def Source.metas.go(+src: Source, +k: Nat, +i: U32,
+  acc: List<&2, Im.Meta>) -> List<&2, Im.Meta>:
+  match k:
+    case 0n:
+      List.reverse(&2, Im.Meta, acc)
+    case 1n+p:
+      Source.metas.go(src, p, (i + 1 : U32),
+        Con{Source.meta_of(src, i), acc})
+
+def Source.metas(+src: Source) -> List<&2, Im.Meta>:
+  Source.metas.go(src, Source.n(src), 0, Nil{})
+
+def Source.row_of.un(m: Maybe<&2, G.Succ>) -> Im.Row:
+  match m:
+    case None{}:
+      Im.Row{Nil{}}
+    case Some{s}:
+      Im.Row{s}
+
+def Source.rows.go(+src: Source, +k: Nat, +i: U32,
+  acc: List<&2, Im.Row>) -> List<&2, Im.Row>:
+  match k:
+    case 0n:
+      List.reverse(&2, Im.Row, acc)
+    case 1n+p:
+      Source.rows.go(src, p, (i + 1 : U32),
+        Con{Source.row_of.un(T.Trie.at(G.Succ, 32n,
+          Source.graph(src, PFull{}), i)), acc})
+
+def Source.rows(+src: Source) -> List<&2, Im.Row>:
+  Source.rows.go(src, Source.n(src), 0, Nil{})

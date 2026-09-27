@@ -166,6 +166,40 @@ if [ -d "$repos/receiver" ]; then
   check "ready is still a complete negative, exit 1" "1" "$?"
 fi
 
+# --- the derived store: round-trip, and rejection of corruption -----------
+# SPEC 1.1's "import once": a stored generation must answer exactly what the
+# import answered, and SPEC 6.5 requires structural validation on load with a
+# checksum explicitly not a substitute.
+store="$(mktemp -d)"
+bad="$(mktemp -d)"
+echo "store:"
+"$pp" git import --repo "$repos/source" --root refs/heads/main \
+  --as src --store "$store" > /dev/null
+for mode in full tree-data; do
+  a=$("$pp" git stats --repo "$repos/source" --root refs/heads/main \
+    --mode "$mode" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["result"],sort_keys=True))')
+  b=$("$pp" git stats --graph src --store "$store" --mode "$mode" \
+    | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["result"],sort_keys=True))')
+  check "$mode: a stored generation answers identically" "$a" "$b"
+done
+
+cls() {  # cls <graph> -- the error class a corrupt file is rejected with
+  "$pp" git stats --graph "$1" --store "$bad" 2>/dev/null \
+    | python3 -c 'import json,sys
+d = json.load(sys.stdin).get("error")
+print(d["class"] if d else "ACCEPTED")'
+}
+sed 's/^objects 22/objects 23/'            "$store/src.pps" > "$bad/count.pps"
+sed 's/^object 1aa22346/object ZZZZZZZZ/'  "$store/src.pps" > "$bad/hex.pps"
+sed 's/ 2 2 1$/ 2 2 99/'                   "$store/src.pps" > "$bad/succ.pps"
+sed '1s/.*/not a proofpack store/'         "$store/src.pps" > "$bad/magic.pps"
+for c in count hex succ magic; do
+  check "a corrupt store is rejected ($c)" "CorruptIndex" "$(cls $c)"
+done
+check "an absent graph is UnknownRoot" "UnknownRoot" \
+  "$("$pp" git stats --graph nope --store "$store" 2>/dev/null \
+     | python3 -c 'import json,sys; print(json.load(sys.stdin)["error"]["class"])')"
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "differential: pp agrees with git plumbing on every case"

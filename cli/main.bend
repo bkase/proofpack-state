@@ -34,8 +34,10 @@ import ../adapters/git/inventory.bend as Inv
 import ../adapters/git/git.bend as Gi
 import ../query/ast.bend as A
 import ../query/eval.bend as Ev
+import ../spec/query.bend as Den
 import ../execute/plan.bend as X
 import ../host/proc.bend as P
+import ../index/store.bend as St
 import ./args.bend as Ar
 import ./json.bend as J
 # ---------------------------------------------------------------------------
@@ -224,14 +226,28 @@ def Cli.envelope(+cx: Ctx, inventory: String, completeness: String,
   J.Json.obj(List.append(&2, String, Cli.env.head(cx),
     Cli.env.tail(inventory, completeness, Ctx.backend(cx), result)))
 
-def Cli.error(cls: String, msg: String) -> String:
+def Cli.text_of.pick(+cls: String, +msg: String, has: Bool) -> String:
+  match has:
+    case False{}:
+      msg
+    case True{}:
+      String.drop(msg, 2n+String.length(cls))
+
+# The message already begins with its class, because the producing module
+# writes `"Class: text"` so the code and the human text cannot drift apart.
+# Drop that prefix when rendering, so a reader does not see it twice.
+def Cli.text_of(+cls: String, +msg: String) -> String:
+  Cli.text_of.pick(cls, msg,
+    String.starts_with(msg, cls ++ ": "))
+
+def Cli.error(+cls: String, msg: String) -> String:
   J.Json.obj([
     J.Json.field("schema_version", "1"),
     J.Json.field("query_semantics", J.Json.str("proofpack-state/v1")),
     J.Json.field("completeness", J.Json.str("failed")),
     J.Json.field("error", J.Json.obj([
       J.Json.field("class", J.Json.str(cls)),
-      J.Json.field("message", J.Json.str(msg))]))])
+      J.Json.field("message", J.Json.str(Cli.text_of(cls, msg)))]))])
 
 def Cli.class_of.head(ps: List<&2, String>) -> String:
   match ps:
@@ -705,6 +721,86 @@ def Cmd.missing(+cx: Ctx, have: String, want_oids: Bool,
 # by `Explain.valid`, so the answer does not rest on trusting the producer.
 # ---------------------------------------------------------------------------
 
+def Cli.store.xdg(home: String, +xdg: String, empty: Bool) -> String:
+  match empty:
+    case True{}:
+      home ++ "/.cache/proofpack"
+    case False{}:
+      xdg ++ "/proofpack"
+
+# ---------------------------------------------------------------------------
+# Where the derived store lives. SPEC 9.1: a user-owned derived-cache
+# directory, and never a change to repository configuration. On macOS that is
+# ~/Library/Caches/ProofPack; elsewhere $XDG_CACHE_HOME/proofpack, falling
+# back to ~/.cache/proofpack. `--store PATH` overrides all of it.
+def Cli.store.of(home: String, +xdg: String, mac: Bool) -> String:
+  match mac:
+    case True{}:
+      home ++ "/Library/Caches/ProofPack"
+    case False{}:
+      Cli.store.xdg(home, xdg, String.is_empty(xdg))
+
+def Cli.store.given(+ar: Ar.Args, dflt: String) -> String:
+  Ar.Args.one(ar, "store", dflt)
+
+def Cli.env.or(r: Result<&1, &1, U32 & String, String>) -> String:
+  match r:
+    case Fail{e}:
+      ""
+    case Done{v}:
+      v
+
+def Cli.store.mac.go(v: U32 & (P.Bytes & String)) -> Bool:
+  match v:
+    case Tuple{st, rest}:
+      U32.is_zero(st)
+
+def Cli.store.mac(r: Result<&1, &1, U32 & String,
+  U32 & (P.Bytes & String)>) -> Bool:
+  match r:
+    case Fail{e}:
+      False{}
+    case Done{v}:
+      Cli.store.mac.go(v)
+
+def Cli.store.dir(+ar: Ar.Args) -> IO(String):
+  do IO<String>:
+    h : Result<&1, &1, U32 & String, String> <- IO.get_env("HOME")
+    x : Result<&1, &1, U32 & String, String> <-
+      IO.get_env("XDG_CACHE_HOME")
+    +home : String = Cli.env.or(h)
+    lib : Result<&1, &1, U32 & String, U32 & (P.Bytes & String)> <-
+      P.Host.run_bytes("test", ["-d", home ++ "/Library"], "", 1024, 5000)
+    return Cli.store.given(ar,
+      Cli.store.of(home, Cli.env.or(x), Cli.store.mac(lib)))
+
+# ---------------------------------------------------------------------------
+# pp git import -- the "once" of SPEC 1.1.
+# ---------------------------------------------------------------------------
+
+def Cmd.import.emit(+cx: Ctx, store: String, name: String, ok: Bool) ->
+  IO(Unit):
+  match ok:
+    case False{}:
+      Cli.fail("CorruptIndex: the generation could not be written to "
+        ++ store)
+    case True{}:
+      IO.print(Cli.envelope(cx, "none", "complete", J.Json.obj([
+        J.Json.field("stored_as", J.Json.str(name)),
+        J.Json.field("store", J.Json.str(store)),
+        J.Json.field("imported", Cli.stats_json(
+          Ev.Ev.stats(Ctx.src(cx), Den.Den.universe(
+            Idx.Source.n(Ctx.src(cx))))))])))
+
+def Cmd.import(+cx: Ctx, store: String, name: String) -> IO(Unit):
+  +st = store
+  +nm = name
+  +src = Ctx.src(cx)
+  do IO<Unit>:
+    ok : Bool <- St.Store.publish(st, nm,
+      St.Store.encode(src, Idx.Source.metas(src), Idx.Source.rows(src)))
+    Cmd.import.emit(cx, st, nm, ok)
+
 def Cli.usage() -> String:
   "pp -- ProofPack State\n"
     ++ "\n"
@@ -716,6 +812,10 @@ def Cli.usage() -> String:
     ++ "  pp git retention --repo R [--root REF]... --remove REF...\n"
     ++ "  pp git inventory --repo R [--root REF]... --have-repo H\n"
     ++ "  pp git verify    --repo R [--root REF]...\n"
+    ++ "  pp git import    --repo R [--root REF]... --as NAME\n"
+    ++ "\n"
+    ++ "Every query takes --repo R (import now) or --graph NAME (a stored\n"
+    ++ "snapshot). --store PATH overrides the derived-cache directory.\n"
     ++ "\n"
     ++ "Global: --mode full|tree-data  --backend auto|cpu|metal\n"
     ++ "\n"
@@ -752,7 +852,7 @@ def Cli.which.go(+cmd: String, names: List<&2, String>, i: Nat,
 
 def Cli.which(+cmd: String) -> Nat:
   +ns = {["stats", "missing", "ready", "explain", "retention",
-    "inventory", "verify"] : List<&2, String>}
+    "inventory", "verify", "import"] : List<&2, String>}
   Cli.which.go(cmd, ns, 0n, Cli.head_eq(ns, cmd))
 
 def Cli.go.pick(+ar: Ar.Args, +cx: Ctx, +keep_n: Nat, k: Nat) ->
@@ -789,7 +889,14 @@ def Cli.go.pick(+ar: Ar.Args, +cx: Ctx, +keep_n: Nat, k: Nat) ->
                             case 0n:
                               Cmd.verify(cx)
                             case 1n+g:
-                              Cli.fail("InvalidInput: unknown command")
+                              match g:
+                                case 0n:
+                                  Cmd.import(cx,
+                                    Ar.Args.one(ar, "store-dir", ""),
+                                    Ar.Args.one(ar, "as", "source"))
+                                case 1n+h:
+                                  Cli.fail(
+                                    "InvalidInput: unknown command")
 
 def Cli.go(+ar: Ar.Args, +cmd: String, +cx: Ctx, +keep_n: Nat) ->
   IO(Unit):
@@ -804,6 +911,26 @@ def Cli.dispatch(+ar: Ar.Args, +cmd: String, repo: String,
     case Idx.BOk{src}:
       Cli.go(ar, cmd, Cx{repo, src, p, refs, backend}, keep_n)
 
+def Args.of_dir(ar: Ar.Args, dir: String) -> Ar.Args:
+  Con{Ar.Flag{"store-dir", dir}, ar}
+
+def Cli.source.pick(+repo: String, all: List<&2, String>, +store: String,
+  graph: String, fresh: Bool) -> IO(Idx.Built):
+  match fresh:
+    case True{}:
+      Idx.Idx.import(repo, all)
+    case False{}:
+      St.Store.load(store, graph)
+
+# A query names either a stored graph snapshot (`--graph NAME`, resolved
+# against the derived store) or a repository to import now (`--repo PATH`).
+# SPEC 9.1: a stored ref alias resolves within the named snapshot, and
+# updating the live Git ref does not mutate it -- observing new roots takes
+# an explicit import.
+def Cli.source(+ar: Ar.Args, +repo: String, all: List<&2, String>,
+  +store: String, +graph: String) -> IO(Idx.Built):
+  Cli.source.pick(repo, all, store, graph, String.is_empty(graph))
+
 def Cli.run.checked(+ar: Ar.Args, +cmd: String, +repo: String,
   +p: Idx.Policy, +refs: List<&2, String>, +bk: Backend,
   removed: List<&2, String>, all: List<&2, String>, ok: Bool) ->
@@ -815,8 +942,11 @@ def Cli.run.checked(+ar: Ar.Args, +cmd: String, +repo: String,
         ++ "`!` call, no device was found, or --gpu off was passed")
     case True{}:
       do IO<Unit>:
-        b : Idx.Built <- Idx.Idx.import(repo, all)
-        Cli.dispatch(ar, cmd, repo, p, refs, bk,
+        dir : String <- Cli.store.dir(ar)
+        +sd : String = dir
+        b : Idx.Built <- Cli.source(ar, repo, all, sd,
+          Ar.Args.one(ar, "graph", ""))
+        Cli.dispatch(Args.of_dir(ar, sd), cmd, repo, p, refs, bk,
           List.length(&2, String, refs), b)
 
 def Cli.run(+ar: Ar.Args, +cmd: String, repo: String, +p: Idx.Policy,
