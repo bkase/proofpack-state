@@ -45,8 +45,8 @@ import ./proofs/denote.bend as PDn
 # ===========================================================================
 # What the remaining gaps have in common.
 #
-# Ten obligations are proved in part, and their open halves are not ten
-# independent problems. They route through two missing pieces.
+# Ten obligations are proved in part. Their open halves route through two
+# pieces, one of which is now closed.
 #
 #   1. The converse of the subset bridge. `a_subset_contains_every_member`
 #      turns a zero fused-difference count into a statement about an ordinal.
@@ -70,28 +70,18 @@ import ./proofs/denote.bend as PDn
 #      does), Q-04's reuse needs it (equal members must give equal
 #      statistics), and Q-03's contract needs Q-01.
 #
-#      The arithmetic it rests on is proved and in LAWS.bend: that adding
-#      into free bits is setting them (so the shift a branch performs is an
-#      `or`, and the two masks take it apart again), that subtracting one is
-#      one less, and that counting down covers exactly the span it should --
-#      which is what a full interval's enumeration does. So is the base case:
-#      `a_leaf_enumerates_exactly_its_members`, all four shapes.
-#
-#      What is left is the tree above the leaf, and it has two hard arms. A
-#      full *node* enumerates `base + 2h` ordinals by counting down from
-#      `base + h + h - 1`, so its arm needs that expression related to the
-#      interval it stands for, and then the numeric span related back to the
-#      bit test "this ordinal's high part is this base". A branch node needs
-#      the same relation at two adjacent mask widths, because its two halves
-#      are told apart by one bit. Neither is deep; both are long.
-#
-#      One thing the leaf case surfaced is worth recording: the enumeration
-#      needs of a sparse leaf something `PSet.wf` does not say -- that its
-#      offsets fit in the twelve bits a leaf covers. `PSet.valid` says it, so
-#      anything read from a store has it, and `PSet.ok.leaf` in
-#      proofs/leafenum.bend is the condition; carrying it through the
-#      operations is a second piece, and it needs the same bound on the
-#      members of a tile.
+#      This is now proved and published, as
+#      `enumerating_a_set_lists_exactly_its_members`, for a tree whose shape
+#      is `PSet.ok` and an ordinal inside the universe. One piece of it is
+#      still open, and it is the shape hypothesis itself: `PSet.ok` is what
+#      the enumeration needs of a leaf -- its members fit in the twelve bits
+#      a leaf covers -- and `PSet.valid` says so, but the step from one to
+#      the other is not proved. For a sparse leaf that step is an induction
+#      over the offsets, each of which `PSet.valid` has already compared
+#      against 4096. For a dense leaf it is a bound on the tile walk: 128
+#      words, thirty-two ordinals each, starting at zero. Until those are
+#      proved, a caller has to supply `PSet.ok` rather than derive it from
+#      the validity check a stored set has already passed.
 #
 # The rest are their own problems: C-01's pigeonhole, C-04's exactness
 # argument, D-01's text round trip, and G-01's grammar predicate.

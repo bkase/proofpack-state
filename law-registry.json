@@ -1,560 +1,560 @@
 {
-  "schema_version": 1,
-  "project": "ProofPack State",
-  "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 10 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 not applicable until the milestone named in `reason`. Every obligation the release is subject to now has something proved about it. TRUST.md is the boundary this table summarises.",
-  "laws": [
-    {
-      "id": "U-01",
-      "required_by": "M0",
-      "name": "Identity mapping",
-      "statement": "identify is injective; lookup round-trips within one universe.",
-      "unlocks": "Dense ordinals without identity confusion",
-      "depends_on": [],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Uni.intern_round_trip (proofs/intern.bend), on Trie.at_set (proofs/trie.bend)",
-      "stated_in": "LAWS.bend (the round trip) and LAWS.pending.bend (injectivity)",
-      "backed_by": "by construction in adapters/git/intern.bend: one ordinal per distinct complete key, compared on the complete key.",
-      "proved_part": "Interning an object id and then looking it up in the table interning returned gives the ordinal interning returned -- for any universe and any id, with no well-formedness hypothesis. Both branches: a known id leaves the table alone, and a first mention writes a slot the next read sees, because a trie reads back what was written and Oid.eq holds of an id and itself.",
-      "gap": "Injectivity: that two different ids never share an ordinal. That is a statement about the whole table -- every slot ever written -- rather than about one write, so it needs an invariant carried across every intern (no ordinal appears twice, and next is above all of them), not a lemma about a single step."
-    },
-    {
-      "id": "U-02",
-      "required_by": "M2",
-      "name": "Generation lifting",
-      "statement": "Append-only lifting preserves membership of old identities and union/intersection/difference; new members are absent.",
-      "unlocks": "Reuse old set roots after universe growth",
-      "depends_on": [
-        "U-01"
-      ],
-      "status": "not_applicable_in_v0.1",
-      "production_symbol": null,
-      "proof_symbol": null,
-      "reason": "M2. No stored generations to lift between."
-    },
-    {
-      "id": "S-01",
-      "required_by": "M0",
-      "name": "Pointwise set operations",
-      "statement": "Member(union/intersection/difference(A,B),x) equals the Boolean specification.",
-      "unlocks": "All set-operation correctness",
-      "depends_on": [],
-      "status": "proved",
-      "production_symbol": "core/words.bend Words.and / Words.or / Words.diff / Words.at",
-      "proof_symbol": "proofs/words.bend",
-      "public_law": "LAWS.bend tile_difference_is_pointwise, tile_intersection_is_pointwise, tile_union_is_pointwise",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "S-02",
-      "required_by": "M2",
-      "name": "Representation refinement",
-      "statement": "Set difference, union and intersection are pointwise at the production depth, for structurally valid operands and every U32 ordinal.",
-      "unlocks": "Adaptive persistent representations",
-      "depends_on": [
-        "U-01",
-        "S-01"
-      ],
-      "status": "proved",
-      "production_symbol": null,
-      "proof_symbol": "PSet.diff_member, PSet.union_member, PSet.inter_member (proofs/setops.bend)",
-      "stated_in": "LAWS.bend",
-      "backed_by": "the differential in tests.bend and tools/differential.sh: the production traversal uses these operations throughout.",
-      "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
-      "gap": null,
-      "proved_part": "All three, at depth 20 -- which covers 2^32 ordinals, so no hypothesis about the ordinal survives. Structural validity is the only hypothesis, and it is what every stored generation is checked against on load."
-    },
-    {
-      "id": "S-03",
-      "required_by": "M2",
-      "name": "Representation conversion",
-      "statement": "Compressing a full-width tile preserves membership for every ordinal the leaf covers. (Restated with those two conditions; both have counterexamples without them.)",
-      "unlocks": "Density-adaptive storage",
-      "depends_on": [
-        "S-02"
-      ],
-      "status": "proved",
-      "production_symbol": null,
-      "proof_symbol": "PSet.compress_keeps_pending (proofs/compress.bend)",
-      "stated_in": "LAWS.bend",
-      "backed_by": "tests.bend: the sparse/dense crossover at 64 and 65 members preserves membership and size.",
-      "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
-      "gap": null,
-      "proved_part": "Compression changes no member, whichever of the four representations it picks, for a 128-word tile and an ordinal the leaf covers. Zero bits means PZero and no member, by counting; a full 4096 means PFull and every member, by the pigeonhole; the dense arm is the identity; the sparse arm enumerates, and the enumeration lists what the walk holds, which is what the address holds."
-    },
-    {
-      "id": "S-04",
-      "required_by": "M3",
-      "name": "Boolean rewrites",
-      "statement": "Each admitted Boolean rewrite preserves membership in one universe.",
-      "unlocks": "Pruning, absorption and common-subexpression elimination",
-      "depends_on": [
-        "S-01",
-        "S-02"
-      ],
-      "status": "proved",
-      "production_symbol": null,
-      "proof_symbol": "PSet.empty_no_member, PSet.union_empty_left, PSet.inter_empty_left, PSet.diff_empty_right (proofs/empty.bend)",
-      "stated_in": "LAWS.bend",
-      "backed_by": "tests.bend: the SPEC 4.1 counterexamples fail the build if a forbidden rewrite is ever added.",
-      "proved_part": "The emptiness test only answers True for a set with no members -- which is what the admitted rewrites rest on, since it is an early exit that stops at the first word with a bit in it rather than counting -- and the three rewrites are then instances of S-02 with an empty operand.",
-      "gap": null
-    },
-    {
-      "id": "P-01",
-      "required_by": "M2",
-      "name": "Persistent updates",
-      "statement": "Returned updated root has patch semantics; every retained old root has unchanged denotation.",
-      "unlocks": "Sharing across inventory versions",
-      "depends_on": [
-        "S-02"
-      ],
-      "status": "proved",
-      "production_symbol": "PSet.insert / PSet.add.leaf",
-      "proof_symbol": "PSet.mem_insert (proofs/leaf.bend), PSet.insert_keeps and PSet.from_list_contains (proofs/insert.bend), PSet.insert_only and PSet.from_list_only (proofs/only.bend)",
-      "reason": "M2. No persistent derived store in this release: pp imports per invocation.",
-      "stated_in": "LAWS.bend",
-      "backed_by": "Bend's affine values for the sharing half.",
-      "note": "Was recorded as not applicable while there was no persistent set. core/set.bend has had PSet.insert since M1, so the obligation is live.",
-      "proved_part": "Inserting an ordinal into a well-shaped set leaves it present; inserting never loses a member that was already there; and inserting adds nothing else. Together that pins PSet.insert down at every ordinal, and a set folded up from a list has exactly the ordinals on that list. The sharing half -- that retained old roots are undisturbed -- is a property of Bend affine values, not an equation; TRUST.md section 3.",
-      "gap": "The sharing half: that every retained old root still denotes what it did. That is a property of Bend's affine values -- a persistent update copies the path it changes and cannot reach the nodes it did not copy -- and not an equation over any symbol that can observe it.",
-      "refuted_as_first_stated": "The original statement had no hypothesis and was false: a PDense leaf narrower than 128 words loses the bit it was just given, because Words.set past the end of a tile changes nothing. tests.bend runs that counterexample permanently."
-    },
-    {
-      "id": "C-01",
-      "required_by": "M0",
-      "name": "Least fixed point",
-      "statement": "C(R) is the least edge-closed set containing R.",
-      "unlocks": "Authoritative generic requirement semantics",
-      "depends_on": [
-        "S-01"
-      ],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Spec.stable_is_closed (proofs/extensive.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
-      "stated_in": "LAWS.bend (extensivity, and what stability gives) and LAWS.pending.bend (the fixed point and leastness)",
-      "backed_by": "spec/closure.bend is the definition operationally; the fixed point is reached within the universe size by construction of the fuel.",
-      "proved_part": "Two of the three things \"least fixed point\" says. C(R) contains R, pointwise. And a round that changes nothing has reached an edge-closed set: if Spec.step returns the operand it was given, then every successor of a member is a member -- no counting, and the hypothesis is a value equality, which is what a check can observe.",
-      "gap": "That the iteration is stable after n rounds -- the pigeonhole argument over the universe -- and leastness, that C(R) is inside every edge-closed superset of R. Leastness needs the induction to carry \"this round is still inside X\" from round to round, and that has to be a reusable hypothesis, so it has to be PSet.is_subset; proving is_subset of the next round needs the converse of the bridge this release proves (membership to a zero count), which quantifies over ordinals and so cannot be used twice under Bend affine discipline."
-    },
-    {
-      "id": "C-02",
-      "required_by": "M1",
-      "name": "Traversal refinement",
-      "statement": "Production frontier traversal returns C(R) and terminates on admitted finite graphs.",
-      "unlocks": "Efficient CPU graph traversal",
-      "depends_on": [
-        "C-01",
-        "S-01"
-      ],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Reach.go_keeps and Reach.closure_keeps_its_roots (proofs/traverse.bend)",
-      "stated_in": "LAWS.bend (the traversal keeps what it has seen) and LAWS.pending.bend (the refinement)",
-      "backed_by": "the closure certificate (C-04) per query, plus the five-graph differential against the specification closure in tests.bend, plus tools/differential.sh against `git rev-list --objects`.",
-      "proved_part": "The traversal never loses a vertex: whatever is in `seen` stays in `seen`, through the frontier push and through every level rotation -- so every root it was given is in the answer it returns. That is the invariant the whole refinement argument rests on, and it rules out the failure that matters: reporting an object unreachable that is reachable by definition.",
-      "gap": "That the traversal returns exactly the specification closure. The induction has to carry \"this round is inside the specification round\" from round to round, so that hypothesis must be reusable, so it must be PSet.is_subset -- and establishing is_subset of the next round needs the converse of the bridge this release proves, which quantifies over ordinals and cannot be used twice under Bend affine discipline. The closure certificate (C-04) establishes exactness per query instead, which is why it exists."
-    },
-    {
-      "id": "C-03",
-      "required_by": "M1",
-      "name": "Closure algebra",
-      "statement": "Closure is extensive, monotone, idempotent, empty-preserving and union-preserving.",
-      "unlocks": "Grouped roots and closure reuse",
-      "depends_on": [
-        "C-01"
-      ],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Spec.closure_empty (proofs/closure.bend), Spec.closure_of_empty (proofs/nothing.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
-      "stated_in": "LAWS.bend (empty preservation) and LAWS.pending.bend (the rest)",
-      "backed_by": "tests.bend: union preservation, extensivity, idempotence and closure-of-empty on the counterexample graph.",
-      "proved_part": "Two of the five. Closing the empty set gives the empty set -- at PZero itself and, pointwise, for any set the emptiness test accepts, which is what the optimizer actually holds. And extensivity, stated pointwise: every member of the roots is a member of the closure, proved by one round plus induction on the fuel, since a round is X u post(X) and union is pointwise.",
-      "gap": "Monotonicity, idempotence and union preservation, and extensivity in the is_subset form. The is_subset forms need PSet.is_subset related to membership -- it is a count, so it needs the set-level fused count and the fact that a zero count means no members; the tile-level fused count is proved (Q-02), the set-level one is not. The other three need more than that: they are statements about the fixed point rather than about a round, so they wait on C-01 -- that the iteration is stable after n rounds, which needs a pigeonhole argument over the universe."
-    },
-    {
-      "id": "C-04",
-      "required_by": "M1",
-      "name": "Closure certificate soundness/completeness",
-      "statement": "The rank/predecessor and edge-closure checker accepts only exact closures; every finite exact closure admits such a certificate.",
-      "unlocks": "Checked cached or alternative closure proposals",
-      "depends_on": [
-        "C-01"
-      ],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Cert.accepts_roots, Cert.accepts_closed, Cert.accepts_levels, Cert.accepts_layers (proofs/cert.bend)",
-      "stated_in": "LAWS.bend (what acceptance means) and LAWS.pending.bend (what it implies)",
-      "backed_by": "closure/cert.bend Cert.check, run by `pp git verify`; soundness argued in closure/cert.bend and TRUST.md, not mechanised. tests.bend checks it accepts a real closure and rejects both a tampered-up and a tampered-down one.",
-      "proved_part": "Acceptance establishes each of SPEC 4.4's four conditions, not some weaker conjunction -- so a reader of `pp git verify`'s output can read four laws instead of the checker.",
-      "gap": "That the four conditions imply exactness: conditions 1 and 2 put Reach(R) inside C, and condition 3's well-founded predecessor chains put C inside Reach(R). That argument is written out in closure/cert.bend and TRUST.md and stays argued."
-    },
-    {
-      "id": "C-05",
-      "required_by": "M2",
-      "name": "Checkpoint shortcut",
-      "statement": "Replacing exploration at a vertex by its validated cached closure preserves the full result.",
-      "unlocks": "Checkpoint indexes and shared ancestor reuse",
-      "depends_on": [
-        "C-02",
-        "C-03",
-        "C-04"
-      ],
-      "status": "not_applicable_in_v0.1",
-      "production_symbol": null,
-      "proof_symbol": null,
-      "reason": "M2. No checkpoint index."
-    },
-    {
-      "id": "M-01",
-      "required_by": "M1",
-      "name": "Least missing set",
-      "statement": "K subset H union T iff (K minus H) subset T, for K=C(R) and arbitrary H.",
-      "unlocks": "Exact additional object requirements",
-      "depends_on": [
-        "C-01",
-        "S-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/set.bend PSet.diff / PSet.missing, query/eval.bend Ev.missing_stats",
-      "proof_symbol": "proofs/missing.bend",
-      "public_law": "LAWS.bend the_missing_set_covers_the_requirement, the_missing_set_is_the_least_one",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "M-02",
-      "required_by": "M1",
-      "name": "Readiness",
-      "statement": "isReady(K,H) iff K subset H iff K minus H is empty.",
-      "unlocks": "Fast readiness and missing witnesses",
-      "depends_on": [
-        "M-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/set.bend PSet.is_subset, query/eval.bend Ev.ready",
-      "proof_symbol": "proofs/missing.bend",
-      "public_law": "LAWS.bend readiness_is_an_empty_difference",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "M-03",
-      "required_by": "M3",
-      "name": "Missing composition",
-      "statement": "(A union B) minus H = (A minus H) union (B minus H); A minus (H1 union H2) = (A minus H1) minus H2.",
-      "unlocks": "Shared requirements and tiered inventory filtering",
-      "depends_on": [
-        "S-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/set.bend PSet.diff / PSet.union",
-      "proof_symbol": "proofs/missing.bend",
-      "public_law": "LAWS.bend missing_distributes_over_a_union_of_requirements, inventory_tiers_compose",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "R-01",
-      "required_by": "M0",
-      "name": "Ordinal partition",
-      "statement": "Disjoint valid ordinal intervals cover the result exactly once; pointwise Boolean operations commute with restriction.",
-      "unlocks": "Independent CPU/Metal leaf jobs",
-      "depends_on": [
-        "S-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/words.bend Words.at",
-      "proof_symbol": "proofs/words.bend",
-      "public_law": "LAWS.bend tile_*_is_pointwise, which are stated at a position and so commute with restriction to disjoint ranges",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "R-02",
-      "required_by": "M0",
-      "name": "Disjoint statistics",
-      "statement": "Stats(disjoint_union tiles)=fold(componentwise_add, Stats(tiles)).",
-      "unlocks": "Balanced deterministic reductions",
-      "depends_on": [
-        "R-01",
-        "B-02"
-      ],
-      "status": "proved",
-      "production_symbol": "query/ast.bend Stats.add / Stats.zero / Stats.of_kind",
-      "proof_symbol": "proofs/stats.bend",
-      "public_law": "LAWS.bend statistics_have_a_left_identity, statistics_have_a_right_identity, statistics_add_commutatively, statistics_add_associatively, every_object_counts_once",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "Q-01",
-      "required_by": "M3",
-      "name": "Validated query rewrites",
-      "statement": "For every admitted rewrite, denotation before equals denotation after; validation precedes elimination.",
-      "unlocks": "Safe algebraic query optimization",
-      "depends_on": [
-        "S-04",
-        "C-03"
-      ],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Simp.union_sound, Simp.inter_sound, Simp.diff_sound, Simp.reach_sound (proofs/rewrite.bend); Eval.wf (proofs/denote.bend)",
-      "stated_in": "LAWS.bend (every rewrite) and LAWS.pending.bend (the whole pass)",
-      "backed_by": "tests.bend counterexamples; the rewrites are instances of Boolean laws proved at the tile level.",
-      "gap": "The whole pass. Rw.simplify also recurses inside Reach and Filter, and the induction there needs that a subexpression simplified to a set with the same members -- not the same representation -- closes and filters to a set with the same members. That is closure respecting pointwise equality, and it needs a set equality a proof can carry: PSet.is_subset is the decidable one and relating it to membership needs the set-level fused count, the same missing piece C-03 names. An equality stated pointwise cannot be used, because it is quantified over ordinals and an affine hypothesis cannot be used twice. The arithmetic that lemma rests on is now proved and published -- adding into free bits is setting them, subtracting one is one less, counting down covers exactly its span -- and so is its base case, that a leaf enumerates exactly its members. What is left is the tree above the leaf.",
-      "proved_part": "Every rewrite the optimizer performs keeps the denotation: the expression it produces has exactly the members the expression it replaced had, at the production depth, for every ordinal, stated over the emptiness decision as the rewriter computes it. Four laws, one per rewrite family, plus every_denotation_is_well_shaped, which discharges their shape hypothesis for any expression whose literals are well shaped."
-    },
-    {
-      "id": "Q-02",
-      "required_by": "M3",
-      "name": "Fused difference statistics",
-      "statement": "FusedStats(A,B)=Stats(decode(A) minus decode(B)).",
-      "unlocks": "Eliminate intermediate missing bitmaps",
-      "depends_on": [
-        "S-02",
-        "R-01",
-        "R-02",
-        "B-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/words.bend Words.diff_count",
-      "proof_symbol": "proofs/words.bend",
-      "public_law": "LAWS.bend counting_a_difference_needs_no_difference",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "Q-03",
-      "required_by": "M4",
-      "name": "Compiler soundness",
-      "statement": "observe(execute(compile(W,q)))=denote(q,W) for admitted total core inputs.",
-      "unlocks": "Production end-to-end refinement",
-      "depends_on": [
-        "Q-01",
-        "Q-02",
-        "B-03",
-        "C-02"
-      ],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Mach.set_computes and Mach.failure_is_reported (proofs/machine.bend)",
-      "stated_in": "LAWS.bend (the machine) and LAWS.pending.bend (the contract)",
-      "backed_by": "tests.bend differential and tools/differential.sh.",
-      "proved_part": "The evaluator machine computes the fold. Evaluation is a control word, a stack of frames and one tail call per step because two non-tail self-calls in one def overrun this runtime frame limit; Ev.direct is the fold that could not be written, and the machine agrees with it whenever it reports success. And a failure it notices is one it reports: once the completion flag is False, no continuation of the machine reports ok.",
-      "gap": "The other two steps of the contract: the rewrite pass in front of the machine (Q-01 whole pass) and reachability being computed by the frontier traversal rather than the specification iteration (C-02)."
-    },
-    {
-      "id": "Q-04",
-      "required_by": "M3",
-      "name": "Batch deduplication",
-      "statement": "Deduplicating equal requests/operand pairs and restoring caller positions preserves every result and order.",
-      "unlocks": "Worker/task matrix reuse",
-      "depends_on": [
-        "Q-01",
-        "R-01"
-      ],
-      "status": "partially_proved",
-      "production_symbol": "Cmd.matrix.lookup",
-      "proof_symbol": "Rows.from_empty, Rows.one_per_cell, Rows.lookup_is_find (proofs/batch.bend)",
-      "reason": "M3. No batch matrix command yet.",
-      "backed_by": "`pp git matrix` deduplicates identical inventories and answers one cell per distinct inventory, reporting `distinct_inventories` and naming the cell each duplicate shares with. tests.bend checks that three cells over two distinct inventories report `cells 3 distinct 2` with the third row pointing at the first.",
-      "note": "Was recorded as not applicable while there was no batch command. `pp git matrix` shipped in M4, so the obligation is live.",
-      "stated_in": "LAWS.bend (order and what a reused answer is) and LAWS.pending.bend (that it is the answer the cell would have computed)",
-      "proved_part": "The order half, in full: Cmd.matrix.rows builds the output with an accumulator and reverses once, and it agrees with the same walk written in order, with one row per cell -- so a cell position in the output is its position in the input whatever deduplication did to its answer. And what a reused answer is: the lookup agrees with a plain find-first-by-name, so a duplicate reuses the recorded answer of the first cell whose name it points at and nothing the deduplication invented.",
-      "gap": "That the reused answer is the answer the duplicate cell would have computed. Cmd.matrix.same compares two inventories with PSet.is_subset both ways, which now gives equal members; going from equal members to an equal statistic needs the enumeration to agree with membership, which this release does not prove. The arithmetic that lemma rests on is now proved and published -- adding into free bits is setting them, subtracting one is one less, counting down covers exactly its span -- and so is its base case, that a leaf enumerates exactly its members. What is left is the tree above the leaf."
-    },
-    {
-      "id": "I-01",
-      "required_by": "M2",
-      "name": "Inventory maintenance",
-      "statement": "maintain(K,H,remove,add)=fresh(K,(H minus remove) union add).",
-      "unlocks": "Exact updates including evictions",
-      "depends_on": [
-        "P-01",
-        "M-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/set.bend PSet.diff / PSet.union",
-      "proof_symbol": "proofs/missing.bend",
-      "public_law": "LAWS.bend an_additions_only_update_needs_no_rederivation, add_wins_in_a_patch",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "I-02",
-      "required_by": "M4",
-      "name": "Graph extension",
-      "statement": "Under complete unchanged old outgoing adjacency, old-root closure is preserved by the identity embedding.",
-      "unlocks": "Reuse checkpoints after graph append",
-      "depends_on": [
-        "U-02",
-        "C-01"
-      ],
-      "status": "not_applicable_in_v0.1",
-      "production_symbol": null,
-      "proof_symbol": null,
-      "reason": "M4. No graph append."
-    },
-    {
-      "id": "I-03",
-      "required_by": "M2",
-      "name": "Cache binding",
-      "statement": "A reused value is bound to exact universe/graph/policy/root/weight/input generations.",
-      "unlocks": "Prevent stale graph and metric reuse",
-      "depends_on": [
-        "U-01",
-        "C-04",
-        "D-01"
-      ],
-      "status": "not_applicable_in_v0.1",
-      "production_symbol": null,
-      "proof_symbol": null,
-      "reason": "M2. No cache to bind."
-    },
-    {
-      "id": "E-01",
-      "required_by": "M1",
-      "name": "Reachability witness",
-      "statement": "Returned explanation begins at a requested root, ends at the requested object, and every step is a policy edge.",
-      "unlocks": "Source-anchored dependency explanation",
-      "depends_on": [
-        "C-02"
-      ],
-      "status": "proved",
-      "production_symbol": "Explain.path / Explain.valid",
-      "proof_symbol": "Explain.path_steps, Explain.walk_ends_at_target, Explain.accepts_root_head, Explain.accepts_last, Explain.checked_edge, Explain.checked_rest, Explain.accepts_steps (proofs/witness.bend)",
-      "stated_in": "LAWS.bend",
-      "backed_by": "closure/explain.bend Explain.valid checks all three parts on every witness `pp git explain` emits, not trusting the producer; tests.bend checks it rejects a path that skips an edge and one that starts off-root.",
-      "proved_part": "All three parts, in the form the product guarantees them. Of a produced witness, with no hypothesis: every step is a real policy edge, and it ends at the object asked about. Of a returned witness -- pp git explain runs Explain.valid and exits non-zero when it fails -- all three, including that it starts at a requested root. The step fold is unfolded into a per-step law, so \"every step is a policy edge\" follows by walking the list rather than by trusting the checker.",
-      "note": "That the producer alone always starts at a root is a different claim: it depends on the levels being a genuine breadth-first layering, which is C-02. It is stated in LAWS.pending.bend and nothing pp prints rests on it, because the check gates the exit."
-    },
-    {
-      "id": "B-01",
-      "required_by": "M0",
-      "name": "Word refinement",
-      "statement": "U32 difference/popcount and final-word masking implement bounded bit membership/count.",
-      "unlocks": "Fast dense leaf loops",
-      "depends_on": [
-        "S-01"
-      ],
-      "status": "proved",
-      "production_symbol": "core/word.bend U32.diff / U32.popcount / U32.mask, core/words.bend U32.test",
-      "proof_symbol": "proofs/word.bend, proofs/popcount.bend, proofs/bits.bend",
-      "public_law": "LAWS.bend word_difference_is_pointwise, word_intersection_is_pointwise, word_union_is_pointwise, shifting_right_reads_the_next_bit_up, the_tail_mask_hides_every_padding_bit, popcount_counts_the_bits_that_are_set, the_fast_bit_test_agrees_with_the_bit_vector",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "B-02",
-      "required_by": "M0",
-      "name": "Checked numeric refinement",
-      "statement": "Limb conversion/addition/comparison agree with Naturals in range; overflow is detected.",
-      "unlocks": "Exact counts and byte totals",
-      "depends_on": [],
-      "status": "proved",
-      "production_symbol": "core/count.bend Nat.add / Count.add / Count.ceiling",
-      "proof_symbol": "proofs/nat.bend",
-      "public_law": "LAWS.bend the_accumulator_has_an_identity, the_accumulator_adds_commutatively, the_accumulator_adds_associatively",
-      "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
-    },
-    {
-      "id": "B-03",
-      "required_by": "M4",
-      "name": "Plan execution refinement",
-      "statement": "Every leaf/reduction executes its specified result with bounded reads and exclusive output writes under documented backend contracts.",
-      "unlocks": "Native/Metal source-level agreement",
-      "depends_on": [
-        "B-01",
-        "B-02",
-        "R-01",
-        "R-02"
-      ],
-      "status": "not_applicable_in_v0.1",
-      "production_symbol": null,
-      "proof_symbol": null,
-      "reason": "M4. No Metal leaf-job plan dispatched by `auto` yet."
-    },
-    {
-      "id": "D-01",
-      "required_by": "M2",
-      "name": "Serialization",
-      "statement": "decode(encode(valid_value)) preserves denotation; accepted untrusted data satisfies structural invariants.",
-      "unlocks": "Persisted sets and manifests",
-      "depends_on": [
-        "U-01",
-        "S-02"
-      ],
-      "status": "partially_proved",
-      "production_symbol": "PSet.valid / Store.decode",
-      "proof_symbol": "PSet.valid_is_node (proofs/collapse.bend), Store.accepted_count and Store.rejection_is_reported (proofs/store.bend)",
-      "reason": "M2. No decoder yet; core/set.bend PSet.valid is the structural check it will be stated over.",
-      "stated_in": "LAWS.pending.bend",
-      "backed_by": "index/store.bend validates a decoded generation structurally on load -- magic, declared format, declared object count against the objects actually present, hex width, and every successor index in range -- and rejects with CorruptIndex rather than answering. SPEC 6.5 requires that and says a checksum is not a substitute. tools/differential.sh corrupts a stored generation four ways and checks each is rejected, deriving each corruption from the file so it cannot silently become a no-op.",
-      "note": "Was recorded as not applicable while there was no derived store. M2 shipped one, so the obligation is live.",
-      "proved_part": "What structural validity rules out -- at any depth above a leaf a valid set is PZero, PFull or a branch, never a payload -- and what accepting a decode means: an accepted store declared exactly as many objects as the file holds, and a rejected one always reports a stable error class rather than failing silently. Those are the two ways a loader can be quietly wrong.",
-      "gap": "That decode inverts encode. It is a round trip through text -- the encoder renders numbers and hex digests into a line format and the decoder parses them back -- so it needs the show/parse round trip for Nat, U32 and object ids before anything about generations can be said. The differential checks the round trip observationally instead: a stored generation answers identically to the import that produced it, on both policies, and four kinds of corruption are rejected, each derived from the file so it cannot silently become a no-op."
-    },
-    {
-      "id": "G-01",
-      "required_by": "M1",
-      "name": "Metadata parser",
-      "statement": "Parsing is sound and complete within declared metadata grammar and explicit size limits.",
-      "unlocks": "Git-to-graph correctness boundary",
-      "depends_on": [],
-      "status": "partially_proved",
-      "production_symbol": null,
-      "proof_symbol": "Oid.of_hex_needs_width and Parse.a_record_fits_its_declared_size (proofs/parse.bend)",
-      "stated_in": "LAWS.bend (the parser never reads short) and LAWS.pending.bend (the grammar)",
-      "backed_by": "tools/differential.sh over a corpus with a merge, a tag to a tag, a tag to a tree, a tag to a blob, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a gitlink.",
-      "gap": "Soundness and completeness for the declared grammar as a whole. The grammar it has to be complete for is Git own, so what would make it a law is a grammar predicate written in Bend and faithful to Git rather than read off the parser; one read off the parser would make the law true by construction and worth nothing. The differential corpus is what stands in for it.",
-      "proved_part": "The two parts that are statements about the parser alone rather than about agreeing with Git: an object id is read at exactly the format width, so a short one is an invalid id and not a silently truncated one; and a body is taken by its declared length, so a record whose length overruns the buffer is rejected and not read short. Those are the failure modes that matter -- a short id is a different id, and would intern as a new object."
-    },
-    {
-      "id": "G-02",
-      "required_by": "M1",
-      "name": "Git policies",
-      "statement": "Parsed Git objects map to exactly the specified full/tree-data internal edges and external references.",
-      "unlocks": "Separate history from current-tree requirements",
-      "depends_on": [
-        "G-01",
-        "C-01"
-      ],
-      "status": "proved",
-      "production_symbol": "Idx.filter_succ / Graph.edge",
-      "proof_symbol": "Policy.filter_drops_commits (proofs/policy.bend), Idx.tree_data_edge (proofs/policylift.bend), on Trie.at_of_list (proofs/table.bend)",
-      "stated_in": "LAWS.bend",
-      "backed_by": "tools/differential.sh checks the tree-data policy against `rev-parse` plus `ls-tree -r -t` on three repositories, with gitlink entries excluded, over a corpus with a merge, a tag chain, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a gitlink.",
-      "proved_part": "Both halves. At a row: an ordinal survives Idx.filter_succ exactly when it was in the successor row and is not itself a commit. At an edge: the same statement about Graph.edge over the two adjacency tables Idx.assemble.tries stores, given that the metadata table describes the source vertex -- which the importer guarantees and Graph.domain_ok checks. The lift goes through proofs/table.bend: a table built from a list answers whatever the same descent over the list answers, so the three tables descend together and the question reduces to the three lists at a position."
-    },
-    {
-      "id": "G-03",
-      "required_by": "M1",
-      "name": "Inventory projection",
-      "statement": "Projection into source universe contains exactly the recorded source-domain OIDs, without assuming closure.",
-      "unlocks": "Partial receiver caches",
-      "depends_on": [
-        "U-01",
-        "S-01"
-      ],
-      "status": "proved",
-      "production_symbol": null,
-      "proof_symbol": "Inv.project_finds and Inv.project_only (proofs/inventory.bend), on Oid.eq_reflect, PSet.insert_keeps and PSet.insert_only",
-      "stated_in": "LAWS.bend",
-      "backed_by": "tools/differential.sh: inventory totals against `cat-file --batch-all-objects`, and no reported-missing object is actually present in the receiver.",
-      "proved_part": "Both directions. Every id on a receiver report that the source universe names has its ordinal in the projection, and the projection contains nothing but the ordinals the identity table returned for the reported ids. It rests on Oid.eq deciding equality of the complete digest -- no hash-collision assumption anywhere -- and on PSet.insert being pinned down at every ordinal."
-    }
-  ],
-  "forbidden_rewrites": [
-    "C(A intersect B) = C(A) intersect C(B)",
-    "C(A minus B) = C(A) minus C(B)",
-    "Stats(A union B) = Stats(A) + Stats(B) without disjointness",
-    "lift(Full_old)=Full_new",
-    "Reach(R) intersect tile = Reach_in_induced_tile(R intersect tile)",
-    "Resolve an invalid input only after eliminating it by a rewrite"
-  ],
-  "gate": "tools/gate.sh",
-  "public_laws": "LAWS.bend (proved) and LAWS.pending.bend (open claims)",
-  "addressing_arithmetic": {
-    "note": "All five addressing facts are now proved: A1 (comparison agrees with the order), A2 (rebasing into a child), A3 (the tile address is injective), A4 (a leaf ordinal's word index is in range) and A5 (the walk agrees with the address), plus the converse range bound and what U32 addition computes.",
-    "A1": "U32.cmp agrees with Nat.cmp on U32.to_nat. PROVED, as `comparing_two_ordinals_compares_their_values`. The power-of-two case was proved earlier for the set tree's descent; this is the general statement, and it is what the ascending-offsets invariant of a sparse leaf is stated with.",
-    "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. PROVED, as `rebasing_into_the_upper_half_keeps_the_ordinal_in_range`, together with A1 in the form that matters (`an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits`). The half-width is always a power of two, which makes the whole question bitwise.",
-    "A3": "PROVED, as `the_tile_address_is_injective`. The route is the division identity -- an ordinal is its word index scaled by 32 plus its bit index -- which turns equal addresses into equal `U32.to_nat`, and then `the_number_a_word_reads_as_determines_the_word` finishes. An earlier attempt stalled on word extensionality, whose natural statement takes a hypothesis quantified over bit positions that Bend's affine values will not let an induction use twice; the division identity avoids quantifying over bit positions entirely.",
-    "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
-    "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`.",
-    "A5": "The walk and the tile address name the same positions. PROVED, as `the_walk_agrees_with_the_tile_address`.",
-    "converse": "A number below 2^k fits in k bits (Word.to_nat_fits). Proved, so a range hypothesis can be derived from a numeric bound wherever a lemma needs the bitwise form."
+ "schema_version": 1,
+ "project": "ProofPack State",
+ "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 10 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 not applicable until the milestone named in `reason`. Every obligation the release is subject to now has something proved about it. TRUST.md is the boundary this table summarises.",
+ "laws": [
+  {
+   "id": "U-01",
+   "required_by": "M0",
+   "name": "Identity mapping",
+   "statement": "identify is injective; lookup round-trips within one universe.",
+   "unlocks": "Dense ordinals without identity confusion",
+   "depends_on": [],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Uni.intern_round_trip (proofs/intern.bend), on Trie.at_set (proofs/trie.bend)",
+   "stated_in": "LAWS.bend (the round trip) and LAWS.pending.bend (injectivity)",
+   "backed_by": "by construction in adapters/git/intern.bend: one ordinal per distinct complete key, compared on the complete key.",
+   "proved_part": "Interning an object id and then looking it up in the table interning returned gives the ordinal interning returned -- for any universe and any id, with no well-formedness hypothesis. Both branches: a known id leaves the table alone, and a first mention writes a slot the next read sees, because a trie reads back what was written and Oid.eq holds of an id and itself.",
+   "gap": "Injectivity: that two different ids never share an ordinal. That is a statement about the whole table -- every slot ever written -- rather than about one write, so it needs an invariant carried across every intern (no ordinal appears twice, and next is above all of them), not a lemma about a single step."
+  },
+  {
+   "id": "U-02",
+   "required_by": "M2",
+   "name": "Generation lifting",
+   "statement": "Append-only lifting preserves membership of old identities and union/intersection/difference; new members are absent.",
+   "unlocks": "Reuse old set roots after universe growth",
+   "depends_on": [
+    "U-01"
+   ],
+   "status": "not_applicable_in_v0.1",
+   "production_symbol": null,
+   "proof_symbol": null,
+   "reason": "M2. No stored generations to lift between."
+  },
+  {
+   "id": "S-01",
+   "required_by": "M0",
+   "name": "Pointwise set operations",
+   "statement": "Member(union/intersection/difference(A,B),x) equals the Boolean specification.",
+   "unlocks": "All set-operation correctness",
+   "depends_on": [],
+   "status": "proved",
+   "production_symbol": "core/words.bend Words.and / Words.or / Words.diff / Words.at",
+   "proof_symbol": "proofs/words.bend",
+   "public_law": "LAWS.bend tile_difference_is_pointwise, tile_intersection_is_pointwise, tile_union_is_pointwise",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "S-02",
+   "required_by": "M2",
+   "name": "Representation refinement",
+   "statement": "Set difference, union and intersection are pointwise at the production depth, for structurally valid operands and every U32 ordinal.",
+   "unlocks": "Adaptive persistent representations",
+   "depends_on": [
+    "U-01",
+    "S-01"
+   ],
+   "status": "proved",
+   "production_symbol": null,
+   "proof_symbol": "PSet.diff_member, PSet.union_member, PSet.inter_member (proofs/setops.bend)",
+   "stated_in": "LAWS.bend",
+   "backed_by": "the differential in tests.bend and tools/differential.sh: the production traversal uses these operations throughout.",
+   "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
+   "gap": null,
+   "proved_part": "All three, at depth 20 -- which covers 2^32 ordinals, so no hypothesis about the ordinal survives. Structural validity is the only hypothesis, and it is what every stored generation is checked against on load."
+  },
+  {
+   "id": "S-03",
+   "required_by": "M2",
+   "name": "Representation conversion",
+   "statement": "Compressing a full-width tile preserves membership for every ordinal the leaf covers. (Restated with those two conditions; both have counterexamples without them.)",
+   "unlocks": "Density-adaptive storage",
+   "depends_on": [
+    "S-02"
+   ],
+   "status": "proved",
+   "production_symbol": null,
+   "proof_symbol": "PSet.compress_keeps_pending (proofs/compress.bend)",
+   "stated_in": "LAWS.bend",
+   "backed_by": "tests.bend: the sparse/dense crossover at 64 and 65 members preserves membership and size.",
+   "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
+   "gap": null,
+   "proved_part": "Compression changes no member, whichever of the four representations it picks, for a 128-word tile and an ordinal the leaf covers. Zero bits means PZero and no member, by counting; a full 4096 means PFull and every member, by the pigeonhole; the dense arm is the identity; the sparse arm enumerates, and the enumeration lists what the walk holds, which is what the address holds."
+  },
+  {
+   "id": "S-04",
+   "required_by": "M3",
+   "name": "Boolean rewrites",
+   "statement": "Each admitted Boolean rewrite preserves membership in one universe.",
+   "unlocks": "Pruning, absorption and common-subexpression elimination",
+   "depends_on": [
+    "S-01",
+    "S-02"
+   ],
+   "status": "proved",
+   "production_symbol": null,
+   "proof_symbol": "PSet.empty_no_member, PSet.union_empty_left, PSet.inter_empty_left, PSet.diff_empty_right (proofs/empty.bend)",
+   "stated_in": "LAWS.bend",
+   "backed_by": "tests.bend: the SPEC 4.1 counterexamples fail the build if a forbidden rewrite is ever added.",
+   "proved_part": "The emptiness test only answers True for a set with no members -- which is what the admitted rewrites rest on, since it is an early exit that stops at the first word with a bit in it rather than counting -- and the three rewrites are then instances of S-02 with an empty operand.",
+   "gap": null
+  },
+  {
+   "id": "P-01",
+   "required_by": "M2",
+   "name": "Persistent updates",
+   "statement": "Returned updated root has patch semantics; every retained old root has unchanged denotation.",
+   "unlocks": "Sharing across inventory versions",
+   "depends_on": [
+    "S-02"
+   ],
+   "status": "proved",
+   "production_symbol": "PSet.insert / PSet.add.leaf",
+   "proof_symbol": "PSet.mem_insert (proofs/leaf.bend), PSet.insert_keeps and PSet.from_list_contains (proofs/insert.bend), PSet.insert_only and PSet.from_list_only (proofs/only.bend)",
+   "reason": "M2. No persistent derived store in this release: pp imports per invocation.",
+   "stated_in": "LAWS.bend",
+   "backed_by": "Bend's affine values for the sharing half.",
+   "note": "Was recorded as not applicable while there was no persistent set. core/set.bend has had PSet.insert since M1, so the obligation is live.",
+   "proved_part": "Inserting an ordinal into a well-shaped set leaves it present; inserting never loses a member that was already there; and inserting adds nothing else. Together that pins PSet.insert down at every ordinal, and a set folded up from a list has exactly the ordinals on that list. The sharing half -- that retained old roots are undisturbed -- is a property of Bend affine values, not an equation; TRUST.md section 3.",
+   "gap": "The sharing half: that every retained old root still denotes what it did. That is a property of Bend's affine values -- a persistent update copies the path it changes and cannot reach the nodes it did not copy -- and not an equation over any symbol that can observe it.",
+   "refuted_as_first_stated": "The original statement had no hypothesis and was false: a PDense leaf narrower than 128 words loses the bit it was just given, because Words.set past the end of a tile changes nothing. tests.bend runs that counterexample permanently."
+  },
+  {
+   "id": "C-01",
+   "required_by": "M0",
+   "name": "Least fixed point",
+   "statement": "C(R) is the least edge-closed set containing R.",
+   "unlocks": "Authoritative generic requirement semantics",
+   "depends_on": [
+    "S-01"
+   ],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Spec.stable_is_closed (proofs/extensive.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
+   "stated_in": "LAWS.bend (extensivity, and what stability gives) and LAWS.pending.bend (the fixed point and leastness)",
+   "backed_by": "spec/closure.bend is the definition operationally; the fixed point is reached within the universe size by construction of the fuel.",
+   "proved_part": "Two of the three things \"least fixed point\" says. C(R) contains R, pointwise. And a round that changes nothing has reached an edge-closed set: if Spec.step returns the operand it was given, then every successor of a member is a member -- no counting, and the hypothesis is a value equality, which is what a check can observe.",
+   "gap": "That the iteration is stable after n rounds -- the pigeonhole argument over the universe -- and leastness, that C(R) is inside every edge-closed superset of R. Leastness needs the induction to carry \"this round is still inside X\" from round to round, and that has to be a reusable hypothesis, so it has to be PSet.is_subset; proving is_subset of the next round needs the converse of the bridge this release proves (membership to a zero count), which quantifies over ordinals and so cannot be used twice under Bend affine discipline."
+  },
+  {
+   "id": "C-02",
+   "required_by": "M1",
+   "name": "Traversal refinement",
+   "statement": "Production frontier traversal returns C(R) and terminates on admitted finite graphs.",
+   "unlocks": "Efficient CPU graph traversal",
+   "depends_on": [
+    "C-01",
+    "S-01"
+   ],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Reach.go_keeps and Reach.closure_keeps_its_roots (proofs/traverse.bend)",
+   "stated_in": "LAWS.bend (the traversal keeps what it has seen) and LAWS.pending.bend (the refinement)",
+   "backed_by": "the closure certificate (C-04) per query, plus the five-graph differential against the specification closure in tests.bend, plus tools/differential.sh against `git rev-list --objects`.",
+   "proved_part": "The traversal never loses a vertex: whatever is in `seen` stays in `seen`, through the frontier push and through every level rotation -- so every root it was given is in the answer it returns. That is the invariant the whole refinement argument rests on, and it rules out the failure that matters: reporting an object unreachable that is reachable by definition.",
+   "gap": "That the traversal returns exactly the specification closure. The induction has to carry \"this round is inside the specification round\" from round to round, so that hypothesis must be reusable, so it must be PSet.is_subset -- and establishing is_subset of the next round needs the converse of the bridge this release proves, which quantifies over ordinals and cannot be used twice under Bend affine discipline. The closure certificate (C-04) establishes exactness per query instead, which is why it exists."
+  },
+  {
+   "id": "C-03",
+   "required_by": "M1",
+   "name": "Closure algebra",
+   "statement": "Closure is extensive, monotone, idempotent, empty-preserving and union-preserving.",
+   "unlocks": "Grouped roots and closure reuse",
+   "depends_on": [
+    "C-01"
+   ],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Spec.closure_empty (proofs/closure.bend), Spec.closure_of_empty (proofs/nothing.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
+   "stated_in": "LAWS.bend (empty preservation) and LAWS.pending.bend (the rest)",
+   "backed_by": "tests.bend: union preservation, extensivity, idempotence and closure-of-empty on the counterexample graph.",
+   "proved_part": "Two of the five. Closing the empty set gives the empty set -- at PZero itself and, pointwise, for any set the emptiness test accepts, which is what the optimizer actually holds. And extensivity, stated pointwise: every member of the roots is a member of the closure, proved by one round plus induction on the fuel, since a round is X u post(X) and union is pointwise.",
+   "gap": "Monotonicity, idempotence and union preservation, and extensivity in the is_subset form. The is_subset forms need PSet.is_subset related to membership -- it is a count, so it needs the set-level fused count and the fact that a zero count means no members; the tile-level fused count is proved (Q-02), the set-level one is not. The other three need more than that: they are statements about the fixed point rather than about a round, so they wait on C-01 -- that the iteration is stable after n rounds, which needs a pigeonhole argument over the universe."
+  },
+  {
+   "id": "C-04",
+   "required_by": "M1",
+   "name": "Closure certificate soundness/completeness",
+   "statement": "The rank/predecessor and edge-closure checker accepts only exact closures; every finite exact closure admits such a certificate.",
+   "unlocks": "Checked cached or alternative closure proposals",
+   "depends_on": [
+    "C-01"
+   ],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Cert.accepts_roots, Cert.accepts_closed, Cert.accepts_levels, Cert.accepts_layers (proofs/cert.bend)",
+   "stated_in": "LAWS.bend (what acceptance means) and LAWS.pending.bend (what it implies)",
+   "backed_by": "closure/cert.bend Cert.check, run by `pp git verify`; soundness argued in closure/cert.bend and TRUST.md, not mechanised. tests.bend checks it accepts a real closure and rejects both a tampered-up and a tampered-down one.",
+   "proved_part": "Acceptance establishes each of SPEC 4.4's four conditions, not some weaker conjunction -- so a reader of `pp git verify`'s output can read four laws instead of the checker.",
+   "gap": "That the four conditions imply exactness: conditions 1 and 2 put Reach(R) inside C, and condition 3's well-founded predecessor chains put C inside Reach(R). That argument is written out in closure/cert.bend and TRUST.md and stays argued."
+  },
+  {
+   "id": "C-05",
+   "required_by": "M2",
+   "name": "Checkpoint shortcut",
+   "statement": "Replacing exploration at a vertex by its validated cached closure preserves the full result.",
+   "unlocks": "Checkpoint indexes and shared ancestor reuse",
+   "depends_on": [
+    "C-02",
+    "C-03",
+    "C-04"
+   ],
+   "status": "not_applicable_in_v0.1",
+   "production_symbol": null,
+   "proof_symbol": null,
+   "reason": "M2. No checkpoint index."
+  },
+  {
+   "id": "M-01",
+   "required_by": "M1",
+   "name": "Least missing set",
+   "statement": "K subset H union T iff (K minus H) subset T, for K=C(R) and arbitrary H.",
+   "unlocks": "Exact additional object requirements",
+   "depends_on": [
+    "C-01",
+    "S-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/set.bend PSet.diff / PSet.missing, query/eval.bend Ev.missing_stats",
+   "proof_symbol": "proofs/missing.bend",
+   "public_law": "LAWS.bend the_missing_set_covers_the_requirement, the_missing_set_is_the_least_one",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "M-02",
+   "required_by": "M1",
+   "name": "Readiness",
+   "statement": "isReady(K,H) iff K subset H iff K minus H is empty.",
+   "unlocks": "Fast readiness and missing witnesses",
+   "depends_on": [
+    "M-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/set.bend PSet.is_subset, query/eval.bend Ev.ready",
+   "proof_symbol": "proofs/missing.bend",
+   "public_law": "LAWS.bend readiness_is_an_empty_difference",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "M-03",
+   "required_by": "M3",
+   "name": "Missing composition",
+   "statement": "(A union B) minus H = (A minus H) union (B minus H); A minus (H1 union H2) = (A minus H1) minus H2.",
+   "unlocks": "Shared requirements and tiered inventory filtering",
+   "depends_on": [
+    "S-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/set.bend PSet.diff / PSet.union",
+   "proof_symbol": "proofs/missing.bend",
+   "public_law": "LAWS.bend missing_distributes_over_a_union_of_requirements, inventory_tiers_compose",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "R-01",
+   "required_by": "M0",
+   "name": "Ordinal partition",
+   "statement": "Disjoint valid ordinal intervals cover the result exactly once; pointwise Boolean operations commute with restriction.",
+   "unlocks": "Independent CPU/Metal leaf jobs",
+   "depends_on": [
+    "S-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/words.bend Words.at",
+   "proof_symbol": "proofs/words.bend",
+   "public_law": "LAWS.bend tile_*_is_pointwise, which are stated at a position and so commute with restriction to disjoint ranges",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "R-02",
+   "required_by": "M0",
+   "name": "Disjoint statistics",
+   "statement": "Stats(disjoint_union tiles)=fold(componentwise_add, Stats(tiles)).",
+   "unlocks": "Balanced deterministic reductions",
+   "depends_on": [
+    "R-01",
+    "B-02"
+   ],
+   "status": "proved",
+   "production_symbol": "query/ast.bend Stats.add / Stats.zero / Stats.of_kind",
+   "proof_symbol": "proofs/stats.bend",
+   "public_law": "LAWS.bend statistics_have_a_left_identity, statistics_have_a_right_identity, statistics_add_commutatively, statistics_add_associatively, every_object_counts_once",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "Q-01",
+   "required_by": "M3",
+   "name": "Validated query rewrites",
+   "statement": "For every admitted rewrite, denotation before equals denotation after; validation precedes elimination.",
+   "unlocks": "Safe algebraic query optimization",
+   "depends_on": [
+    "S-04",
+    "C-03"
+   ],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Simp.union_sound, Simp.inter_sound, Simp.diff_sound, Simp.reach_sound (proofs/rewrite.bend); Eval.wf (proofs/denote.bend)",
+   "stated_in": "LAWS.bend (every rewrite) and LAWS.pending.bend (the whole pass)",
+   "backed_by": "tests.bend counterexamples; the rewrites are instances of Boolean laws proved at the tile level.",
+   "gap": "The whole pass. Rw.simplify also recurses inside Reach and Filter, and the induction there needs that a subexpression simplified to a set with the same members -- not the same representation -- closes and filters to a set with the same members. That is closure respecting pointwise equality, and it needs a set equality a proof can carry: PSet.is_subset is the decidable one and relating it to membership needs the set-level fused count, the same missing piece C-03 names. An equality stated pointwise cannot be used, because it is quantified over ordinals and an affine hypothesis cannot be used twice. The enumeration bridge this waited on is now proved and published -- enumerating_a_set_lists_exactly_its_members -- for a tree whose shape is PSet.ok; deriving that shape from the PSet.valid check a stored set has already passed is the piece still open there.",
+   "proved_part": "Every rewrite the optimizer performs keeps the denotation: the expression it produces has exactly the members the expression it replaced had, at the production depth, for every ordinal, stated over the emptiness decision as the rewriter computes it. Four laws, one per rewrite family, plus every_denotation_is_well_shaped, which discharges their shape hypothesis for any expression whose literals are well shaped."
+  },
+  {
+   "id": "Q-02",
+   "required_by": "M3",
+   "name": "Fused difference statistics",
+   "statement": "FusedStats(A,B)=Stats(decode(A) minus decode(B)).",
+   "unlocks": "Eliminate intermediate missing bitmaps",
+   "depends_on": [
+    "S-02",
+    "R-01",
+    "R-02",
+    "B-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/words.bend Words.diff_count",
+   "proof_symbol": "proofs/words.bend",
+   "public_law": "LAWS.bend counting_a_difference_needs_no_difference",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "Q-03",
+   "required_by": "M4",
+   "name": "Compiler soundness",
+   "statement": "observe(execute(compile(W,q)))=denote(q,W) for admitted total core inputs.",
+   "unlocks": "Production end-to-end refinement",
+   "depends_on": [
+    "Q-01",
+    "Q-02",
+    "B-03",
+    "C-02"
+   ],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Mach.set_computes and Mach.failure_is_reported (proofs/machine.bend)",
+   "stated_in": "LAWS.bend (the machine) and LAWS.pending.bend (the contract)",
+   "backed_by": "tests.bend differential and tools/differential.sh.",
+   "proved_part": "The evaluator machine computes the fold. Evaluation is a control word, a stack of frames and one tail call per step because two non-tail self-calls in one def overrun this runtime frame limit; Ev.direct is the fold that could not be written, and the machine agrees with it whenever it reports success. And a failure it notices is one it reports: once the completion flag is False, no continuation of the machine reports ok.",
+   "gap": "The other two steps of the contract: the rewrite pass in front of the machine (Q-01 whole pass) and reachability being computed by the frontier traversal rather than the specification iteration (C-02)."
+  },
+  {
+   "id": "Q-04",
+   "required_by": "M3",
+   "name": "Batch deduplication",
+   "statement": "Deduplicating equal requests/operand pairs and restoring caller positions preserves every result and order.",
+   "unlocks": "Worker/task matrix reuse",
+   "depends_on": [
+    "Q-01",
+    "R-01"
+   ],
+   "status": "partially_proved",
+   "production_symbol": "Cmd.matrix.lookup",
+   "proof_symbol": "Rows.from_empty, Rows.one_per_cell, Rows.lookup_is_find (proofs/batch.bend)",
+   "reason": "M3. No batch matrix command yet.",
+   "backed_by": "`pp git matrix` deduplicates identical inventories and answers one cell per distinct inventory, reporting `distinct_inventories` and naming the cell each duplicate shares with. tests.bend checks that three cells over two distinct inventories report `cells 3 distinct 2` with the third row pointing at the first.",
+   "note": "Was recorded as not applicable while there was no batch command. `pp git matrix` shipped in M4, so the obligation is live.",
+   "stated_in": "LAWS.bend (order and what a reused answer is) and LAWS.pending.bend (that it is the answer the cell would have computed)",
+   "proved_part": "The order half, in full: Cmd.matrix.rows builds the output with an accumulator and reverses once, and it agrees with the same walk written in order, with one row per cell -- so a cell position in the output is its position in the input whatever deduplication did to its answer. And what a reused answer is: the lookup agrees with a plain find-first-by-name, so a duplicate reuses the recorded answer of the first cell whose name it points at and nothing the deduplication invented.",
+   "gap": "That the reused answer is the answer the duplicate cell would have computed. Cmd.matrix.same compares two inventories with PSet.is_subset both ways, which now gives equal members; going from equal members to an equal statistic needs the enumeration to agree with membership, which is now proved and published as enumerating_a_set_lists_exactly_its_members, for a tree whose shape is PSet.ok. What is left of it is deriving that shape from the PSet.valid check a stored set has already passed: for a sparse leaf an induction over offsets PSet.valid has already compared against 4096, for a dense leaf a bound on the tile walk."
+  },
+  {
+   "id": "I-01",
+   "required_by": "M2",
+   "name": "Inventory maintenance",
+   "statement": "maintain(K,H,remove,add)=fresh(K,(H minus remove) union add).",
+   "unlocks": "Exact updates including evictions",
+   "depends_on": [
+    "P-01",
+    "M-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/set.bend PSet.diff / PSet.union",
+   "proof_symbol": "proofs/missing.bend",
+   "public_law": "LAWS.bend an_additions_only_update_needs_no_rederivation, add_wins_in_a_patch",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "I-02",
+   "required_by": "M4",
+   "name": "Graph extension",
+   "statement": "Under complete unchanged old outgoing adjacency, old-root closure is preserved by the identity embedding.",
+   "unlocks": "Reuse checkpoints after graph append",
+   "depends_on": [
+    "U-02",
+    "C-01"
+   ],
+   "status": "not_applicable_in_v0.1",
+   "production_symbol": null,
+   "proof_symbol": null,
+   "reason": "M4. No graph append."
+  },
+  {
+   "id": "I-03",
+   "required_by": "M2",
+   "name": "Cache binding",
+   "statement": "A reused value is bound to exact universe/graph/policy/root/weight/input generations.",
+   "unlocks": "Prevent stale graph and metric reuse",
+   "depends_on": [
+    "U-01",
+    "C-04",
+    "D-01"
+   ],
+   "status": "not_applicable_in_v0.1",
+   "production_symbol": null,
+   "proof_symbol": null,
+   "reason": "M2. No cache to bind."
+  },
+  {
+   "id": "E-01",
+   "required_by": "M1",
+   "name": "Reachability witness",
+   "statement": "Returned explanation begins at a requested root, ends at the requested object, and every step is a policy edge.",
+   "unlocks": "Source-anchored dependency explanation",
+   "depends_on": [
+    "C-02"
+   ],
+   "status": "proved",
+   "production_symbol": "Explain.path / Explain.valid",
+   "proof_symbol": "Explain.path_steps, Explain.walk_ends_at_target, Explain.accepts_root_head, Explain.accepts_last, Explain.checked_edge, Explain.checked_rest, Explain.accepts_steps (proofs/witness.bend)",
+   "stated_in": "LAWS.bend",
+   "backed_by": "closure/explain.bend Explain.valid checks all three parts on every witness `pp git explain` emits, not trusting the producer; tests.bend checks it rejects a path that skips an edge and one that starts off-root.",
+   "proved_part": "All three parts, in the form the product guarantees them. Of a produced witness, with no hypothesis: every step is a real policy edge, and it ends at the object asked about. Of a returned witness -- pp git explain runs Explain.valid and exits non-zero when it fails -- all three, including that it starts at a requested root. The step fold is unfolded into a per-step law, so \"every step is a policy edge\" follows by walking the list rather than by trusting the checker.",
+   "note": "That the producer alone always starts at a root is a different claim: it depends on the levels being a genuine breadth-first layering, which is C-02. It is stated in LAWS.pending.bend and nothing pp prints rests on it, because the check gates the exit."
+  },
+  {
+   "id": "B-01",
+   "required_by": "M0",
+   "name": "Word refinement",
+   "statement": "U32 difference/popcount and final-word masking implement bounded bit membership/count.",
+   "unlocks": "Fast dense leaf loops",
+   "depends_on": [
+    "S-01"
+   ],
+   "status": "proved",
+   "production_symbol": "core/word.bend U32.diff / U32.popcount / U32.mask, core/words.bend U32.test",
+   "proof_symbol": "proofs/word.bend, proofs/popcount.bend, proofs/bits.bend",
+   "public_law": "LAWS.bend word_difference_is_pointwise, word_intersection_is_pointwise, word_union_is_pointwise, shifting_right_reads_the_next_bit_up, the_tail_mask_hides_every_padding_bit, popcount_counts_the_bits_that_are_set, the_fast_bit_test_agrees_with_the_bit_vector",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "B-02",
+   "required_by": "M0",
+   "name": "Checked numeric refinement",
+   "statement": "Limb conversion/addition/comparison agree with Naturals in range; overflow is detected.",
+   "unlocks": "Exact counts and byte totals",
+   "depends_on": [],
+   "status": "proved",
+   "production_symbol": "core/count.bend Nat.add / Count.add / Count.ceiling",
+   "proof_symbol": "proofs/nat.bend",
+   "public_law": "LAWS.bend the_accumulator_has_an_identity, the_accumulator_adds_commutatively, the_accumulator_adds_associatively",
+   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+  },
+  {
+   "id": "B-03",
+   "required_by": "M4",
+   "name": "Plan execution refinement",
+   "statement": "Every leaf/reduction executes its specified result with bounded reads and exclusive output writes under documented backend contracts.",
+   "unlocks": "Native/Metal source-level agreement",
+   "depends_on": [
+    "B-01",
+    "B-02",
+    "R-01",
+    "R-02"
+   ],
+   "status": "not_applicable_in_v0.1",
+   "production_symbol": null,
+   "proof_symbol": null,
+   "reason": "M4. No Metal leaf-job plan dispatched by `auto` yet."
+  },
+  {
+   "id": "D-01",
+   "required_by": "M2",
+   "name": "Serialization",
+   "statement": "decode(encode(valid_value)) preserves denotation; accepted untrusted data satisfies structural invariants.",
+   "unlocks": "Persisted sets and manifests",
+   "depends_on": [
+    "U-01",
+    "S-02"
+   ],
+   "status": "partially_proved",
+   "production_symbol": "PSet.valid / Store.decode",
+   "proof_symbol": "PSet.valid_is_node (proofs/collapse.bend), Store.accepted_count and Store.rejection_is_reported (proofs/store.bend)",
+   "reason": "M2. No decoder yet; core/set.bend PSet.valid is the structural check it will be stated over.",
+   "stated_in": "LAWS.pending.bend",
+   "backed_by": "index/store.bend validates a decoded generation structurally on load -- magic, declared format, declared object count against the objects actually present, hex width, and every successor index in range -- and rejects with CorruptIndex rather than answering. SPEC 6.5 requires that and says a checksum is not a substitute. tools/differential.sh corrupts a stored generation four ways and checks each is rejected, deriving each corruption from the file so it cannot silently become a no-op.",
+   "note": "Was recorded as not applicable while there was no derived store. M2 shipped one, so the obligation is live.",
+   "proved_part": "What structural validity rules out -- at any depth above a leaf a valid set is PZero, PFull or a branch, never a payload -- and what accepting a decode means: an accepted store declared exactly as many objects as the file holds, and a rejected one always reports a stable error class rather than failing silently. Those are the two ways a loader can be quietly wrong.",
+   "gap": "That decode inverts encode. It is a round trip through text -- the encoder renders numbers and hex digests into a line format and the decoder parses them back -- so it needs the show/parse round trip for Nat, U32 and object ids before anything about generations can be said. The differential checks the round trip observationally instead: a stored generation answers identically to the import that produced it, on both policies, and four kinds of corruption are rejected, each derived from the file so it cannot silently become a no-op."
+  },
+  {
+   "id": "G-01",
+   "required_by": "M1",
+   "name": "Metadata parser",
+   "statement": "Parsing is sound and complete within declared metadata grammar and explicit size limits.",
+   "unlocks": "Git-to-graph correctness boundary",
+   "depends_on": [],
+   "status": "partially_proved",
+   "production_symbol": null,
+   "proof_symbol": "Oid.of_hex_needs_width and Parse.a_record_fits_its_declared_size (proofs/parse.bend)",
+   "stated_in": "LAWS.bend (the parser never reads short) and LAWS.pending.bend (the grammar)",
+   "backed_by": "tools/differential.sh over a corpus with a merge, a tag to a tag, a tag to a tree, a tag to a blob, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a gitlink.",
+   "gap": "Soundness and completeness for the declared grammar as a whole. The grammar it has to be complete for is Git own, so what would make it a law is a grammar predicate written in Bend and faithful to Git rather than read off the parser; one read off the parser would make the law true by construction and worth nothing. The differential corpus is what stands in for it.",
+   "proved_part": "The two parts that are statements about the parser alone rather than about agreeing with Git: an object id is read at exactly the format width, so a short one is an invalid id and not a silently truncated one; and a body is taken by its declared length, so a record whose length overruns the buffer is rejected and not read short. Those are the failure modes that matter -- a short id is a different id, and would intern as a new object."
+  },
+  {
+   "id": "G-02",
+   "required_by": "M1",
+   "name": "Git policies",
+   "statement": "Parsed Git objects map to exactly the specified full/tree-data internal edges and external references.",
+   "unlocks": "Separate history from current-tree requirements",
+   "depends_on": [
+    "G-01",
+    "C-01"
+   ],
+   "status": "proved",
+   "production_symbol": "Idx.filter_succ / Graph.edge",
+   "proof_symbol": "Policy.filter_drops_commits (proofs/policy.bend), Idx.tree_data_edge (proofs/policylift.bend), on Trie.at_of_list (proofs/table.bend)",
+   "stated_in": "LAWS.bend",
+   "backed_by": "tools/differential.sh checks the tree-data policy against `rev-parse` plus `ls-tree -r -t` on three repositories, with gitlink entries excluded, over a corpus with a merge, a tag chain, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a gitlink.",
+   "proved_part": "Both halves. At a row: an ordinal survives Idx.filter_succ exactly when it was in the successor row and is not itself a commit. At an edge: the same statement about Graph.edge over the two adjacency tables Idx.assemble.tries stores, given that the metadata table describes the source vertex -- which the importer guarantees and Graph.domain_ok checks. The lift goes through proofs/table.bend: a table built from a list answers whatever the same descent over the list answers, so the three tables descend together and the question reduces to the three lists at a position."
+  },
+  {
+   "id": "G-03",
+   "required_by": "M1",
+   "name": "Inventory projection",
+   "statement": "Projection into source universe contains exactly the recorded source-domain OIDs, without assuming closure.",
+   "unlocks": "Partial receiver caches",
+   "depends_on": [
+    "U-01",
+    "S-01"
+   ],
+   "status": "proved",
+   "production_symbol": null,
+   "proof_symbol": "Inv.project_finds and Inv.project_only (proofs/inventory.bend), on Oid.eq_reflect, PSet.insert_keeps and PSet.insert_only",
+   "stated_in": "LAWS.bend",
+   "backed_by": "tools/differential.sh: inventory totals against `cat-file --batch-all-objects`, and no reported-missing object is actually present in the receiver.",
+   "proved_part": "Both directions. Every id on a receiver report that the source universe names has its ordinal in the projection, and the projection contains nothing but the ordinals the identity table returned for the reported ids. It rests on Oid.eq deciding equality of the complete digest -- no hash-collision assumption anywhere -- and on PSet.insert being pinned down at every ordinal."
   }
+ ],
+ "forbidden_rewrites": [
+  "C(A intersect B) = C(A) intersect C(B)",
+  "C(A minus B) = C(A) minus C(B)",
+  "Stats(A union B) = Stats(A) + Stats(B) without disjointness",
+  "lift(Full_old)=Full_new",
+  "Reach(R) intersect tile = Reach_in_induced_tile(R intersect tile)",
+  "Resolve an invalid input only after eliminating it by a rewrite"
+ ],
+ "gate": "tools/gate.sh",
+ "public_laws": "LAWS.bend (proved) and LAWS.pending.bend (open claims)",
+ "addressing_arithmetic": {
+  "note": "All five addressing facts are now proved: A1 (comparison agrees with the order), A2 (rebasing into a child), A3 (the tile address is injective), A4 (a leaf ordinal's word index is in range) and A5 (the walk agrees with the address), plus the converse range bound and what U32 addition computes.",
+  "A1": "U32.cmp agrees with Nat.cmp on U32.to_nat. PROVED, as `comparing_two_ordinals_compares_their_values`. The power-of-two case was proved earlier for the set tree's descent; this is the general statement, and it is what the ascending-offsets invariant of a sparse leaf is stated with.",
+  "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. PROVED, as `rebasing_into_the_upper_half_keeps_the_ordinal_in_range`, together with A1 in the form that matters (`an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits`). The half-width is always a power of two, which makes the whole question bitwise.",
+  "A3": "PROVED, as `the_tile_address_is_injective`. The route is the division identity -- an ordinal is its word index scaled by 32 plus its bit index -- which turns equal addresses into equal `U32.to_nat`, and then `the_number_a_word_reads_as_determines_the_word` finishes. An earlier attempt stalled on word extensionality, whose natural statement takes a hypothesis quantified over bit positions that Bend's affine values will not let an induction use twice; the division identity avoids quantifying over bit positions entirely.",
+  "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
+  "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`.",
+  "A5": "The walk and the tile address name the same positions. PROVED, as `the_walk_agrees_with_the_tile_address`.",
+  "converse": "A number below 2^k fits in k bits (Word.to_nat_fits). Proved, so a range hypothesis can be derived from a numeric bound wherever a lemma needs the bitwise form."
+ }
 }
