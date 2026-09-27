@@ -21,7 +21,7 @@ import ../core/trie.bend as T
 def Succ() -> Data:
   List<&2, U32>
 
-def Graph(td: Nat) -> Data:
+def Graph() -> Data:
   T.Trie<Succ>
 
 def Graph.succ.un(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
@@ -38,12 +38,12 @@ def Graph.has.un(m: Maybe<&2, List<&2, U32>>) -> Bool:
     case Some{s}:
       True{}
 
-def Graph.has(+td: Nat, +g: Graph(td), +v: U32) -> Bool:
+def Graph.has(+td: Nat, +g: Graph(), +v: U32) -> Bool:
   Graph.has.un(T.Trie.at(Succ, td, g, v))
 
 # Is every ordinal in `vs` described by the table? An undescribed required
 # object is `IncompleteGraph`, not an empty adjacency.
-def Graph.domain_ok(+td: Nat, +g: Graph(td), vs: List<&2, U32>, ok: Bool) ->
+def Graph.domain_ok(+td: Nat, +g: Graph(), vs: List<&2, U32>, ok: Bool) ->
   Bool:
   match vs:
     case Nil{}:
@@ -58,12 +58,12 @@ def Graph.domain_ok(+td: Nat, +g: Graph(td), vs: List<&2, U32>, ok: Bool) ->
 # The successors recorded for `v`. An ordinal with no entry answers the empty
 # list; `Graph.domain_ok` is what establishes that no *required* ordinal is in
 # that state.
-def Graph.succ(+td: Nat, +g: Graph(td), +v: U32) -> List<&2, U32>:
+def Graph.succ(+td: Nat, +g: Graph(), +v: U32) -> List<&2, U32>:
   Graph.succ.un(T.Trie.at(Succ, td, g, v))
 
 # post(G, X): every successor of every member of `X`, as a list with
 # duplicates. Callers fold it into a set, which removes them.
-def Graph.gather(+td: Nat, +g: Graph(td), vs: List<&2, U32>,
+def Graph.gather(+td: Nat, +g: Graph(), vs: List<&2, U32>,
   acc: List<&2, U32>) -> List<&2, U32>:
   match vs:
     case Nil{}:
@@ -72,10 +72,10 @@ def Graph.gather(+td: Nat, +g: Graph(td), vs: List<&2, U32>,
       Graph.gather(td, g, t,
         List.append(&2, U32, Graph.succ(td, g, v), acc))
 
-def Graph.post(+td: Nat, +g: Graph(td), +sd: Nat, xs: List<&2, U32>) ->
+def Graph.post(+td: Nat, +g: Graph(), +sd: Nat, xs: List<&2, U32>) ->
   S.PSet:
   S.PSet.from_list(sd, Graph.gather(td, g, xs, Nil{}))
 
 # Does `v` have an edge to `w`?
-def Graph.edge(+td: Nat, +g: Graph(td), +v: U32, +w: U32) -> Bool:
+def Graph.edge(+td: Nat, +g: Graph(), +v: U32, +w: U32) -> Bool:
   List.contains(~U32, ~U32.is_eq, Graph.succ(td, g, v), w)

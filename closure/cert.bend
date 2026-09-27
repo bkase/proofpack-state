@@ -37,11 +37,11 @@ def Cert.some(m: Maybe<&2, U32>) -> Bool:
       True{}
 
 # Condition 3, one vertex: is there a `u` in the previous level with u -> v?
-def Cert.has_pred(+td: Nat, +g: G.Graph(td), prev: List<&2, U32>,
+def Cert.has_pred(+td: Nat, +g: G.Graph(), prev: List<&2, U32>,
   +v: U32) -> Bool:
   Cert.some(E.Explain.pred(td, g, prev, v, None{}))
 
-def Cert.preds_ok(+td: Nat, +g: G.Graph(td), +prev: List<&2, U32>,
+def Cert.preds_ok(+td: Nat, +g: G.Graph(), +prev: List<&2, U32>,
   cur: List<&2, U32>, ok: Bool) -> Bool:
   match cur:
     case Nil{}:
@@ -56,7 +56,7 @@ def Cert.preds_ok(+td: Nat, +g: G.Graph(td), +prev: List<&2, U32>,
 # Condition 3 over every level: each level's members must be reachable in one
 # edge from the level before, which makes the rank strictly decrease along the
 # witness chain back to level 0.
-def Cert.layers_ok(+td: Nat, +g: G.Graph(td), levels: R.Levels,
+def Cert.layers_ok(+td: Nat, +g: G.Graph(), levels: R.Levels,
   +prev: List<&2, U32>, ok: Bool) -> Bool:
   match levels:
     case Nil{}:
@@ -100,7 +100,7 @@ def Cert.rest(levels: R.Levels) -> R.Levels:
 # later level must be one edge from the one before; the union of the levels
 # must be exactly `c`; `c` must be edge-closed; and the roots must be inside
 # `c`.
-def Cert.check(+td: Nat, +g: G.Graph(td), +sd: Nat, +roots: List<&2, U32>,
+def Cert.check(+td: Nat, +g: G.Graph(), +sd: Nat, +roots: List<&2, U32>,
   levels: R.Levels, +c: S.PSet) -> Bool:
   +lv = levels
   +r = S.PSet.from_list(sd, roots)

@@ -31,7 +31,7 @@ def Levels() -> Data:
 type Reach.Out<-sd: Nat> is Data:
   Out{seen: S.PSet, levels: Levels, done: Bool, rounds: Nat}
 
-def Reach.go(+fuel: Nat, +td: Nat, +g: G.Graph(td), +sd: Nat,
+def Reach.go(+fuel: Nat, +td: Nat, +g: G.Graph(), +sd: Nat,
   +seen: S.PSet, front: List<&2, U32>, levels: Levels, rounds: Nat) ->
   Reach.Out<sd>:
   match fuel:
@@ -51,7 +51,7 @@ def Reach.go(+fuel: Nat, +td: Nat, +g: G.Graph(td), +sd: Nat,
 # `n` is the universe size. A round that does not finish the traversal adds at
 # least one vertex, so n+2 rounds always suffice and exhausting them means the
 # graph was larger than the universe it was declared over.
-def Reach.closure(+n: Nat, +td: Nat, +g: G.Graph(td), +sd: Nat,
+def Reach.closure(+n: Nat, +td: Nat, +g: G.Graph(), +sd: Nat,
   +roots: List<&2, U32>) -> Reach.Out<sd>:
   Reach.go(2n+n, td, g, sd, S.PSet.from_list(sd, roots), roots, Nil{}, 0n)
 

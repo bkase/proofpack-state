@@ -52,7 +52,7 @@ def Policy.short(p: Policy) -> String:
 
 type Source is Data:
   Src{fmt: O.Fmt, n: Nat, uni: I.Universe,
-    full: G.Graph(32n), tree: G.Graph(32n),
+    full: G.Graph(), tree: G.Graph(),
     meta: T.Trie<Im.Meta>, ids: T.Trie<O.Oid>,
     roots: List<&2, U32>, root_oids: List<&2, O.Oid>,
     ext: List<&2, O.Oid>, bad: List<&2, O.Oid>}
@@ -72,15 +72,15 @@ def Source.uni(+s: Source) -> I.Universe:
     case Src{fmt, n, uni, full, tree, meta, ids, roots, root_oids, ext, bad}:
       uni
 
-def Source.graph.pick(p: Policy, full: G.Graph(32n), tree: G.Graph(32n)) ->
-  G.Graph(32n):
+def Source.graph.pick(p: Policy, full: G.Graph(), tree: G.Graph()) ->
+  G.Graph():
   match p:
     case PFull{}:
       full
     case PTreeData{}:
       tree
 
-def Source.graph(+s: Source, p: Policy) -> G.Graph(32n):
+def Source.graph(+s: Source, p: Policy) -> G.Graph():
   match s:
     case Src{fmt, n, uni, full, tree, meta, ids, roots, root_oids, ext, bad}:
       Source.graph.pick(p, full, tree)

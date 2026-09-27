@@ -24,7 +24,7 @@ def Explain.opt(+u: U32, e: Bool) -> Maybe<&2, U32>:
       None{}
 
 # The first member of `cands` with an edge to `target`.
-def Explain.pred(+td: Nat, +g: G.Graph(td), cands: List<&2, U32>,
+def Explain.pred(+td: Nat, +g: G.Graph(), cands: List<&2, U32>,
   +target: U32, got: Maybe<&2, U32>) -> Maybe<&2, U32>:
   match cands:
     case Nil{}:
@@ -69,7 +69,7 @@ def Explain.upto(levels: R.Levels, +target: U32, acc: R.Levels,
             List.contains(~U32, ~U32.is_eq, ll, target))
 
 # Walk back down the levels, prepending each vertex.
-def Explain.walk(+td: Nat, +g: G.Graph(td), +rev: R.Levels, +cur: U32,
+def Explain.walk(+td: Nat, +g: G.Graph(), +rev: R.Levels, +cur: U32,
   acc: List<&2, U32>, p: Maybe<&2, U32>) -> List<&2, U32>:
   match rev:
     case Nil{}:
@@ -83,7 +83,7 @@ def Explain.walk(+td: Nat, +g: G.Graph(td), +rev: R.Levels, +cur: U32,
           Explain.walk(td, g, t, uu, Con{cur, acc},
             Explain.pred(td, g, Explain.head_lvl(t), uu, None{}))
 
-def Explain.path.go(+td: Nat, +g: G.Graph(td), +rev: R.Levels,
+def Explain.path.go(+td: Nat, +g: G.Graph(), +rev: R.Levels,
   +target: U32) -> List<&2, U32>:
   match rev:
     case Nil{}:
@@ -93,7 +93,7 @@ def Explain.path.go(+td: Nat, +g: G.Graph(td), +rev: R.Levels,
         Explain.pred(td, g, Explain.head_lvl(t), target, None{}))
 
 # A root-to-object path, or the empty list when the object is not reachable.
-def Explain.path(+td: Nat, +g: G.Graph(td), levels: R.Levels,
+def Explain.path(+td: Nat, +g: G.Graph(), levels: R.Levels,
   +target: U32) -> List<&2, U32>:
   Explain.path.go(td, g, Explain.upto(levels, target, Nil{}, False{}), target)
 
@@ -102,7 +102,7 @@ def Explain.path(+td: Nat, +g: G.Graph(td), levels: R.Levels,
 # producer.
 # ---------------------------------------------------------------------------
 
-def Explain.steps_ok(+td: Nat, +g: G.Graph(td), path: List<&2, U32>,
+def Explain.steps_ok(+td: Nat, +g: G.Graph(), path: List<&2, U32>,
   ok: Bool) -> Bool:
   match path:
     case Nil{}:
@@ -142,7 +142,7 @@ def Explain.first_in(path: List<&2, U32>, roots: List<&2, U32>) -> Bool:
 
 # Law E-01, as a runnable check: the path starts at a requested root, ends at
 # the requested object, and every step is a real policy edge.
-def Explain.valid(+td: Nat, +g: G.Graph(td), roots: List<&2, U32>,
+def Explain.valid(+td: Nat, +g: G.Graph(), roots: List<&2, U32>,
   +path: List<&2, U32>, +target: U32) -> Bool:
   Bool.and(Explain.first_in(path, roots),
     Bool.and(Explain.last_is(path, target),
