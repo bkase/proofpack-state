@@ -1965,7 +1965,7 @@ law an_accepted_record_had_its_declared_size:
 # `0xFFFFFFFF`.
 #
 # And the leaf case of the enumeration itself: a leaf enumerates exactly its
-# members, all four shapes. What remains is the tree above it.
+# members, all four shapes. The tree above it is the next section.
 # ===========================================================================
 
 law adding_into_free_bits_is_setting_them:
@@ -2017,6 +2017,48 @@ law a_leaf_enumerates_exactly_its_members:
   for +ok: {Le.PSet.ok.leaf(s) == True{} : Bool}
   {List.contains(~U32, ~U32.is_eq, S.PSet.leaf_members(s), y)
     == S.PSet.mem.leaf(s, y) : Bool}
+
+# ===========================================================================
+# The enumeration, whole.
+#
+# `PSet.to_list` walks the tree emitting ordinals and `PSet.member` walks the
+# same tree answering one question; these say they agree. The last law of the
+# group is the one the rest is for: for any set that passed `PSet.valid` --
+# the check a decoded set is already put through -- and any ordinal inside
+# the universe, the list contains the ordinal exactly when the set holds it.
+#
+# The pieces, in the order the proof uses them.
+#
+# A node covers an interval, and "this ordinal is in this node" is a bit test
+# on one side and a pair of bounds on the other. The two readings are related
+# both ways; the hard direction is uniqueness, and it comes from the division
+# identity -- a base whose low bits are zero is a power of two times its own
+# shift, so two bases bracketing the same ordinal are the same base.
+#
+# A full node gives itself away by counting: it emits its whole interval by
+# counting down from the last ordinal in it. That count-down is the interval,
+# in both directions.
+#
+# `base + h + h - 1` is that last ordinal, and it is the one expression in the
+# walk that would overflow at the top of the address space. It is accounted
+# for without numbers: doubling the half and taking one away is filling the
+# node's own low bits, which wraps exactly the way the walk does.
+#
+# A branch splits, and the two walks split differently -- the membership test
+# compares against the half-width, the enumeration masks one bit narrower. So
+# four laws say which half an ordinal is in, agreeing both ways, and two more
+# say how a mask at one width relates to a mask at the next.
+#
+# Then the induction itself, and the shape hypothesis discharged from
+# `PSet.valid`: for a sparse leaf, from the offsets the validity check has
+# already compared against 4096; for a dense leaf, from a bound on the tile
+# walk, which is 128 words of thirty-two ordinals each.
+#
+# The last three laws are what the enumeration is *for*: the count is the
+# length of the list, so a count that is not zero exhibits an ordinal and the
+# enumeration says it is a member -- and the same holds for the fused count
+# that never builds the difference it counts.
+# ===========================================================================
 
 law a_subtree_test_is_an_interval:
   for +base: U32
