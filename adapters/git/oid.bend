@@ -58,28 +58,6 @@ def Oid.key(o: Oid) -> U32:
     case Oid{w0, w1, w2, w3, w4, w5, w6, w7}:
       w7
 
-def Oid.eq(a: Oid, b: Oid) -> Bool:
-  match a:
-    case Oid{a0, a1, a2, a3, a4, a5, a6, a7}:
-      match b:
-        case Oid{b0, b1, b2, b3, b4, b5, b6, b7}:
-          Bool.and(U32.is_eq(a0, b0),
-            Bool.and(U32.is_eq(a1, b1),
-              Bool.and(U32.is_eq(a2, b2),
-                Bool.and(U32.is_eq(a3, b3),
-                  Bool.and(U32.is_eq(a4, b4),
-                    Bool.and(U32.is_eq(a5, b5),
-                      Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))))
-
-# ---------------------------------------------------------------------------
-# Reading. `Oid.of_bytes` takes a raw object id as it appears inside a tree
-# entry; `Oid.of_hex` takes the ASCII form `cat-file` prints. Both fold the
-# digest into the record four bytes (or eight hex characters) at a time,
-# shifting a completed word in at the low end -- so a 20-byte SHA-1 lands in
-# w3..w7 and a 32-byte SHA-256 fills all eight, and `Oid.key` reads the last
-# word, which is digest material in either format.
-# ---------------------------------------------------------------------------
-
 def Oid.push(+w: U32, o: Oid) -> Oid:
   match o:
     case Oid{w0, w1, w2, w3, w4, w5, w6, w7}:
@@ -174,6 +152,28 @@ def Oid.of_hex.go(+n: Nat, bs: B.Bytes, acc: Oid, +cur: U32,
 def Oid.of_hex(f: Fmt, +bs: B.Bytes) -> OidRead:
   Oid.of_hex.go(Fmt.hex_len(f), bs, Oid.zero(), 0, Oid.head_hex(bs), 8n)
 
+def Oid.eq(a: Oid, b: Oid) -> Bool:
+  match a:
+    case Oid{a0, a1, a2, a3, a4, a5, a6, a7}:
+      match b:
+        case Oid{b0, b1, b2, b3, b4, b5, b6, b7}:
+          Bool.and(U32.is_eq(a0, b0),
+            Bool.and(U32.is_eq(a1, b1),
+              Bool.and(U32.is_eq(a2, b2),
+                Bool.and(U32.is_eq(a3, b3),
+                  Bool.and(U32.is_eq(a4, b4),
+                    Bool.and(U32.is_eq(a5, b5),
+                      Bool.and(U32.is_eq(a6, b6), U32.is_eq(a7, b7))))))))
+
+# ---------------------------------------------------------------------------
+# Reading. `Oid.of_bytes` takes a raw object id as it appears inside a tree
+# entry; `Oid.of_hex` takes the ASCII form `cat-file` prints. Both fold the
+# digest into the record four bytes (or eight hex characters) at a time,
+# shifting a completed word in at the low end -- so a 20-byte SHA-1 lands in
+# w3..w7 and a 32-byte SHA-256 fills all eight, and `Oid.key` reads the last
+# word, which is digest material in either format.
+# ---------------------------------------------------------------------------
+
 def OidRead.oid(r: OidRead) -> Oid:
   match r:
     case Read{oid, ok}:
@@ -221,4 +221,3 @@ def Oid.show(f: Fmt, o: Oid) -> String:
   match o:
     case Oid{w0, w1, w2, w3, w4, w5, w6, w7}:
       Oid.show.pick(f, w0, w1, w2, w3, w4, w5, w6, w7)
-

@@ -366,18 +366,6 @@ def Parse.recs.go(+fuel: Nat, +f: O.Fmt, acc: List<&2, Rec>, s: Step) ->
           +rs = rest
           Parse.recs.go(g, f, Con{r, acc}, Parse.recs.step(f, rs))
 
-def Parse.recs(+f: O.Fmt, +bs: B.Bytes) -> Recs:
-  Parse.recs.go(1n+List.length(&2, U32, bs), f, Nil{},
-    Parse.recs.step(f, bs))
-
-# ---------------------------------------------------------------------------
-# Bodies: the children a commit, tag or tree names.
-#
-# Each body type has its own `step`, and one shared fuel-bounded loop walks
-# it. `LStep` plays the same role `Step` does above: it turns a decision made
-# on computed values into a constructor the loop can match.
-# ---------------------------------------------------------------------------
-
 type Child is Data:
   Kid{oid: O.Oid, gitlink: Bool, name: B.Bytes}
 
@@ -400,6 +388,18 @@ type LStep is Data:
   LDone{}
   LBad{}
   LKid{kid: Child, rest: B.Bytes}
+
+def Parse.recs(+f: O.Fmt, +bs: B.Bytes) -> Recs:
+  Parse.recs.go(1n+List.length(&2, U32, bs), f, Nil{},
+    Parse.recs.step(f, bs))
+
+# ---------------------------------------------------------------------------
+# Bodies: the children a commit, tag or tree names.
+#
+# Each body type has its own `step`, and one shared fuel-bounded loop walks
+# it. `LStep` plays the same role `Step` does above: it turns a decision made
+# on computed values into a constructor the loop can match.
+# ---------------------------------------------------------------------------
 
 type Kids is Data:
   Kids{items: List<&2, Child>, ok: Bool}

@@ -158,4 +158,3 @@ def Rw.simplify(e: A.SetExpr) -> A.SetExpr:
       Rw.close(policy, Rw.simplify(a))
     case A.EFilter{kind, a}:
       A.EFilter{kind, Rw.simplify(a)}
-

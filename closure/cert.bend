@@ -110,4 +110,3 @@ def Cert.check(+td: Nat, +g: G.Graph(td), +sd: Nat, +roots: List<&2, U32>,
         Cert.layers_ok(td, g, Cert.rest(lv), Cert.first(lv, roots),
           S.PSet.is_subset(sd, S.PSet.from_list(sd, Cert.first(lv, roots)),
             r)))))
-

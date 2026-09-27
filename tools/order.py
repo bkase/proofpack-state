@@ -69,7 +69,16 @@ def order(path, check_only=False):
         return 0
 
     names = [b[0] for b in blocks]
-    index = {n: i for i, n in enumerate(names)}
+    kinds = [b[1] for b in blocks]
+    # A `law X` and the `def X` that fills it share a name. The law has to
+    # come first, and only the law is what other blocks depend on.
+    # A reference to `X` needs the *filled* definition, so it points at the
+    # `def` when there is one; the `def` in turn depends on its `law`.
+    index = {}
+    for i, n in enumerate(names):
+        if n not in index or kinds[i] == 'def':
+            index[n] = i
+    law_of = {n: i for i, n in enumerate(names) if kinds[i] == 'law'}
     owner = constructors(blocks)
 
     deps = []
@@ -77,17 +86,26 @@ def order(path, check_only=False):
         want = set()
         head = body[0] if body else ''
         for line in body:
-            for tok in TOKEN.findall(line):
+            # Comments name definitions all the time; only code is a
+            # dependency.
+            code = line.split('#', 1)[0] if not line.lstrip().startswith('#') \
+                else ''
+            for tok in TOKEN.findall(code):
                 target = None
                 if tok in index:
                     target = tok
                 elif tok in owner:
                     target = owner[tok]
-                if target is None:
+                # A block never depends on its own name: that is either
+                # self-recursion, or a `law X` mentioning the `def X` that
+                # fills it. The law-before-def edge is added explicitly.
+                if target is None or target == name:
                     continue
                 j = index[target]
                 if j != i:
                     want.add(j)
+        if kind == 'def' and name in law_of and law_of[name] != i:
+            want.add(law_of[name])
         deps.append(want)
 
     # Stable topological sort: repeatedly take the earliest block whose

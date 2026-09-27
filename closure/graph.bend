@@ -31,27 +31,6 @@ def Graph.succ.un(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
     case Some{s}:
       s
 
-# The successors recorded for `v`. An ordinal with no entry answers the empty
-# list; `Graph.domain_ok` is what establishes that no *required* ordinal is in
-# that state.
-def Graph.succ(+td: Nat, +g: Graph(td), +v: U32) -> List<&2, U32>:
-  Graph.succ.un(T.Trie.at(Succ, td, g, v))
-
-# post(G, X): every successor of every member of `X`, as a list with
-# duplicates. Callers fold it into a set, which removes them.
-def Graph.gather(+td: Nat, +g: Graph(td), vs: List<&2, U32>,
-  acc: List<&2, U32>) -> List<&2, U32>:
-  match vs:
-    case Nil{}:
-      acc
-    case Con{v, t}:
-      Graph.gather(td, g, t,
-        List.append(&2, U32, Graph.succ(td, g, v), acc))
-
-def Graph.post(+td: Nat, +g: Graph(td), +sd: Nat, xs: List<&2, U32>) ->
-  S.PSet:
-  S.PSet.from_list(sd, Graph.gather(td, g, xs, Nil{}))
-
 def Graph.has.un(m: Maybe<&2, List<&2, U32>>) -> Bool:
   match m:
     case None{}:
@@ -75,6 +54,27 @@ def Graph.domain_ok(+td: Nat, +g: Graph(td), vs: List<&2, U32>, ok: Bool) ->
           False{}
         case True{}:
           Graph.domain_ok(td, g, t, Graph.has(td, g, v))
+
+# The successors recorded for `v`. An ordinal with no entry answers the empty
+# list; `Graph.domain_ok` is what establishes that no *required* ordinal is in
+# that state.
+def Graph.succ(+td: Nat, +g: Graph(td), +v: U32) -> List<&2, U32>:
+  Graph.succ.un(T.Trie.at(Succ, td, g, v))
+
+# post(G, X): every successor of every member of `X`, as a list with
+# duplicates. Callers fold it into a set, which removes them.
+def Graph.gather(+td: Nat, +g: Graph(td), vs: List<&2, U32>,
+  acc: List<&2, U32>) -> List<&2, U32>:
+  match vs:
+    case Nil{}:
+      acc
+    case Con{v, t}:
+      Graph.gather(td, g, t,
+        List.append(&2, U32, Graph.succ(td, g, v), acc))
+
+def Graph.post(+td: Nat, +g: Graph(td), +sd: Nat, xs: List<&2, U32>) ->
+  S.PSet:
+  S.PSet.from_list(sd, Graph.gather(td, g, xs, Nil{}))
 
 # Does `v` have an edge to `w`?
 def Graph.edge(+td: Nat, +g: Graph(td), +v: U32, +w: U32) -> Bool:
