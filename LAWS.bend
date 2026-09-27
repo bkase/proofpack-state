@@ -62,6 +62,7 @@ import ./query/rewrite.bend as Rw
 import ./spec/query.bend as Q
 import ./proofs/denote.bend as Dn
 import ./proofs/extensive.bend as Ex2
+import ./proofs/table.bend as Tb
 import ./proofs/missing.bend as M
 
 # ===========================================================================
@@ -1333,3 +1334,71 @@ law the_closure_contains_every_member_of_its_roots:
   for +m: {S.PSet.member(20n, r, x) == True{} : Bool}
   {S.PSet.member(20n, Sp2.Spec.closure(n, td, g, 20n, r), x)
     == True{} : Bool}
+
+# ===========================================================================
+# What a table built from a list answers.
+#
+# Every per-object table in the index is a trie built in one pass from a list
+# in ordinal order: adjacency under each policy, object metadata, the object
+# ids. `Trie.build` splits the list in half at each level and `Trie.get`
+# descends the same halves, so the answer at an ordinal is fixed by the list.
+#
+# `List.at_ord` is that same descent, performed on the list: it takes the same
+# branch from the same half-width, by construction. Saying the answer is "the
+# element at index `to_nat(x)`" instead would drag in the whole numeric
+# reading of a machine word -- that the half-width is a power of two, that
+# `U32.sub` is subtraction, that `take` and `drop` at `to_nat(h)` line up with
+# the bit test -- and none of that is needed for what the tables are for,
+# which is to be read at the same ordinal as each other.
+# ===========================================================================
+
+law a_table_built_from_a_list_answers_the_same_descent_over_the_list:
+  for -A: Data
+  for +d: Nat
+  for +xs: List<&2, A>
+  for +x: U32
+  {Tr.Trie.at(A, d, Tr.Trie.of_list(A, d, xs), x)
+    == Tb.List.at_ord(A, d, xs, Tr.Trie.half(d), x) : Maybe<&2, A>}
+
+# ===========================================================================
+# G-02 -- the tree-data policy, at an edge.
+#
+# `a_filtered_row_drops_exactly_the_commit_targets` above is the row-level
+# half, and this is the lift the obligation asks for: the same statement about
+# `Graph.edge` over the two assembled adjacency tables.
+#
+# The two expressions named here are exactly what `Idx.assemble.tries` stores
+# in a built source as its `full` and `tree` graphs, and the metadata table it
+# stores is the third. All three are `Trie.of_list` over lists that run in
+# ordinal order and in step, so by the law above they descend together, and
+# the question reduces to the three lists at a position -- where the row law
+# applies.
+#
+# The hypothesis is that the metadata table describes `u`. It is not
+# decorative: `Idx.tree_rows` stops at the shorter of rows and metadata, so an
+# object with a successor row but no metadata entry would be absent from the
+# tree-data table while still present in the full one, and the two policies
+# would then disagree about an edge for a reason that has nothing to do with
+# the policy. The importer rules that out -- it appends to both in the same
+# step, and `Graph.domain_ok` is the check that says the graph describes every
+# ordinal (SPEC 3.2) -- so the hypothesis holds of every source `pp` builds.
+# ===========================================================================
+
+law the_tree_data_policy_drops_exactly_the_parent_edges:
+  for +rows: List<&2, Im.Row>
+  for +metas: List<&2, Im.Meta>
+  for +u: U32
+  for +v: U32
+  for +m: Im.Meta
+  for +hm: {Tr.Trie.at(Im.Meta, 32n, Tr.Trie.of_list(Im.Meta, 32n, metas), u)
+    == Some{m} : Maybe<&2, Im.Meta>}
+  {Gr.Graph.edge(32n, Tr.Trie.of_list(Gr.Succ, 32n,
+      Sc.Idx.tree_rows(Tr.Trie.of_list(Im.Meta, 32n, metas), rows, metas)),
+      u, v)
+    == Bool.and(
+         Gr.Graph.edge(32n, Tr.Trie.of_list(Gr.Succ, 32n,
+           Sc.Idx.full_rows(rows)), u, v),
+         Bool.not(Bool.and(Sc.Idx.is_commit(m),
+           Sc.Idx.is_commit(Sc.Source.meta_of.un(
+             Tr.Trie.at(Im.Meta, 32n,
+               Tr.Trie.of_list(Im.Meta, 32n, metas), v)))))) : Bool}

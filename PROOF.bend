@@ -45,6 +45,8 @@
 #   proofs/denote.bend    every denotation is well shaped
 #   proofs/rewrite.bend   every admitted query rewrite keeps the denotation
 #   proofs/extensive.bend the closure contains what it closes
+#   proofs/table.bend     what a table built from a list answers
+#   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
 #   proofs/intern.bend    interning an id and finding it again
 
@@ -56,6 +58,8 @@ import ./proofs/nothing.bend as PNo
 import ./proofs/denote.bend as PDn
 import ./proofs/rewrite.bend as PRw
 import ./proofs/extensive.bend as PEx
+import ./proofs/table.bend as PTb
+import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
 import ./proofs/intern.bend as PIn
 import ./proofs/nat.bend as N
@@ -383,3 +387,11 @@ def Laws.every_denotation_is_well_shaped(src, e, ok):
 def Laws.the_closure_contains_every_member_of_its_roots(n, td, g, r, x, v,
   m):
   PEx.Spec.closure_contains_its_roots(n, td, g, r, x, v, m)
+
+def Laws.a_table_built_from_a_list_answers_the_same_descent_over_the_list(A,
+  d, xs, x):
+  PTb.Trie.at_of_list(A, d, xs, x)
+
+def Laws.the_tree_data_policy_drops_exactly_the_parent_edges(rows, metas, u,
+  v, m, hm):
+  PPl.Idx.tree_data_edge(rows, metas, u, v, m, hm)

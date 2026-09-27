@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project": "ProofPack State",
-  "status": "Per-obligation status as of this release. 14 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 7 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 6 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+  "status": "Per-obligation status as of this release. 15 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 6 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 6 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
   "laws": [
     {
       "id": "U-01",
@@ -501,13 +501,12 @@
         "G-01",
         "C-01"
       ],
-      "status": "partially_proved",
+      "status": "proved",
       "production_symbol": "Idx.filter_succ / Graph.edge",
-      "proof_symbol": "Policy.filter_drops_commits (proofs/policy.bend)",
-      "stated_in": "LAWS.bend (the row) and LAWS.pending.bend (the graph)",
+      "proof_symbol": "Policy.filter_drops_commits (proofs/policy.bend), Idx.tree_data_edge (proofs/policylift.bend), on Trie.at_of_list (proofs/table.bend)",
+      "stated_in": "LAWS.bend",
       "backed_by": "tools/differential.sh checks the tree-data policy against `rev-parse` plus `ls-tree -r -t` on three repositories, with gitlink entries excluded, over a corpus with a merge, a tag chain, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a gitlink.",
-      "proved_part": "At the row: an ordinal survives Idx.filter_succ exactly when it was in the successor row and is not itself a commit. Unconditional, for any row and any metadata table. Discharged by `bend PROOF.bend` as `a_filtered_row_drops_exactly_the_commit_targets`.",
-      "gap": "Lifting the row law to Graph.edge over the two assembled adjacency tries. Both are Trie.of_list over positionally parallel lists, so the lift reduces to `Trie.at(of_list(xs), x) == the element of xs at position x`, whose proof needs bit-vector arithmetic for the trie descent (that U32.is_lt agrees with the order on to_nat, and that U32.sub is subtraction when it does not borrow). Neither is proved in this release."
+      "proved_part": "Both halves. At a row: an ordinal survives Idx.filter_succ exactly when it was in the successor row and is not itself a commit. At an edge: the same statement about Graph.edge over the two adjacency tables Idx.assemble.tries stores, given that the metadata table describes the source vertex -- which the importer guarantees and Graph.domain_ok checks. The lift goes through proofs/table.bend: a table built from a list answers whatever the same descent over the list answers, so the three tables descend together and the question reduces to the three lists at a position."
     },
     {
       "id": "G-03",

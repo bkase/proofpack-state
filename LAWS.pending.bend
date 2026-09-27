@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 12. That count is the point of the file, so the command "failing"
+# currently 11. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -335,44 +335,32 @@ law the_evaluator_computes_the_denotation:
     == S.PSet.member(20n, Den.Den.eval(src, e), x) : Bool}
 
 # ===========================================================================
-# G-01, G-02, G-03 -- the Git adapter.
+# G-01, G-03 -- the Git adapter.
 #
 # These are the obligations that cross out of the algebra and into a real
 # repository, and they are the ones a proof can least reach: G-01 is about a
-# byte grammar, G-02 about matching Git's own semantics, G-03 about a
-# projection between two universes.
+# byte grammar, G-03 about a projection between two universes. Neither is a
+# statement about a definition in this tree; both are statements about
+# agreeing with something outside it.
 #
 # Backed by: tools/differential.sh, which checks both policies and the
 # inventory against independent Git plumbing on three repositories, over a
 # corpus that includes a merge, a tag to a tag, a tag to a tree, a tag to a
 # blob, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a
 # gitlink with no submodule present.
+#
+# G-02 is closed. The row-level half was proved earlier; the lift to
+# `Graph.edge` is now proved too and lives in LAWS.bend as
+# `the_tree_data_policy_drops_exactly_the_parent_edges`, over exactly the two
+# expressions `Idx.assemble.tries` stores as a source's two graphs. The note
+# that used to stand here said the lift needed arithmetic this release had not
+# proved -- that `U32.is_lt` agrees with the numeric order, and that `U32.sub`
+# is subtraction when it does not borrow. That was the wrong route rather than
+# a missing fact: the tables do not need to be read at an absolute index, only
+# at the same ordinal as each other, and stating the answer as the same
+# *descent over the list* removes the arithmetic entirely. Both facts have
+# since been proved anyway, for the set tree; neither is used here.
 # ===========================================================================
-
-# The row-level half of G-02 is now proved unconditionally and lives in
-# LAWS.bend as `a_filtered_row_drops_exactly_the_commit_targets`: an ordinal
-# survives `Idx.filter_succ` exactly when it was in the successor row and is
-# not itself a commit.
-#
-# What remains open is the lift from a row to `Graph.edge`. Both adjacency
-# tables are `Trie.of_list` over positionally parallel lists, so the lift
-# reduces to a single missing lemma -- that a trie built from a list answers,
-# at ordinal `x`, the element of that list at position `x`:
-#
-#     Trie.at(A, d, Trie.of_list(A, d, xs), x)  ==  the element of xs at x
-#
-# and that needs arithmetic this release has not proved: that `U32.is_lt`
-# agrees with the order on `U32.to_nat`, and that `U32.sub` is subtraction
-# when it does not borrow. Both are bit-vector facts about the descent, not
-# about the policy.
-law the_tree_data_policy_drops_exactly_the_parent_edges:
-  for +src: Idx.Source
-  for +u: U32
-  for +v: U32
-  {G.Graph.edge(32n, Idx.Source.graph(src, Idx.PTreeData{}), u, v)
-    == Bool.and(G.Graph.edge(32n, Idx.Source.graph(src, Idx.PFull{}), u, v),
-         Bool.not(Bool.and(Idx.Idx.is_commit(Idx.Source.meta_of(src, u)),
-           Idx.Idx.is_commit(Idx.Source.meta_of(src, v))))) : Bool}
 
 # ===========================================================================
 # D-01 -- the persistent store, and what is checked instead.

@@ -22,6 +22,7 @@
 # head bit as the tiebreak, so reflection is an induction on the vector.
 
 import Base
+import ../core/trie.bend as T
 
 # ---------------------------------------------------------------------------
 # Using a false hypothesis.
@@ -307,6 +308,10 @@ def Cmp.lt_not_gt(-A: Type, e: {LT{} == GT{} : Cmp}) -> A:
 
 def Cmp.gt_not_eq(-A: Type, e: {GT{} == EQ{} : Cmp}) -> A:
   Empty.absurd(A, Cmp.gt_not_eq.go(e))
+
+def Trie.sym(-A: Data, -a: T.Trie<A>, -b: T.Trie<A>,
+  e: {a == b : T.Trie<A>}) -> {b == a : T.Trie<A>}:
+  Equal.sym(T.Trie<A>, a, b, e)
 
 def List.sym(-A: Data, -a: List<&2, A>, -b: List<&2, A>,
   e: {a == b : List<&2, A>}) -> {b == a : List<&2, A>}:

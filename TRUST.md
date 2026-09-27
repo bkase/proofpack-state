@@ -33,7 +33,7 @@ The proofs cover:
 | `M-03` | missing distributes over a union of requirements; inventory tiers compose |
 | `I-01` | an additions-only update needs no re-derivation; "add wins" in a patch |
 | `P-01` | inserting an ordinal into a structurally valid set leaves it present, at the depth the product runs at, with no hypothesis on the ordinal. The sharing half -- that retained old roots are undisturbed -- is a property of Bend's affine values, not an equation; §3 |
-| `G-02` | at a row: the tree-data filter drops exactly the commit targets. Lifting that to `Graph.edge` over the assembled tries is still open |
+| `G-02` | both halves. At a row: the tree-data filter drops exactly the commit targets. At an edge: the same statement over the two adjacency tables a built source stores, given that the metadata table describes the source vertex -- which the importer guarantees and `Graph.domain_ok` checks. The lift rests on a table built from a list answering whatever the same descent over that list answers |
 | `E-01` | of a produced dependency witness: every step is a real policy edge, and it ends at the object asked about. That it *starts* at a root depends on the levels being a genuine BFS layering, which is `C-02` |
 | `S-02` | set difference, union and intersection are pointwise at the production depth, for structurally valid operands and every `U32` ordinal |
 | `S-03` | compression changes no member, whichever of its four representations it picks |
