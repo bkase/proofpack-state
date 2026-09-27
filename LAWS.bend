@@ -79,6 +79,7 @@ import ./proofs/leafenum.bend as Le
 import ./proofs/treeenum.bend as Te
 import ./proofs/validshape.bend as Vs
 import ./proofs/nonempty.bend as Wt
+import ./proofs/orderlist.bend as Ol
 import ./proofs/shift.bend as Sh2
 import ./proofs/shift.bend as Sf
 import ./adapters/git/bytes.bend as By
@@ -2279,3 +2280,9 @@ law the_fused_count_is_the_length_of_the_fused_list:
   for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
   {S.PSet.missing_count(d, a, b)
     == List.length(&2, U32, S.PSet.missing(d, a, b)) : Nat}
+
+law a_tile_lists_its_ordinals_in_order:
+  for +ws: List<&2, U32>
+  for +len: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{}
+    : Bool}
+  {Ol.Ords.asc(Wo.Words.members(ws, 0)) == True{} : Bool}

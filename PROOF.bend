@@ -68,6 +68,8 @@
 #   proofs/tilefit.bend   the tile walk stays inside the leaf
 #   proofs/countlen.bend  the count is the length of the enumeration
 #   proofs/fusedlen.bend  the fused count is the length of the fused list
+#   proofs/orderlist.bend ascending and descending lists of ordinals
+#   proofs/tileorder.bend the tile walk emits ordinals in order
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -108,6 +110,8 @@ import ./proofs/validshape.bend as PVs
 import ./proofs/tilefit.bend as PTf
 import ./proofs/countlen.bend as PCn
 import ./proofs/fusedlen.bend as PFl
+import ./proofs/orderlist.bend as POl
+import ./proofs/tileorder.bend as PTo
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -630,3 +634,6 @@ def Laws.a_set_with_a_nonzero_count_has_a_member(d, s, l, ok, lt, el,
 
 def Laws.the_fused_count_is_the_length_of_the_fused_list(d, a, b, lt):
   PFl.PSet.missing_count_is_length(d, a, b, lt)
+
+def Laws.a_tile_lists_its_ordinals_in_order(ws, len):
+  PTo.Ords.asc_members(ws, len)
