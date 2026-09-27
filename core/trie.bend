@@ -5,8 +5,13 @@
 # vector, as a binary trie keyed on the ordinal's bits from the top down.
 #
 # Why a trie and not a list: lookup is O(depth) rather than O(N), and an
-# absent subtree is one `BNil` node rather than a run of holes, so a table
-# built for N objects costs about 2N nodes however wide the ordinal space is.
+# absent subtree is one gap node rather than a run of holes, so a table built
+# for N objects costs about 2N nodes however wide the ordinal space is.
+#
+# The depth is an ordinary `Nat` argument, not a type index, for the reason
+# core/set.bend records at length: the compiler's layout pass cannot see that
+# a depth-indexed family is self-recursive, unrolls it, and every value of
+# such a type costs over a hundred words.
 #
 # Why built top-down by splitting rather than by N inserts: `Trie.build`
 # walks the payload list once per level, so a table of N entries costs
@@ -15,27 +20,13 @@
 import Base
 import ./count.bend as C
 
-type Trie.Leaf<-A: Data> is Data:
-  TVal{value: A}
+type Trie<-A: Data> is Data:
   TGap{}
+  TVal{value: A}
+  TBr{lo: Trie<A>, hi: Trie<A>}
 
-type Trie.Node<-A: Data, -p: Nat> is Data:
-  BGap{}
-  BBr{lo: Trie(A, p), hi: Trie(A, p)}
-
-def Trie(-A: Data, d: Nat) -> Data:
-  match d:
-    case 0n:
-      Trie.Leaf<A>
-    case 1n+p:
-      Trie.Node<A, p>
-
-def Trie.gap(-A: Data, d: Nat) -> Trie(A, d):
-  match d:
-    case 0n:
-      TGap{}
-    case 1n+p:
-      BGap{}
+def Trie.gap(-A: Data) -> Trie<A>:
+  TGap{}
 
 # The depth that covers `n` ordinals: a leaf holds exactly one.
 def Trie.depth.go(+fuel: Nat, +cap: Nat, +n: Nat, d: Nat, done: Bool) -> Nat:
@@ -64,8 +55,7 @@ def Trie.half(+d: Nat) -> U32:
 # same walk `PSet.mem` uses.
 # ---------------------------------------------------------------------------
 
-def Trie.pick(-A: Data, -p: Nat, b: Bool, lo: Trie(A, p),
-  hi: Trie(A, p)) -> Trie(A, p):
+def Trie.pick(-A: Data, b: Bool, lo: Trie<A>, hi: Trie<A>) -> Trie<A>:
   match b:
     case True{}:
       lo
@@ -79,7 +69,7 @@ def Trie.rebase(b: Bool, +h: U32, +x: U32) -> U32:
     case False{}:
       U32.sub(x, h)
 
-def Trie.get(-A: Data, d: Nat, t: Trie(A, d), +h: U32,
+def Trie.get(-A: Data, +d: Nat, t: Trie<A>, +h: U32,
   +x: U32) -> Maybe<&2, A>:
   match d:
     case 0n:
@@ -88,16 +78,20 @@ def Trie.get(-A: Data, d: Nat, t: Trie(A, d), +h: U32,
           None{}
         case TVal{v}:
           Some{v}
+        case TBr{lo, hi}:
+          None{}
     case 1n+p:
       match t:
-        case BGap{}:
+        case TGap{}:
           None{}
-        case BBr{lo, hi}:
+        case TVal{v}:
+          None{}
+        case TBr{lo, hi}:
           +b = U32.is_lt(x, h)
-          Trie.get(A, p, Trie.pick(A, p, b, lo, hi), U32.shr(h),
+          Trie.get(A, p, Trie.pick(A, b, lo, hi), U32.shr(h),
             Trie.rebase(b, h, x))
 
-def Trie.at(-A: Data, +d: Nat, t: Trie(A, d), +x: U32) ->
+def Trie.at(-A: Data, +d: Nat, t: Trie<A>, +x: U32) ->
   Maybe<&2, A>:
   Trie.get(A, d, t, Trie.half(d), x)
 
@@ -107,7 +101,7 @@ def Trie.at(-A: Data, +d: Nat, t: Trie(A, d), +x: U32) ->
 # ---------------------------------------------------------------------------
 
 def Trie.build(-A: Data, +d: Nat, +h: U32, +xs: List<&2, A>) ->
-  Trie(A, d):
+  Trie<A>:
   match d:
     case 0n:
       match xs:
@@ -118,16 +112,16 @@ def Trie.build(-A: Data, +d: Nat, +h: U32, +xs: List<&2, A>) ->
     case 1n+p:
       match xs:
         case Nil{}:
-          BGap{}
+          TGap{}
         case Con{v, rest}:
           +ys = {Con{v, rest} : List<&2, A>}
           +k = U32.to_nat(h)
           +h2 = U32.shr(h)
-          BBr{Trie.build(A, p, h2, List.take(&2, A, ys, k)),
+          TBr{Trie.build(A, p, h2, List.take(&2, A, ys, k)),
             Trie.build(A, p, h2, List.drop(&2, A, ys, k))}
 
 def Trie.of_list(-A: Data, +d: Nat, xs: List<&2, A>) ->
-  Trie(A, d):
+  Trie<A>:
   Trie.build(A, d, Trie.half(d), xs)
 
 # ---------------------------------------------------------------------------
@@ -136,39 +130,45 @@ def Trie.of_list(-A: Data, +d: Nat, xs: List<&2, A>) ->
 # that called back would be mutual recursion.
 # ---------------------------------------------------------------------------
 
-def Trie.put(-A: Data, +d: Nat, t: Trie(A, d), +h: U32, +x: U32, +v: A,
-  b: Bool) -> Trie(A, d):
+def Trie.put(-A: Data, +d: Nat, t: Trie<A>, +h: U32, +x: U32, +v: A,
+  b: Bool) -> Trie<A>:
   match d:
     case 0n:
-      match t:
-        case TGap{}:
-          TVal{v}
-        case TVal{old}:
-          TVal{v}
+      TVal{v}
     case 1n+p:
       match t:
-        case BGap{}:
+        case TBr{lo, hi}:
           match b:
             case True{}:
               +h2 = U32.shr(h)
-              BBr{Trie.put(A, p, Trie.gap(A, p), h2, x, v, U32.is_lt(x, h2)),
-                Trie.gap(A, p)}
+              TBr{Trie.put(A, p, lo, h2, x, v, U32.is_lt(x, h2)), hi}
             case False{}:
               +x2 = U32.sub(x, h)
               +h2 = U32.shr(h)
-              BBr{Trie.gap(A, p),
-                Trie.put(A, p, Trie.gap(A, p), h2, x2, v, U32.is_lt(x2, h2))}
-        case BBr{lo, hi}:
+              TBr{lo, Trie.put(A, p, hi, h2, x2, v, U32.is_lt(x2, h2))}
+        case TGap{}:
           match b:
             case True{}:
               +h2 = U32.shr(h)
-              BBr{Trie.put(A, p, lo, h2, x, v, U32.is_lt(x, h2)), hi}
+              TBr{Trie.put(A, p, TGap{}, h2, x, v, U32.is_lt(x, h2)),
+                TGap{}}
             case False{}:
               +x2 = U32.sub(x, h)
               +h2 = U32.shr(h)
-              BBr{lo, Trie.put(A, p, hi, h2, x2, v, U32.is_lt(x2, h2))}
+              TBr{TGap{},
+                Trie.put(A, p, TGap{}, h2, x2, v, U32.is_lt(x2, h2))}
+        case TVal{old}:
+          match b:
+            case True{}:
+              +h2 = U32.shr(h)
+              TBr{Trie.put(A, p, TGap{}, h2, x, v, U32.is_lt(x, h2)),
+                TGap{}}
+            case False{}:
+              +x2 = U32.sub(x, h)
+              +h2 = U32.shr(h)
+              TBr{TGap{},
+                Trie.put(A, p, TGap{}, h2, x2, v, U32.is_lt(x2, h2))}
 
-def Trie.set(-A: Data, +d: Nat, t: Trie(A, d), +x: U32, +v: A) ->
-  Trie(A, d):
+def Trie.set(-A: Data, +d: Nat, t: Trie<A>, +x: U32, +v: A) -> Trie<A>:
   +h = Trie.half(d)
   Trie.put(A, d, t, h, x, v, U32.is_lt(x, h))

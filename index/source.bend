@@ -53,7 +53,7 @@ def Policy.short(p: Policy) -> String:
 type Source is Data:
   Src{fmt: O.Fmt, n: Nat, uni: I.Universe,
     full: G.Graph(32n), tree: G.Graph(32n),
-    meta: T.Trie(Im.Meta, 32n), ids: T.Trie(O.Oid, 32n),
+    meta: T.Trie<Im.Meta>, ids: T.Trie<O.Oid>,
     roots: List<&2, U32>, root_oids: List<&2, O.Oid>,
     ext: List<&2, O.Oid>, bad: List<&2, O.Oid>}
 
@@ -85,12 +85,12 @@ def Source.graph(+s: Source, p: Policy) -> G.Graph(32n):
     case Src{fmt, n, uni, full, tree, meta, ids, roots, root_oids, ext, bad}:
       Source.graph.pick(p, full, tree)
 
-def Source.meta(+s: Source) -> T.Trie(Im.Meta, 32n):
+def Source.meta(+s: Source) -> T.Trie<Im.Meta>:
   match s:
     case Src{fmt, n, uni, full, tree, meta, ids, roots, root_oids, ext, bad}:
       meta
 
-def Source.ids(+s: Source) -> T.Trie(O.Oid, 32n):
+def Source.ids(+s: Source) -> T.Trie<O.Oid>:
   match s:
     case Src{fmt, n, uni, full, tree, meta, ids, roots, root_oids, ext, bad}:
       ids
@@ -162,7 +162,7 @@ def Idx.keep.pick(+v: U32, drop: Bool, rest: List<&2, U32>) ->
     case False{}:
       Con{v, rest}
 
-def Idx.filter_succ(+mt: T.Trie(Im.Meta, 32n), +succ: List<&2, U32>) ->
+def Idx.filter_succ(+mt: T.Trie<Im.Meta>, +succ: List<&2, U32>) ->
   List<&2, U32>:
   match succ:
     case Nil{}:
@@ -172,7 +172,7 @@ def Idx.filter_succ(+mt: T.Trie(Im.Meta, 32n), +succ: List<&2, U32>) ->
         Idx.is_commit(Source.meta_of.un(T.Trie.at(Im.Meta, 32n, mt, v))),
         Idx.filter_succ(mt, t))
 
-def Idx.tree_row(+mt: T.Trie(Im.Meta, 32n), row: List<&2, U32>,
+def Idx.tree_row(+mt: T.Trie<Im.Meta>, row: List<&2, U32>,
   parent_commit: Bool) -> List<&2, U32>:
   match parent_commit:
     case False{}:
@@ -180,7 +180,7 @@ def Idx.tree_row(+mt: T.Trie(Im.Meta, 32n), row: List<&2, U32>,
     case True{}:
       Idx.filter_succ(mt, row)
 
-def Idx.tree_rows(+mt: T.Trie(Im.Meta, 32n), rows: List<&2, Im.Row>,
+def Idx.tree_rows(+mt: T.Trie<Im.Meta>, rows: List<&2, Im.Row>,
   metas: List<&2, Im.Meta>) -> List<&2, G.Succ>:
   match rows:
     case Nil{}:

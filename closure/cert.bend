@@ -77,7 +77,7 @@ def Cert.concat(levels: R.Levels, acc: List<&2, U32>) -> List<&2, U32>:
     case Con{l, t}:
       Cert.concat(t, List.append(&2, U32, l, acc))
 
-def Cert.same(+sd: Nat, +a: S.PSet(sd), +b: S.PSet(sd)) -> Bool:
+def Cert.same(+sd: Nat, +a: S.PSet, +b: S.PSet) -> Bool:
   Bool.and(S.PSet.is_subset(sd, a, b), S.PSet.is_subset(sd, b, a))
 
 def Cert.first(levels: R.Levels, fallback: List<&2, U32>) -> List<&2, U32>:
@@ -101,7 +101,7 @@ def Cert.rest(levels: R.Levels) -> R.Levels:
 # must be exactly `c`; `c` must be edge-closed; and the roots must be inside
 # `c`.
 def Cert.check(+td: Nat, +g: G.Graph(td), +sd: Nat, +roots: List<&2, U32>,
-  levels: R.Levels, +c: S.PSet(sd)) -> Bool:
+  levels: R.Levels, +c: S.PSet) -> Bool:
   +lv = levels
   +r = S.PSet.from_list(sd, roots)
   Bool.and(S.PSet.is_subset(sd, r, c),

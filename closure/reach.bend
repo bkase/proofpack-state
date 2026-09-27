@@ -29,10 +29,10 @@ def Levels() -> Data:
   List<&2, List<&2, U32>>
 
 type Reach.Out<-sd: Nat> is Data:
-  Out{seen: S.PSet(sd), levels: Levels, done: Bool, rounds: Nat}
+  Out{seen: S.PSet, levels: Levels, done: Bool, rounds: Nat}
 
 def Reach.go(+fuel: Nat, +td: Nat, +g: G.Graph(td), +sd: Nat,
-  +seen: S.PSet(sd), front: List<&2, U32>, levels: Levels, rounds: Nat) ->
+  +seen: S.PSet, front: List<&2, U32>, levels: Levels, rounds: Nat) ->
   Reach.Out<sd>:
   match fuel:
     case 0n:
@@ -55,7 +55,7 @@ def Reach.closure(+n: Nat, +td: Nat, +g: G.Graph(td), +sd: Nat,
   +roots: List<&2, U32>) -> Reach.Out<sd>:
   Reach.go(2n+n, td, g, sd, S.PSet.from_list(sd, roots), roots, Nil{}, 0n)
 
-def Reach.seen(+sd: Nat, o: Reach.Out<sd>) -> S.PSet(sd):
+def Reach.seen(+sd: Nat, o: Reach.Out<sd>) -> S.PSet:
   match o:
     case Out{seen, levels, done, rounds}:
       seen

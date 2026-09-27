@@ -37,11 +37,11 @@ def Uni.slot_key(+o: O.Oid) -> U32:
   U32.and(O.Oid.key(o), Uni.mask())
 
 type Universe is Data:
-  Uni{fmt: O.Fmt, next: U32, table: T.Trie(Bucket, 20n),
+  Uni{fmt: O.Fmt, next: U32, table: T.Trie<Bucket>,
     oids: List<&2, O.Oid>}
 
 def Uni.new(f: O.Fmt) -> Universe:
-  Uni{f, 0, T.Trie.gap(Bucket, 20n), Nil{}}
+  Uni{f, 0, T.Trie.gap(Bucket), Nil{}}
 
 def Slot.match_one.pick(+ord: U32, same: Bool) -> Maybe<&2, U32>:
   match same:
@@ -74,16 +74,16 @@ def Uni.bucket.un(m: Maybe<&2, Bucket>) -> Bucket:
     case Some{b}:
       b
 
-def Uni.bucket(+t: T.Trie(Bucket, 20n), +k: U32) -> Bucket:
+def Uni.bucket(+t: T.Trie<Bucket>, +k: U32) -> Bucket:
   Uni.bucket.un(T.Trie.at(Bucket, 20n, t, k))
 
-def Uni.find(+t: T.Trie(Bucket, 20n), +o: O.Oid) -> Maybe<&2, U32>:
+def Uni.find(+t: T.Trie<Bucket>, +o: O.Oid) -> Maybe<&2, U32>:
   Slot.find(Uni.bucket(t, Uni.slot_key(o)), o, None{})
 
 type Interned is Data:
   In{uni: Universe, ord: U32}
 
-def Uni.intern.go(f: O.Fmt, +next: U32, +t: T.Trie(Bucket, 20n),
+def Uni.intern.go(f: O.Fmt, +next: U32, +t: T.Trie<Bucket>,
   oids: List<&2, O.Oid>, +o: O.Oid, found: Maybe<&2, U32>) -> Interned:
   match found:
     case Some{k}:
@@ -135,3 +135,8 @@ def Uni.recent(+u: Universe, +n: Nat) -> List<&2, O.Oid>:
   match u:
     case Uni{f, next, table, oids}:
       List.reverse(&2, O.Oid, List.take(&2, O.Oid, oids, n))
+
+def Uni.table(+u: Universe) -> T.Trie<Bucket>:
+  match u:
+    case Uni{f, next, table, oids}:
+      table

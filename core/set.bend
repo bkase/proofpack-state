@@ -5,13 +5,26 @@
 # as either a sorted offset list or 128 bitmap words, and a branch splits its
 # interval in half.
 #
-# The tree is *depth-indexed*, the way Base indexes `Word(n)`: `PSet(0n)` is a
-# leaf and `PSet(1n+p)` is a node. That is not decoration. SPEC 5.2 requires
-# that sparse and dense payloads only ever appear at a leaf and that branch
-# children partition their parent interval exactly; indexing the type makes
-# every other shape unrepresentable, so no operation below needs an
-# "impossible" arm that would silently return the wrong set if an invariant
-# were ever broken.
+# The tree is one plain recursive type, with the depth carried as an ordinary
+# `Nat` argument rather than as a type index.
+#
+# It was depth-indexed at first -- `PSet(0n)` a leaf, `PSet(1n+p)` a node, the
+# way Base indexes `Word(n)` -- which made "a dense payload above a leaf"
+# unrepresentable. That had to go, and the reason is worth recording. The
+# compiler's layout pass flattens a datatype's fields unless it can see the
+# type is self-recursive, and it decides that by comparing *head names*. For
+# `PSet(19n)` the head is the def `PSet`, not the datatype that def reduces
+# to, so the check misses and the layout unrolls seven levels before giving
+# up: one `PSet(20n)` field costs 127 words, a record holding four of them
+# costs 512, and any continuation touching one fails to compile with "an
+# arity over 247".
+#
+# So the invariants SPEC 5.2 states -- sparse and dense payloads only at a
+# leaf, branch children partitioning their parent exactly -- are invariants
+# again rather than type errors. `PSet.valid` states them, anything decoded
+# from storage is checked against it (law D-01), and every operation here is
+# total regardless: a shape that should not occur at a depth is given the
+# meaning it would have if it did, never a wrong answer.
 #
 # Membership walks the tree carrying the node's half-width `h` and rebasing
 # `x` into the chosen child, so a node never needs to know its absolute
@@ -24,38 +37,18 @@ import ./word.bend as W
 import ./words.bend as Wo
 import ./ords.bend as O
 
-type PSet.Leaf is Data:
-  LZero{}
-  LFull{}
-  LSparse{offs: List<&2, U32>}
-  LDense{words: List<&2, U32>}
+type PSet is Data:
+  PZero{}
+  PFull{}
+  PSparse{offs: List<&2, U32>}
+  PDense{words: List<&2, U32>}
+  PBranch{lo: PSet, hi: PSet}
 
-type PSet.Node<-p: Nat> is Data:
-  NZero{}
-  NFull{}
-  NBranch{lo: PSet(p), hi: PSet(p)}
+def PSet.empty() -> PSet:
+  PZero{}
 
-def PSet(d: Nat) -> Data:
-  match d:
-    case 0n:
-      PSet.Leaf
-    case 1n+p:
-      PSet.Node<p>
-
-# The empty set at any depth.
-def PSet.empty(d: Nat) -> PSet(d):
-  match d:
-    case 0n:
-      LZero{}
-    case 1n+p:
-      NZero{}
-
-def PSet.full(d: Nat) -> PSet(d):
-  match d:
-    case 0n:
-      LFull{}
-    case 1n+p:
-      NFull{}
+def PSet.full() -> PSet:
+  PFull{}
 
 # ---------------------------------------------------------------------------
 # Geometry. A leaf covers 4096 = 2^12 ordinals, so a node at depth 1n+p covers
@@ -90,7 +83,7 @@ def PSet.depth(+n: Nat) -> Nat:
 # equivalence to assuming function extensionality).
 # ---------------------------------------------------------------------------
 
-def PSet.pick(-p: Nat, b: Bool, lo: PSet(p), hi: PSet(p)) -> PSet(p):
+def PSet.pick(b: Bool, lo: PSet, hi: PSet) -> PSet:
   match b:
     case True{}:
       lo
@@ -104,36 +97,6 @@ def PSet.rebase(b: Bool, +h: U32, +x: U32) -> U32:
     case False{}:
       U32.sub(x, h)
 
-def PSet.mem(d: Nat, s: PSet(d), +h: U32, +x: U32) -> Bool:
-  match d:
-    case 0n:
-      match s:
-        case LZero{}:
-          False{}
-        case LFull{}:
-          True{}
-        case LSparse{offs}:
-          O.Ords.elem(offs, x)
-        case LDense{ws}:
-          Wo.Words.bit(ws, x)
-    case 1n+p:
-      match s:
-        case NZero{}:
-          False{}
-        case NFull{}:
-          True{}
-        case NBranch{lo, hi}:
-          +b = U32.is_lt(x, h)
-          PSet.mem(p, PSet.pick(p, b, lo, hi), U32.shr(h),
-            PSet.rebase(b, h, x))
-
-def PSet.member(+d: Nat, s: PSet(d), +x: U32) -> Bool:
-  PSet.mem(d, s, PSet.half(d), x)
-
-# ---------------------------------------------------------------------------
-# Leaves: words in, compressed node out.
-# ---------------------------------------------------------------------------
-
 def PSet.spread(offs: List<&2, U32>, ws: List<&2, U32>) -> List<&2, U32>:
   match offs:
     case Nil{}:
@@ -141,16 +104,18 @@ def PSet.spread(offs: List<&2, U32>, ws: List<&2, U32>) -> List<&2, U32>:
     case Con{o, t}:
       PSet.spread(t, Wo.Words.set(ws, o))
 
-def PSet.leaf_words(s: PSet.Leaf) -> List<&2, U32>:
+def PSet.leaf_words(s: PSet) -> List<&2, U32>:
   match s:
-    case LZero{}:
+    case PZero{}:
       Wo.Words.zeros(128n)
-    case LFull{}:
+    case PFull{}:
       Wo.Words.ones(128n)
-    case LSparse{offs}:
+    case PSparse{offs}:
       PSet.spread(offs, Wo.Words.zeros(128n))
-    case LDense{ws}:
+    case PDense{ws}:
       ws
+    case PBranch{lo, hi}:
+      Wo.Words.zeros(128n)
 
 # The sparse/dense crossover. SPEC 5.2 calls 64 members a benchmark
 # parameter, not a semantic constant: nothing outside this def reads it, and
@@ -158,304 +123,234 @@ def PSet.leaf_words(s: PSet.Leaf) -> List<&2, U32>:
 def PSet.sparse_max() -> Nat:
   64n
 
-def PSet.compress.s(+ws: List<&2, U32>, sparse: Bool) -> PSet.Leaf:
+def PSet.compress.s(+ws: List<&2, U32>, sparse: Bool) -> PSet:
   match sparse:
     case True{}:
-      LSparse{Wo.Words.members(ws, 0)}
+      PSparse{Wo.Words.members(ws, 0)}
     case False{}:
-      LDense{ws}
+      PDense{ws}
 
-def PSet.compress.f(+ws: List<&2, U32>, full: Bool) -> PSet.Leaf:
+def PSet.compress.f(+ws: List<&2, U32>, full: Bool) -> PSet:
   match full:
     case True{}:
-      LFull{}
+      PFull{}
     case False{}:
       PSet.compress.s(ws,
         C.Nat.upto(Wo.Words.count(ws), PSet.sparse_max()))
 
-def PSet.compress.z(+ws: List<&2, U32>, zero: Bool) -> PSet.Leaf:
+def PSet.compress.z(+ws: List<&2, U32>, zero: Bool) -> PSet:
   match zero:
     case True{}:
-      LZero{}
+      PZero{}
     case False{}:
       PSet.compress.f(ws, Wo.Words.all_ones(ws))
 
-def PSet.compress(+ws: List<&2, U32>) -> PSet.Leaf:
+def PSet.compress(+ws: List<&2, U32>) -> PSet:
   PSet.compress.z(ws, Wo.Words.all_zero(ws))
 
 # ---------------------------------------------------------------------------
 # Branch construction, with the Zero/Full collapses of SPEC 5.3.
 # ---------------------------------------------------------------------------
 
-def PSet.mk.leaf(lo: PSet.Leaf, hi: PSet.Leaf) -> PSet(1n):
-  match lo:
-    case LZero{}:
-      match hi:
-        case LZero{}:
-          NZero{}
-        case LFull{}:
-          NBranch{LZero{}, LFull{}}
-        case LSparse{o}:
-          NBranch{LZero{}, LSparse{o}}
-        case LDense{w}:
-          NBranch{LZero{}, LDense{w}}
-    case LFull{}:
-      match hi:
-        case LFull{}:
-          NFull{}
-        case LZero{}:
-          NBranch{LFull{}, LZero{}}
-        case LSparse{o}:
-          NBranch{LFull{}, LSparse{o}}
-        case LDense{w}:
-          NBranch{LFull{}, LDense{w}}
-    case LSparse{a}:
-      NBranch{LSparse{a}, hi}
-    case LDense{a}:
-      NBranch{LDense{a}, hi}
+def PSet.mk.z(lo: PSet, hi: PSet) -> PSet:
+  match hi:
+    case PZero{}:
+      PZero{}
+    case PFull{}:
+      PBranch{lo, PFull{}}
+    case PSparse{o}:
+      PBranch{lo, PSparse{o}}
+    case PDense{w}:
+      PBranch{lo, PDense{w}}
+    case PBranch{a, b}:
+      PBranch{lo, PBranch{a, b}}
 
-def PSet.mk.node(q: Nat, lo: PSet(1n+q), hi: PSet(1n+q)) -> PSet(2n+q):
-  match lo:
-    case NZero{}:
-      match hi:
-        case NZero{}:
-          NZero{}
-        case NFull{}:
-          NBranch{NZero{}, NFull{}}
-        case NBranch{x, y}:
-          NBranch{NZero{}, NBranch{x, y}}
-    case NFull{}:
-      match hi:
-        case NFull{}:
-          NFull{}
-        case NZero{}:
-          NBranch{NFull{}, NZero{}}
-        case NBranch{x, y}:
-          NBranch{NFull{}, NBranch{x, y}}
-    case NBranch{a, b}:
-      NBranch{NBranch{a, b}, hi}
+def PSet.mk.f(lo: PSet, hi: PSet) -> PSet:
+  match hi:
+    case PFull{}:
+      PFull{}
+    case PZero{}:
+      PBranch{lo, PZero{}}
+    case PSparse{o}:
+      PBranch{lo, PSparse{o}}
+    case PDense{w}:
+      PBranch{lo, PDense{w}}
+    case PBranch{a, b}:
+      PBranch{lo, PBranch{a, b}}
 
-def PSet.mk(+p: Nat, lo: PSet(p), hi: PSet(p)) -> PSet(1n+p):
-  match p:
-    case 0n:
-      PSet.mk.leaf(lo, hi)
-    case 1n+q:
-      PSet.mk.node(q, lo, hi)
+def PSet.mk.hi(lo: PSet, hi: PSet, lz: Bool, lf: Bool) -> PSet:
+  match lz:
+    case True{}:
+      PSet.mk.z(lo, hi)
+    case False{}:
+      match lf:
+        case True{}:
+          PSet.mk.f(lo, hi)
+        case False{}:
+          PBranch{lo, hi}
 
-# ---------------------------------------------------------------------------
-# Boolean algebra. Each operation takes the structural shortcuts of SPEC 5.3
-# (`A u Zero = A`, `A n Full = A`, `A \ Full = Zero`, ...) at every node, so a
-# difference against a pruned subtree costs nothing, and falls back to words
-# only when two real leaves meet.
-# ---------------------------------------------------------------------------
+def PSet.is_zero(s: PSet) -> Bool:
+  match s:
+    case PZero{}:
+      True{}
+    case PFull{}:
+      False{}
+    case PSparse{o}:
+      False{}
+    case PDense{w}:
+      False{}
+    case PBranch{a, b}:
+      False{}
 
-def PSet.leaf.or2(+aw: List<&2, U32>, b: PSet.Leaf) -> PSet.Leaf:
-  match b:
-    case LZero{}:
-      PSet.compress(aw)
-    case LFull{}:
-      LFull{}
-    case LSparse{bo}:
-      PSet.compress(Wo.Words.or(aw,
-        PSet.spread(bo, Wo.Words.zeros(128n))))
-    case LDense{bw}:
-      PSet.compress(Wo.Words.or(aw, bw))
+def PSet.is_full(s: PSet) -> Bool:
+  match s:
+    case PFull{}:
+      True{}
+    case PZero{}:
+      False{}
+    case PSparse{o}:
+      False{}
+    case PDense{w}:
+      False{}
+    case PBranch{a, b}:
+      False{}
 
-def PSet.leaf.and2(+aw: List<&2, U32>, b: PSet.Leaf) -> PSet.Leaf:
-  match b:
-    case LZero{}:
-      LZero{}
-    case LFull{}:
-      PSet.compress(aw)
-    case LSparse{bo}:
-      PSet.compress(Wo.Words.and(aw,
-        PSet.spread(bo, Wo.Words.zeros(128n))))
-    case LDense{bw}:
-      PSet.compress(Wo.Words.and(aw, bw))
+def PSet.leaf.or2(+aw: List<&2, U32>, b: PSet) -> PSet:
+  PSet.compress(Wo.Words.or(aw, PSet.leaf_words(b)))
 
-def PSet.leaf.sub2(+aw: List<&2, U32>, b: PSet.Leaf) -> PSet.Leaf:
-  match b:
-    case LZero{}:
-      PSet.compress(aw)
-    case LFull{}:
-      LZero{}
-    case LSparse{bo}:
-      PSet.compress(Wo.Words.diff(aw,
-        PSet.spread(bo, Wo.Words.zeros(128n))))
-    case LDense{bw}:
-      PSet.compress(Wo.Words.diff(aw, bw))
+def PSet.leaf.and2(+aw: List<&2, U32>, b: PSet) -> PSet:
+  PSet.compress(Wo.Words.and(aw, PSet.leaf_words(b)))
 
-def PSet.union.leaf(a: PSet.Leaf, b: PSet.Leaf) -> PSet.Leaf:
+def PSet.leaf.sub2(+aw: List<&2, U32>, b: PSet) -> PSet:
+  PSet.compress(Wo.Words.diff(aw, PSet.leaf_words(b)))
+
+def PSet.union.leaf(a: PSet, b: PSet) -> PSet:
   match a:
-    case LZero{}:
+    case PZero{}:
       b
-    case LFull{}:
-      LFull{}
-    case LSparse{ao}:
+    case PFull{}:
+      PFull{}
+    case PSparse{ao}:
       PSet.leaf.or2(PSet.spread(ao, Wo.Words.zeros(128n)), b)
-    case LDense{aw}:
+    case PDense{aw}:
       PSet.leaf.or2(aw, b)
-
-def PSet.inter.leaf(a: PSet.Leaf, b: PSet.Leaf) -> PSet.Leaf:
-  match a:
-    case LZero{}:
-      LZero{}
-    case LFull{}:
+    case PBranch{l, h}:
       b
-    case LSparse{ao}:
-      PSet.leaf.and2(PSet.spread(ao, Wo.Words.zeros(128n)), b)
-    case LDense{aw}:
-      PSet.leaf.and2(aw, b)
 
-def PSet.diff.leaf(a: PSet.Leaf, b: PSet.Leaf) -> PSet.Leaf:
+def PSet.inter.leaf(a: PSet, b: PSet) -> PSet:
   match a:
-    case LZero{}:
-      LZero{}
-    case LFull{}:
+    case PZero{}:
+      PZero{}
+    case PFull{}:
+      b
+    case PSparse{ao}:
+      PSet.leaf.and2(PSet.spread(ao, Wo.Words.zeros(128n)), b)
+    case PDense{aw}:
+      PSet.leaf.and2(aw, b)
+    case PBranch{l, h}:
+      PZero{}
+
+def PSet.diff.leaf(a: PSet, b: PSet) -> PSet:
+  match a:
+    case PZero{}:
+      PZero{}
+    case PFull{}:
       PSet.leaf.sub2(Wo.Words.ones(128n), b)
-    case LSparse{ao}:
+    case PSparse{ao}:
       PSet.leaf.sub2(PSet.spread(ao, Wo.Words.zeros(128n)), b)
-    case LDense{aw}:
+    case PDense{aw}:
       PSet.leaf.sub2(aw, b)
+    case PBranch{l, h}:
+      PZero{}
 
-def PSet.union(+d: Nat, a: PSet(d), b: PSet(d)) -> PSet(d):
-  match d:
-    case 0n:
-      PSet.union.leaf(a, b)
-    case 1n+p:
-      match a:
-        case NZero{}:
-          b
-        case NFull{}:
-          NFull{}
-        case NBranch{al, ah}:
-          match b:
-            case NZero{}:
-              NBranch{al, ah}
-            case NFull{}:
-              NFull{}
-            case NBranch{bl, bh}:
-              PSet.mk(p, PSet.union(p, al, bl), PSet.union(p, ah, bh))
-
-def PSet.inter(+d: Nat, a: PSet(d), b: PSet(d)) -> PSet(d):
-  match d:
-    case 0n:
-      PSet.inter.leaf(a, b)
-    case 1n+p:
-      match a:
-        case NZero{}:
-          NZero{}
-        case NFull{}:
-          b
-        case NBranch{al, ah}:
-          match b:
-            case NZero{}:
-              NZero{}
-            case NFull{}:
-              NBranch{al, ah}
-            case NBranch{bl, bh}:
-              PSet.mk(p, PSet.inter(p, al, bl), PSet.inter(p, ah, bh))
-
-def PSet.diff(+d: Nat, a: PSet(d), b: PSet(d)) -> PSet(d):
-  match d:
-    case 0n:
-      PSet.diff.leaf(a, b)
-    case 1n+p:
-      match a:
-        case NZero{}:
-          NZero{}
-        case NFull{}:
-          match b:
-            case NZero{}:
-              NFull{}
-            case NFull{}:
-              NZero{}
-            case NBranch{bl, bh}:
-              PSet.mk(p, PSet.diff(p, PSet.full(p), bl),
-                PSet.diff(p, PSet.full(p), bh))
-        case NBranch{al, ah}:
-          match b:
-            case NZero{}:
-              NBranch{al, ah}
-            case NFull{}:
-              NZero{}
-            case NBranch{bl, bh}:
-              PSet.mk(p, PSet.diff(p, al, bl), PSet.diff(p, ah, bh))
-
-# ---------------------------------------------------------------------------
-# Insert. A persistent update copies the path and the affected leaf, and
-# leaves every other node shared (law P-01).
-# ---------------------------------------------------------------------------
-
-def PSet.add.leaf.pick(+offs: List<&2, U32>, small: Bool) -> PSet.Leaf:
+def PSet.add.leaf.pick(+offs: List<&2, U32>, small: Bool) -> PSet:
   match small:
     case True{}:
-      LSparse{offs}
+      PSparse{offs}
     case False{}:
-      LDense{PSet.spread(offs, Wo.Words.zeros(128n))}
+      PDense{PSet.spread(offs, Wo.Words.zeros(128n))}
 
-def PSet.add.leaf.fit(+offs: List<&2, U32>) -> PSet.Leaf:
+def PSet.add.leaf.fit(+offs: List<&2, U32>) -> PSet:
   PSet.add.leaf.pick(offs,
     C.Nat.upto(List.length(&2, U32, offs), PSet.sparse_max()))
 
-def PSet.add.leaf(s: PSet.Leaf, +x: U32) -> PSet.Leaf:
+def PSet.add.leaf(s: PSet, +x: U32) -> PSet:
   match s:
-    case LZero{}:
-      LSparse{[x]}
-    case LFull{}:
-      LFull{}
-    case LSparse{offs}:
+    case PZero{}:
+      PSparse{[x]}
+    case PFull{}:
+      PFull{}
+    case PSparse{offs}:
       PSet.add.leaf.fit(O.Ords.insert(offs, x))
-    case LDense{ws}:
-      LDense{Wo.Words.set(ws, x)}
+    case PDense{ws}:
+      PDense{Wo.Words.set(ws, x)}
+    case PBranch{l, h}:
+      PSparse{[x]}
 
-def PSet.add(+d: Nat, s: PSet(d), +h: U32, +x: U32, b: Bool) -> PSet(d):
+def PSet.add(+d: Nat, s: PSet, +h: U32, +x: U32, b: Bool) -> PSet:
   match d:
     case 0n:
       PSet.add.leaf(s, x)
     case 1n+p:
       match s:
-        case NFull{}:
-          NFull{}
-        case NZero{}:
+        case PFull{}:
+          PFull{}
+        case PBranch{lo, hi}:
           match b:
             case True{}:
               +h2 = U32.shr(h)
-              NBranch{PSet.add(p, PSet.empty(p), h2, x, U32.is_lt(x, h2)),
-                PSet.empty(p)}
+              PBranch{PSet.add(p, lo, h2, x, U32.is_lt(x, h2)), hi}
             case False{}:
               +x2 = U32.sub(x, h)
               +h2 = U32.shr(h)
-              NBranch{PSet.empty(p),
-                PSet.add(p, PSet.empty(p), h2, x2, U32.is_lt(x2, h2))}
-        case NBranch{lo, hi}:
+              PBranch{lo, PSet.add(p, hi, h2, x2, U32.is_lt(x2, h2))}
+        case PZero{}:
           match b:
             case True{}:
               +h2 = U32.shr(h)
-              NBranch{PSet.add(p, lo, h2, x, U32.is_lt(x, h2)), hi}
+              PBranch{PSet.add(p, PZero{}, h2, x, U32.is_lt(x, h2)),
+                PZero{}}
             case False{}:
               +x2 = U32.sub(x, h)
               +h2 = U32.shr(h)
-              NBranch{lo, PSet.add(p, hi, h2, x2, U32.is_lt(x2, h2))}
+              PBranch{PZero{},
+                PSet.add(p, PZero{}, h2, x2, U32.is_lt(x2, h2))}
+        case PSparse{o}:
+          match b:
+            case True{}:
+              +h2 = U32.shr(h)
+              PBranch{PSet.add(p, PZero{}, h2, x, U32.is_lt(x, h2)),
+                PZero{}}
+            case False{}:
+              +x2 = U32.sub(x, h)
+              +h2 = U32.shr(h)
+              PBranch{PZero{},
+                PSet.add(p, PZero{}, h2, x2, U32.is_lt(x2, h2))}
+        case PDense{w}:
+          match b:
+            case True{}:
+              +h2 = U32.shr(h)
+              PBranch{PSet.add(p, PZero{}, h2, x, U32.is_lt(x, h2)),
+                PZero{}}
+            case False{}:
+              +x2 = U32.sub(x, h)
+              +h2 = U32.shr(h)
+              PBranch{PZero{},
+                PSet.add(p, PZero{}, h2, x2, U32.is_lt(x2, h2))}
 
-# Insert one ordinal. The branch test is computed by the caller and handed
-# down, because Bend matches parameters rather than computed values and
-# mutual recursion is not allowed -- so `add` cannot delegate the test to a
-# helper that calls it back.
-def PSet.insert(+d: Nat, s: PSet(d), +x: U32) -> PSet(d):
+def PSet.insert(+d: Nat, s: PSet, +x: U32) -> PSet:
   +h = PSet.half(d)
   PSet.add(d, s, h, x, U32.is_lt(x, h))
 
-# Build a set from a list of ordinals.
-def PSet.of_list(+d: Nat, xs: List<&2, U32>, s: PSet(d)) -> PSet(d):
+def PSet.of_list(+d: Nat, xs: List<&2, U32>, s: PSet) -> PSet:
   match xs:
     case Nil{}:
       s
     case Con{x, t}:
       PSet.of_list(d, t, PSet.insert(d, s, x))
 
-def PSet.from_list(+d: Nat, xs: List<&2, U32>) -> PSet(d):
-  PSet.of_list(d, xs, PSet.empty(d))
+def PSet.from_list(+d: Nat, xs: List<&2, U32>) -> PSet:
+  PSet.of_list(d, xs, PZero{})
 
 # ---------------------------------------------------------------------------
 # Leaf enumeration. Every reduction below goes through an ascending offset
@@ -472,125 +367,140 @@ def PSet.range(+k: Nat, +ord: U32, tail: List<&2, U32>) -> List<&2, U32>:
       +o = ord
       PSet.range(j, U32.sub(o, 1), Con{o, tail})
 
-def PSet.leaf_members(s: PSet.Leaf) -> List<&2, U32>:
+def PSet.leaf_members(s: PSet) -> List<&2, U32>:
   match s:
-    case LZero{}:
+    case PZero{}:
       Nil{}
-    case LFull{}:
+    case PFull{}:
       PSet.range(4096n, 4095, Nil{})
-    case LSparse{offs}:
+    case PSparse{offs}:
       offs
-    case LDense{ws}:
+    case PDense{ws}:
       Wo.Words.members(ws, 0)
+    case PBranch{l, h}:
+      Nil{}
 
 # The fused leaf: the members of `a \ b`, without building `a \ b`. Each arm
 # picks the cheapest walk for the pair of shapes it actually got -- a sparse
 # operand is merged as a list, two dense operands go through the word kernel,
-# and a `Full` or `Zero` operand short-circuits.
-def PSet.leaf_diff_members.full(b: PSet.Leaf) -> List<&2, U32>:
+# and a `PFull` or `PZero` operand short-circuits.
+def PSet.leaf_diff_members.full(b: PSet) -> List<&2, U32>:
   match b:
-    case LZero{}:
+    case PZero{}:
       PSet.range(4096n, 4095, Nil{})
-    case LFull{}:
+    case PFull{}:
       Nil{}
-    case LSparse{bo}:
+    case PSparse{bo}:
       O.Ords.diff(PSet.range(4096n, 4095, Nil{}), bo)
-    case LDense{bw}:
+    case PDense{bw}:
       Wo.Words.diff_members(Wo.Words.ones(128n), bw, 0)
+    case PBranch{l, h}:
+      PSet.range(4096n, 4095, Nil{})
 
-def PSet.leaf_diff_members.sp(+ao: List<&2, U32>, b: PSet.Leaf) ->
+def PSet.leaf_diff_members.sp(+ao: List<&2, U32>, b: PSet) ->
   List<&2, U32>:
   match b:
-    case LZero{}:
+    case PZero{}:
       ao
-    case LFull{}:
+    case PFull{}:
       Nil{}
-    case LSparse{bo}:
+    case PSparse{bo}:
       O.Ords.diff(ao, bo)
-    case LDense{bw}:
+    case PDense{bw}:
       O.Ords.diff(ao, Wo.Words.members(bw, 0))
+    case PBranch{l, h}:
+      ao
 
-def PSet.leaf_diff_members.dn(+aw: List<&2, U32>, b: PSet.Leaf) ->
+def PSet.leaf_diff_members.dn(+aw: List<&2, U32>, b: PSet) ->
   List<&2, U32>:
   match b:
-    case LZero{}:
+    case PZero{}:
       Wo.Words.members(aw, 0)
-    case LFull{}:
+    case PFull{}:
       Nil{}
-    case LSparse{bo}:
+    case PSparse{bo}:
       O.Ords.diff(Wo.Words.members(aw, 0), bo)
-    case LDense{bw}:
+    case PDense{bw}:
       Wo.Words.diff_members(aw, bw, 0)
+    case PBranch{l, h}:
+      Wo.Words.members(aw, 0)
 
-def PSet.leaf_diff_members(a: PSet.Leaf, b: PSet.Leaf) -> List<&2, U32>:
+def PSet.leaf_diff_members(a: PSet, b: PSet) -> List<&2, U32>:
   match a:
-    case LZero{}:
+    case PZero{}:
       Nil{}
-    case LFull{}:
+    case PFull{}:
       PSet.leaf_diff_members.full(b)
-    case LSparse{ao}:
+    case PSparse{ao}:
       PSet.leaf_diff_members.sp(ao, b)
-    case LDense{aw}:
+    case PDense{aw}:
       PSet.leaf_diff_members.dn(aw, b)
+    case PBranch{l, h}:
+      Nil{}
 
 # ---------------------------------------------------------------------------
-# Counting. `h` is the node's half-width, so a `Full` node counts its whole
-# interval without walking it -- which is the point of keeping `Full` a node
+# Counting. `h` is the node's half-width, so a `PFull` node counts its whole
+# interval without walking it -- which is the point of keeping `PFull` a node
 # rather than 128 words of ones.
 # ---------------------------------------------------------------------------
 
-def PSet.count(+d: Nat, s: PSet(d), +h: U32) -> Nat:
+def PSet.count.leaf(s: PSet) -> Nat:
+  match s:
+    case PZero{}:
+      0n
+    case PFull{}:
+      4096n
+    case PSparse{offs}:
+      List.length(&2, U32, offs)
+    case PDense{ws}:
+      Wo.Words.count(ws)
+    case PBranch{l, h}:
+      0n
+
+def PSet.count(+d: Nat, s: PSet, +h: U32) -> Nat:
   match d:
     case 0n:
-      match s:
-        case LZero{}:
-          0n
-        case LFull{}:
-          4096n
-        case LSparse{offs}:
-          List.length(&2, U32, offs)
-        case LDense{ws}:
-          Wo.Words.count(ws)
+      PSet.count.leaf(s)
     case 1n+p:
       match s:
-        case NZero{}:
+        case PZero{}:
           0n
-        case NFull{}:
+        case PSparse{offs}:
+          List.length(&2, U32, offs)
+        case PDense{ws}:
+          Wo.Words.count(ws)
+        case PFull{}:
           +w = U32.to_nat(h)
           Nat.add(w, w)
-        case NBranch{lo, hi}:
+        case PBranch{lo, hi}:
           +h2 = U32.shr(h)
           Nat.add(PSet.count(p, lo, h2), PSet.count(p, hi, h2))
 
-def PSet.size(+d: Nat, s: PSet(d)) -> Nat:
+def PSet.size(+d: Nat, s: PSet) -> Nat:
   PSet.count(d, s, PSet.half(d))
 
-def PSet.is_empty(+d: Nat, s: PSet(d), so_far: Bool) -> Bool:
+def PSet.is_empty(+d: Nat, s: PSet, so_far: Bool) -> Bool:
   match d:
     case 0n:
-      match s:
-        case LZero{}:
-          so_far
-        case LFull{}:
-          False{}
-        case LSparse{offs}:
-          Bool.and(so_far, List.is_empty(&2, U32, offs))
-        case LDense{ws}:
-          Bool.and(so_far, Bool.not(Wo.Words.any(ws)))
+      Bool.and(so_far, Nat.is_eq(PSet.count.leaf(s), 0n))
     case 1n+p:
       match s:
-        case NZero{}:
+        case PZero{}:
           so_far
-        case NFull{}:
+        case PFull{}:
           False{}
-        case NBranch{lo, hi}:
+        case PSparse{offs}:
+          Bool.and(so_far, List.is_empty(&2, U32, offs))
+        case PDense{ws}:
+          Bool.and(so_far, Bool.not(Wo.Words.any(ws)))
+        case PBranch{lo, hi}:
           match so_far:
             case False{}:
               False{}
             case True{}:
               PSet.is_empty(p, hi, PSet.is_empty(p, lo, True{}))
 
-def PSet.empty_p(+d: Nat, s: PSet(d)) -> Bool:
+def PSet.empty_p(+d: Nat, s: PSet) -> Bool:
   PSet.is_empty(d, s, True{})
 
 # ---------------------------------------------------------------------------
@@ -604,142 +514,124 @@ def PSet.shift(xs: List<&2, U32>, +base: U32) -> List<&2, U32>:
     case Con{x, t}:
       (x + base : U32) <> PSet.shift(t, base)
 
-def PSet.members(+d: Nat, s: PSet(d), +base: U32, +h: U32,
+def PSet.members(+d: Nat, s: PSet, +base: U32, +h: U32,
   tail: List<&2, U32>) -> List<&2, U32>:
   match d:
     case 0n:
       List.append(&2, U32, PSet.shift(PSet.leaf_members(s), base), tail)
     case 1n+p:
       match s:
-        case NZero{}:
+        case PZero{}:
           tail
-        case NFull{}:
+        case PSparse{offs}:
+          List.append(&2, U32, PSet.shift(offs, base), tail)
+        case PDense{ws}:
+          List.append(&2, U32,
+            PSet.shift(Wo.Words.members(ws, 0), base), tail)
+        case PFull{}:
           +w = U32.to_nat(h)
           PSet.range(Nat.add(w, w), (base + h + h - 1 : U32), tail)
-        case NBranch{lo, hi}:
+        case PBranch{lo, hi}:
           +h2 = U32.shr(h)
           PSet.members(p, lo, base, h2,
             PSet.members(p, hi, (base + h : U32), h2, tail))
 
-def PSet.to_list(+d: Nat, s: PSet(d)) -> List<&2, U32>:
+def PSet.to_list(+d: Nat, s: PSet) -> List<&2, U32>:
   PSet.members(d, s, 0, PSet.half(d), Nil{})
 
 # ---------------------------------------------------------------------------
 # The fused reductions of SPEC 7.2: the size of `a \ b`, whether `a \ b` is
 # inhabited, and the members of `a \ b` -- each computed without ever
-# allocating `a \ b`. Structural pruning happens first: a `Zero` or `Full`
+# allocating `a \ b`. Structural pruning happens first: a `PZero` or `PFull`
 # operand answers for a whole interval without descending into it.
 # ---------------------------------------------------------------------------
 
-def PSet.leaf_diff_count(a: PSet.Leaf, b: PSet.Leaf) -> Nat:
+def PSet.leaf_diff_count(a: PSet, b: PSet) -> Nat:
   match a:
-    case LZero{}:
+    case PZero{}:
       0n
-    case LDense{aw}:
+    case PDense{aw}:
       match b:
-        case LZero{}:
+        case PZero{}:
           Wo.Words.count(aw)
-        case LFull{}:
+        case PFull{}:
           0n
-        case LDense{bw}:
+        case PDense{bw}:
           Wo.Words.diff_count(aw, bw)
-        case LSparse{bo}:
+        case PSparse{bo}:
           List.length(&2, U32,
-            PSet.leaf_diff_members.dn(aw, LSparse{bo}))
-    case LFull{}:
+            PSet.leaf_diff_members.dn(aw, PSparse{bo}))
+        case PBranch{l, h}:
+          Wo.Words.count(aw)
+    case PFull{}:
       match b:
-        case LZero{}:
+        case PZero{}:
           4096n
-        case LFull{}:
+        case PFull{}:
           0n
-        case LDense{bw}:
+        case PDense{bw}:
           Wo.Words.diff_count(Wo.Words.ones(128n), bw)
-        case LSparse{bo}:
+        case PSparse{bo}:
           List.length(&2, U32,
-            PSet.leaf_diff_members.full(LSparse{bo}))
-    case LSparse{ao}:
+            PSet.leaf_diff_members.full(PSparse{bo}))
+        case PBranch{l, h}:
+          4096n
+    case PSparse{ao}:
       List.length(&2, U32, PSet.leaf_diff_members.sp(ao, b))
+    case PBranch{l, h}:
+      0n
 
-def PSet.diff_count(+d: Nat, a: PSet(d), b: PSet(d), +h: U32) -> Nat:
+def PSet.diff_count(+d: Nat, a: PSet, b: PSet, +h: U32) -> Nat:
   match d:
     case 0n:
       PSet.leaf_diff_count(a, b)
     case 1n+p:
       match a:
-        case NZero{}:
+        case PZero{}:
           0n
-        case NFull{}:
+        case PSparse{o}:
+          0n
+        case PDense{w}:
+          0n
+        case PFull{}:
           match b:
-            case NZero{}:
+            case PZero{}:
               +w = U32.to_nat(h)
               Nat.add(w, w)
-            case NFull{}:
+            case PFull{}:
               0n
-            case NBranch{bl, bh}:
+            case PSparse{o}:
+              +w = U32.to_nat(h)
+              Nat.add(w, w)
+            case PDense{w}:
+              +wd = U32.to_nat(h)
+              Nat.add(wd, wd)
+            case PBranch{bl, bh}:
               +h2 = U32.shr(h)
-              Nat.add(PSet.diff_count(p, PSet.full(p), bl, h2),
-                PSet.diff_count(p, PSet.full(p), bh, h2))
-        case NBranch{al, ah}:
+              Nat.add(PSet.diff_count(p, PFull{}, bl, h2),
+                PSet.diff_count(p, PFull{}, bh, h2))
+        case PBranch{al, ah}:
           match b:
-            case NZero{}:
+            case PZero{}:
               +h2 = U32.shr(h)
               Nat.add(PSet.count(p, al, h2), PSet.count(p, ah, h2))
-            case NFull{}:
+            case PSparse{o}:
+              +h2 = U32.shr(h)
+              Nat.add(PSet.count(p, al, h2), PSet.count(p, ah, h2))
+            case PDense{w}:
+              +h2 = U32.shr(h)
+              Nat.add(PSet.count(p, al, h2), PSet.count(p, ah, h2))
+            case PFull{}:
               0n
-            case NBranch{bl, bh}:
+            case PBranch{bl, bh}:
               +h2 = U32.shr(h)
               Nat.add(PSet.diff_count(p, al, bl, h2),
                 PSet.diff_count(p, ah, bh, h2))
 
-def PSet.missing_count(+d: Nat, a: PSet(d), b: PSet(d)) -> Nat:
+def PSet.missing_count(+d: Nat, a: PSet, b: PSet) -> Nat:
   PSet.diff_count(d, a, b, PSet.half(d))
 
-# Readiness: `a \ b` is empty. Stops at the first required object the
-# inventory does not have (SPEC 4.3 -- IsEmpty must not pay to count).
-def PSet.diff_any(+d: Nat, a: PSet(d), b: PSet(d), found: Bool) -> Bool:
-  match d:
-    case 0n:
-      Bool.or(found, Bool.not(List.is_empty(&2, U32,
-        PSet.leaf_diff_members(a, b))))
-    case 1n+p:
-      match a:
-        case NZero{}:
-          found
-        case NFull{}:
-          match b:
-            case NZero{}:
-              True{}
-            case NFull{}:
-              found
-            case NBranch{bl, bh}:
-              match found:
-                case True{}:
-                  True{}
-                case False{}:
-                  PSet.diff_any(p, PSet.full(p), bh,
-                    PSet.diff_any(p, PSet.full(p), bl, False{}))
-        case NBranch{al, ah}:
-          match b:
-            case NZero{}:
-              match found:
-                case True{}:
-                  True{}
-                case False{}:
-                  Bool.not(PSet.is_empty(p, ah, PSet.is_empty(p, al, True{})))
-            case NFull{}:
-              found
-            case NBranch{bl, bh}:
-              match found:
-                case True{}:
-                  True{}
-                case False{}:
-                  PSet.diff_any(p, ah, bh, PSet.diff_any(p, al, bl, False{}))
-
-# True when every member of `a` is also a member of `b`: law M-02.
-def PSet.is_subset(+d: Nat, a: PSet(d), b: PSet(d)) -> Bool:
-  Bool.not(PSet.diff_any(d, a, b, False{}))
-
-def PSet.diff_members(+d: Nat, a: PSet(d), b: PSet(d), +base: U32, +h: U32,
+def PSet.diff_members(+d: Nat, a: PSet, b: PSet, +base: U32, +h: U32,
   tail: List<&2, U32>) -> List<&2, U32>:
   match d:
     case 0n:
@@ -747,32 +639,269 @@ def PSet.diff_members(+d: Nat, a: PSet(d), b: PSet(d), +base: U32, +h: U32,
         PSet.shift(PSet.leaf_diff_members(a, b), base), tail)
     case 1n+p:
       match a:
-        case NZero{}:
+        case PZero{}:
           tail
-        case NFull{}:
+        case PSparse{o}:
+          tail
+        case PDense{w}:
+          tail
+        case PFull{}:
           match b:
-            case NZero{}:
+            case PZero{}:
               +w = U32.to_nat(h)
               PSet.range(Nat.add(w, w), (base + h + h - 1 : U32), tail)
-            case NFull{}:
+            case PFull{}:
               tail
-            case NBranch{bl, bh}:
+            case PSparse{o}:
+              +w = U32.to_nat(h)
+              PSet.range(Nat.add(w, w), (base + h + h - 1 : U32), tail)
+            case PDense{w}:
+              +wd = U32.to_nat(h)
+              PSet.range(Nat.add(wd, wd), (base + h + h - 1 : U32), tail)
+            case PBranch{bl, bh}:
               +h2 = U32.shr(h)
-              PSet.diff_members(p, PSet.full(p), bl, base, h2,
-                PSet.diff_members(p, PSet.full(p), bh, (base + h : U32), h2,
+              PSet.diff_members(p, PFull{}, bl, base, h2,
+                PSet.diff_members(p, PFull{}, bh, (base + h : U32), h2,
                   tail))
-        case NBranch{al, ah}:
+        case PBranch{al, ah}:
           match b:
-            case NZero{}:
+            case PZero{}:
               +h2 = U32.shr(h)
               PSet.members(p, al, base, h2,
                 PSet.members(p, ah, (base + h : U32), h2, tail))
-            case NFull{}:
+            case PSparse{o}:
+              +h2 = U32.shr(h)
+              PSet.members(p, al, base, h2,
+                PSet.members(p, ah, (base + h : U32), h2, tail))
+            case PDense{w}:
+              +h2 = U32.shr(h)
+              PSet.members(p, al, base, h2,
+                PSet.members(p, ah, (base + h : U32), h2, tail))
+            case PFull{}:
               tail
-            case NBranch{bl, bh}:
+            case PBranch{bl, bh}:
               +h2 = U32.shr(h)
               PSet.diff_members(p, al, bl, base, h2,
                 PSet.diff_members(p, ah, bh, (base + h : U32), h2, tail))
 
-def PSet.missing(+d: Nat, a: PSet(d), b: PSet(d)) -> List<&2, U32>:
+def PSet.missing(+d: Nat, a: PSet, b: PSet) -> List<&2, U32>:
   PSet.diff_members(d, a, b, 0, PSet.half(d), Nil{})
+
+# Readiness: is every member of `a` also a member of `b`? Law M-02.
+def PSet.is_subset(+d: Nat, a: PSet, b: PSet) -> Bool:
+  Nat.is_eq(PSet.missing_count(d, a, b), 0n)
+
+# ---------------------------------------------------------------------------
+# Structural validity (law D-01). A file is untrusted input: SPEC 6.5
+# requires bounds, node references and universe bindings to be validated on
+# load, and a checksum is explicitly not a substitute. This is that check --
+# sparse and dense payloads only at the leaf level, sparse offsets ascending
+# and in range, a dense leaf exactly 128 words.
+# ---------------------------------------------------------------------------
+
+def PSet.valid.offs(offs: List<&2, U32>, +last: U32, first: Bool,
+  ok: Bool) -> Bool:
+  match offs:
+    case Nil{}:
+      ok
+    case Con{o, t}:
+      match ok:
+        case False{}:
+          False{}
+        case True{}:
+          +oo = o
+          PSet.valid.offs(t, oo, False{},
+            Bool.and(U32.is_lt(oo, 4096),
+              Bool.or(first, U32.is_gt(oo, last))))
+
+def PSet.valid.leaf(s: PSet) -> Bool:
+  match s:
+    case PZero{}:
+      True{}
+    case PFull{}:
+      True{}
+    case PSparse{offs}:
+      PSet.valid.offs(offs, 0, True{}, True{})
+    case PDense{ws}:
+      Nat.is_eq(List.length(&2, U32, ws), 128n)
+    case PBranch{l, h}:
+      False{}
+
+def PSet.valid(+d: Nat, s: PSet, ok: Bool) -> Bool:
+  match d:
+    case 0n:
+      Bool.and(ok, PSet.valid.leaf(s))
+    case 1n+p:
+      match s:
+        case PZero{}:
+          ok
+        case PFull{}:
+          ok
+        case PSparse{offs}:
+          False{}
+        case PDense{ws}:
+          False{}
+        case PBranch{lo, hi}:
+          match ok:
+            case False{}:
+              False{}
+            case True{}:
+              PSet.valid(p, hi, PSet.valid(p, lo, True{}))
+
+# A leaf. `Branch` here is the one structurally invalid shape -- a branch
+# below the leaf level -- and reads as empty, which is what `PSet.valid`
+# rejects rather than what any operation relies on.
+def PSet.mem.leaf(s: PSet, +x: U32) -> Bool:
+  match s:
+    case PZero{}:
+      False{}
+    case PFull{}:
+      True{}
+    case PSparse{offs}:
+      O.Ords.elem(offs, x)
+    case PDense{ws}:
+      Wo.Words.bit(ws, x)
+    case PBranch{lo, hi}:
+      False{}
+
+def PSet.mem(+d: Nat, s: PSet, +h: U32, +x: U32) -> Bool:
+  match d:
+    case 0n:
+      PSet.mem.leaf(s, x)
+    case 1n+p:
+      match s:
+        case PZero{}:
+          False{}
+        case PFull{}:
+          True{}
+        case PSparse{offs}:
+          O.Ords.elem(offs, x)
+        case PDense{ws}:
+          Wo.Words.bit(ws, x)
+        case PBranch{lo, hi}:
+          +b = U32.is_lt(x, h)
+          PSet.mem(p, PSet.pick(b, lo, hi), U32.shr(h),
+            PSet.rebase(b, h, x))
+
+def PSet.member(+d: Nat, s: PSet, +x: U32) -> Bool:
+  PSet.mem(d, s, PSet.half(d), x)
+
+# ---------------------------------------------------------------------------
+# Leaves: words in, compressed node out.
+# ---------------------------------------------------------------------------
+
+def PSet.mk(+lo: PSet, hi: PSet) -> PSet:
+  PSet.mk.hi(lo, hi, PSet.is_zero(lo), PSet.is_full(lo))
+
+# ---------------------------------------------------------------------------
+# Boolean algebra. Each operation takes the structural shortcuts of SPEC 5.3
+# (`A u PZero = A`, `A n PFull = A`, `A \ PFull = PZero`, ...) at every node,
+# so a difference against a pruned subtree costs nothing, and falls back to
+# words only when two real leaves meet.
+#
+# Above the leaf level only `PZero`, `PFull` and `PBranch` occur: sparse and
+# dense payloads are created by `PSet.compress` and `PSet.add`, which build
+# them only at depth zero. SPEC 5.2 requires exactly that. The node
+# operations therefore read a sparse or dense payload above a leaf as empty,
+# and `PSet.valid` is what stops such a value ever reaching them -- it is
+# checked on everything decoded from storage (law D-01), because a file is
+# untrusted input (SPEC 6.5).
+# ---------------------------------------------------------------------------
+
+def PSet.union(+d: Nat, a: PSet, b: PSet) -> PSet:
+  match d:
+    case 0n:
+      PSet.union.leaf(a, b)
+    case 1n+p:
+      match a:
+        case PZero{}:
+          b
+        case PFull{}:
+          PFull{}
+        case PSparse{o}:
+          b
+        case PDense{w}:
+          b
+        case PBranch{al, ah}:
+          match b:
+            case PZero{}:
+              PBranch{al, ah}
+            case PFull{}:
+              PFull{}
+            case PSparse{o}:
+              PBranch{al, ah}
+            case PDense{w}:
+              PBranch{al, ah}
+            case PBranch{bl, bh}:
+              PSet.mk(PSet.union(p, al, bl), PSet.union(p, ah, bh))
+
+def PSet.inter(+d: Nat, a: PSet, b: PSet) -> PSet:
+  match d:
+    case 0n:
+      PSet.inter.leaf(a, b)
+    case 1n+p:
+      match a:
+        case PZero{}:
+          PZero{}
+        case PSparse{o}:
+          PZero{}
+        case PDense{w}:
+          PZero{}
+        case PFull{}:
+          b
+        case PBranch{al, ah}:
+          match b:
+            case PZero{}:
+              PZero{}
+            case PSparse{o}:
+              PZero{}
+            case PDense{w}:
+              PZero{}
+            case PFull{}:
+              PBranch{al, ah}
+            case PBranch{bl, bh}:
+              PSet.mk(PSet.inter(p, al, bl), PSet.inter(p, ah, bh))
+
+def PSet.diff(+d: Nat, a: PSet, b: PSet) -> PSet:
+  match d:
+    case 0n:
+      PSet.diff.leaf(a, b)
+    case 1n+p:
+      match a:
+        case PZero{}:
+          PZero{}
+        case PSparse{o}:
+          PZero{}
+        case PDense{w}:
+          PZero{}
+        case PFull{}:
+          match b:
+            case PZero{}:
+              PFull{}
+            case PFull{}:
+              PZero{}
+            case PSparse{o}:
+              PFull{}
+            case PDense{w}:
+              PFull{}
+            case PBranch{bl, bh}:
+              PSet.mk(PSet.diff(p, PFull{}, bl), PSet.diff(p, PFull{}, bh))
+        case PBranch{al, ah}:
+          match b:
+            case PZero{}:
+              PBranch{al, ah}
+            case PFull{}:
+              PZero{}
+            case PSparse{o}:
+              PBranch{al, ah}
+            case PDense{w}:
+              PBranch{al, ah}
+            case PBranch{bl, bh}:
+              PSet.mk(PSet.diff(p, al, bl), PSet.diff(p, ah, bh))
+
+# ---------------------------------------------------------------------------
+# Insert. A persistent update copies the path and the affected leaf, and
+# leaves every other node shared (law P-01). The branch test is computed by
+# the caller and handed down, because Bend matches parameters rather than
+# computed values and mutual recursion is not allowed.
+# ---------------------------------------------------------------------------

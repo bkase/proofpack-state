@@ -22,7 +22,7 @@ def Succ() -> Data:
   List<&2, U32>
 
 def Graph(td: Nat) -> Data:
-  T.Trie(Succ, td)
+  T.Trie<Succ>
 
 def Graph.succ.un(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
   match m:
@@ -49,7 +49,7 @@ def Graph.gather(+td: Nat, +g: Graph(td), vs: List<&2, U32>,
         List.append(&2, U32, Graph.succ(td, g, v), acc))
 
 def Graph.post(+td: Nat, +g: Graph(td), +sd: Nat, xs: List<&2, U32>) ->
-  S.PSet(sd):
+  S.PSet:
   S.PSet.from_list(sd, Graph.gather(td, g, xs, Nil{}))
 
 def Graph.has.un(m: Maybe<&2, List<&2, U32>>) -> Bool:

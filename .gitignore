@@ -12,3 +12,6 @@ PROOF.bendtt
 .check-all.bend
 fixtures/repos/
 smoke.bend
+probe_*.bend
+smoke.bend
+testproc.bend
