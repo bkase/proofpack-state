@@ -32,6 +32,7 @@
 #   proofs/enum.bend      enumerating a tile
 #   proofs/compress.bend  what compression decides
 #   proofs/faithful.bend  a valid leaf and its tile agree
+#   proofs/walk.bend      the walk and the address agree
 
 import Base
 import ./LAWS.bend as Laws
@@ -59,6 +60,7 @@ import ./proofs/adder.bend as PAdd
 import ./proofs/enum.bend as PEn
 import ./proofs/compress.bend as PCp
 import ./proofs/faithful.bend as PFa
+import ./proofs/walk.bend as PWk
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -240,3 +242,9 @@ def Laws.a_valid_leaf_and_its_tile_hold_the_same_ordinals(s, x, v, inr):
 
 def Laws.a_valid_set_has_no_payload_above_a_leaf(p, s, ok):
   PCo.PSet.valid_is_node(p, s, ok)
+
+def Laws.compressing_a_leaf_keeps_its_members(ws, x, wide, inr):
+  PCp.PSet.compress_keeps_pending(ws, x, wide, inr)
+
+def Laws.the_walk_agrees_with_the_tile_address(ws, x, wide):
+  PWk.Words.holds_bit(ws, x, wide)

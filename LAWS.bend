@@ -781,3 +781,37 @@ law a_valid_set_has_no_payload_above_a_leaf:
   for +s: S.PSet
   for +ok: {S.PSet.valid(1n+p, s, True{}) == True{} : Bool}
   {Co.PSet.is_node(s) == True{} : Bool}
+
+# ===========================================================================
+# S-03, discharged.
+#
+# SPEC 5.2 calls the sparse/dense crossover a benchmark parameter rather than
+# a semantic constant, and this is what makes that true: compression changes
+# no member, whichever of the four representations it picks.
+#
+# The two hypotheses are the ones the counterexamples in `tests.bend` need. A
+# tile that is not 128 words wide is not a leaf, and an ordinal past 4096 is
+# not one this leaf covers -- `PFull{}` means *these* 4096.
+#
+# The four arms: zero bits means `PZero{}` and no member, by counting; a full
+# 4096 means `PFull{}` and every member, by the pigeonhole; the dense arm is
+# the identity; and the sparse arm enumerates, which lists what the walk
+# holds, which is what the address holds.
+# ===========================================================================
+
+law compressing_a_leaf_keeps_its_members:
+  for +ws: List<&2, U32>
+  for +x: U32
+  for +wide: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{} : Bool}
+  for +inr: {U32.is_lt(x, 4096) == True{} : Bool}
+  {S.PSet.mem.leaf(S.PSet.compress(ws), x)
+    == Wo.Words.bit(ws, x) : Bool}
+
+# And the addressing claim it rested on, which is now proved: the walk that
+# enumerates a tile and the address that indexes it name the same positions.
+
+law the_walk_agrees_with_the_tile_address:
+  for +ws: List<&2, U32>
+  for +x: U32
+  for +wide: {List.length(&2, U32, ws) == 128n : Nat}
+  {En.Words.holds(ws, 0, x) == Wo.Words.bit(ws, x) : Bool}

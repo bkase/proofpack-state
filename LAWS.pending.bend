@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 14. That count is the point of the file, so the command "failing"
+# currently 13. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -143,26 +143,10 @@ law set_intersection_is_pointwise:
   {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
     == Bool.and(S.PSet.member(20n, a, x), S.PSet.member(20n, b, x)) : Bool}
 
-# S-03 has been taken apart. Three of compression's four arms are proved and
-# live in LAWS.bend: the empty and full arms follow from the count alone
-# (the second is a pigeonhole over 128 words of 32 bits), the dense arm is
-# the identity, and the sparse arm's enumeration is proved to list exactly
-# what its walk holds.
-#
-# What is left of S-03 is one claim, and it is not about sets at all: that the
-# walk and the tile address name the same positions. `Words.holds` walks the
-# words building ordinals by `ord + 1` and `ord + 32`; `Words.bit` addresses
-# word `x >> 5`, bit `x & 31`. They agree, and the two facts needed to show it
-# -- the division identity and what `U32` addition computes -- are both
-# proved in LAWS.bend. What remains is the case analysis joining them: that an
-# ordinal below the next word's base cannot be found later in the walk, and
-# one at or above this word's base cannot be found in it.
-law the_walk_agrees_with_the_tile_address:
-  for +ws: List<&2, U32>
-  for +x: U32
-  for +wide: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{} : Bool}
-  for +inr: {U32.is_lt(x, 4096) == True{} : Bool}
-  {En.Words.holds(ws, 0, x) == Wo.Words.bit(ws, x) : Bool}
+# S-03 is proved and lives in LAWS.bend as
+# `compressing_a_leaf_keeps_its_members`, together with the addressing claim
+# it rested on, `the_walk_agrees_with_the_tile_address`. Compression changes
+# no member, whichever of its four representations it picks.
 
 # P-01's checkable half is now proved and lives in LAWS.bend as
 # `inserting_adds_exactly_that_ordinal`. What remains of P-01 is the part that

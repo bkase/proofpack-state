@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 11 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 5 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 0 refuted as first stated and restated with the hypotheses they need, still open; 11 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. `addressing_arithmetic` names what the open ones reduce to -- as of this release the whole S-02/S-03 family reduces to one claim about walking versus addressing. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 12 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 4 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 0 refuted as first stated and restated with the hypotheses they need, still open; 11 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -71,14 +71,14 @@
    "depends_on": [
     "S-02"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "PSet.compress_zero, PSet.compress_full, Words.elem_members (proofs/compress.bend, proofs/enum.bend)",
-   "stated_in": "LAWS.pending.bend",
+   "proof_symbol": "PSet.compress_keeps_pending (proofs/compress.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "tests.bend: the sparse/dense crossover at 64 and 65 members preserves membership and size.",
    "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
-   "gap": "One claim, and not about sets: that the walk and the tile address name the same positions, `Words.holds(ws, 0, x) == Words.bit(ws, x)`. The two facts it needs, the division identity and what U32 addition computes, are both proved; what remains is the case analysis joining them.",
-   "proved_part": "Three of compression's four arms. The empty and full arms follow from the count alone -- the second is a pigeonhole over 128 words of at most 32 bits each -- the dense arm is the identity, and the sparse arm's enumeration is proved to list exactly what its walk holds, unconditionally."
+   "gap": null,
+   "proved_part": "Compression changes no member, whichever of the four representations it picks, for a 128-word tile and an ordinal the leaf covers. Zero bits means PZero and no member, by counting; a full 4096 means PFull and every member, by the pigeonhole; the dense arm is the identity; the sparse arm enumerates, and the enumeration lists what the walk holds, which is what the address holds."
   },
   {
    "id": "S-04",
@@ -528,13 +528,13 @@
  "gate": "tools/gate.sh",
  "public_laws": "LAWS.bend (proved) and LAWS.pending.bend (open claims)",
  "addressing_arithmetic": {
-  "note": "Three of the four are now proved: A2 and A4 (which the set tree descends on) and A3 (which the sparse/dense bridge needs). A1 in full -- that U32.is_lt agrees with the order on U32.to_nat for arbitrary bounds -- is not proved, and nothing in this release needs it: the power-of-two case is what the tree uses, and it is proved.",
+  "note": "All of these are now proved except A1 in full, and nothing in this release needs A1 in full: the power-of-two case is what the tree uses, and it is proved.",
   "A1": "U32.is_lt agrees with the order on U32.to_nat. Open in general; the power-of-two case, which is the one the tree needs, is proved.",
   "A2": "U32.sub is subtraction when it does not borrow: from x < h+h and not x < h it follows that x-h < h. PROVED, as `rebasing_into_the_upper_half_keeps_the_ordinal_in_range`, together with A1 in the form that matters (`an_ordinal_is_below_a_power_of_two_exactly_when_it_fits_in_that_many_bits`). The half-width is always a power of two, which makes the whole question bitwise.",
   "A3": "PROVED, as `the_tile_address_is_injective`. The route is the division identity -- an ordinal is its word index scaled by 32 plus its bit index -- which turns equal addresses into equal `U32.to_nat`, and then `the_number_a_word_reads_as_determines_the_word` finishes. An earlier attempt stalled on word extensionality, whose natural statement takes a hypothesis quantified over bit positions that Bend's affine values will not let an induction use twice; the division identity avoids quantifying over bit positions entirely.",
   "A4": "x < 4096 implies x>>5 < 128. PROVED, as the chain `U32.hi_zero_shrn` plus `Word.to_nat_bound` in proofs/descend.bend, which is what lets the leaf laws discharge their width hypothesis.",
   "proved": "A bit index is below a word's width: Nat.gt(32, to_nat(and(x,31))). Discharged as `a_bit_index_is_below_the_word_width`.",
-  "A5": "The walk and the tile address name the same positions. Open; it is what is left of S-03, and through S-03 what is left of S-02's leaf.",
+  "A5": "The walk and the tile address name the same positions. PROVED, as `the_walk_agrees_with_the_tile_address`.",
   "converse": "A number below 2^k fits in k bits (Word.to_nat_fits). Proved, so a range hypothesis can be derived from a numeric bound wherever a lemma needs the bitwise form."
  }
 }
