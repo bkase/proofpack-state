@@ -53,13 +53,14 @@
     "U-01",
     "S-01"
    ],
-   "status": "restated_and_open",
+   "status": "partially_proved",
    "production_symbol": null,
-   "proof_symbol": null,
+   "proof_symbol": "PSet.mem_mk, PSet.leaf_faithful, PSet.mem_add_go's descent (proofs/collapse.bend, proofs/faithful.bend, proofs/descend.bend)",
    "stated_in": "LAWS.pending.bend",
    "backed_by": "the differential in tests.bend and tools/differential.sh: the production traversal uses these operations throughout.",
    "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
-   "gap": "Addressing fact A2 to descend, A3 for a sparse operand, and the counting argument through S-03. See the header of LAWS.pending.bend."
+   "gap": "With those and the proved tile laws, a leaf operation is pointwise as soon as compression is. So S-02 now reduces to S-03, and S-03 reduces to one addressing claim: that the enumeration walk and the tile address name the same positions.",
+   "proved_part": "The tree layer in full: the Zero/Full branch collapses preserve membership at every depth, the descent carries an ordinal into a child correctly, and a structurally valid leaf holds exactly the ordinals of the tile it converts to -- including the sparse case, which needed addressing fact A3."
   },
   {
    "id": "S-03",

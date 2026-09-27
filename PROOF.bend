@@ -31,6 +31,7 @@
 #   proofs/adder.bend     what U32 addition computes
 #   proofs/enum.bend      enumerating a tile
 #   proofs/compress.bend  what compression decides
+#   proofs/faithful.bend  a valid leaf and its tile agree
 
 import Base
 import ./LAWS.bend as Laws
@@ -57,6 +58,7 @@ import ./proofs/count.bend as PCt
 import ./proofs/adder.bend as PAdd
 import ./proofs/enum.bend as PEn
 import ./proofs/compress.bend as PCp
+import ./proofs/faithful.bend as PFa
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -232,3 +234,6 @@ def Laws.a_tile_compression_calls_empty_has_no_members(ws, x, z):
 def Laws.a_tile_compression_calls_full_has_every_member(ws, x, wide, full,
   inr):
   PCp.PSet.compress_full(ws, x, wide, full, inr)
+
+def Laws.a_valid_leaf_and_its_tile_hold_the_same_ordinals(s, x, v, inr):
+  PFa.PSet.leaf_faithful(s, x, v, inr)

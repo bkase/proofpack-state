@@ -733,3 +733,30 @@ law a_tile_compression_calls_full_has_every_member:
   for +full: {Wo.Words.count(ws) == 4096n : Nat}
   for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
   {Wo.Words.bit(ws, x) == True{} : Bool}
+
+# ===========================================================================
+# S-02, at the representation -- a valid leaf and its tile agree.
+#
+# Every leaf operation converts to words, works there, and compresses back.
+# For that to be sound the conversion has to be faithful, and this says it is:
+# `PSet.leaf_words` produces a tile with exactly the leaf's members, for each
+# of the four shapes a structurally valid leaf can take.
+#
+# The sparse case is the one that needed A3. The `PFull{}` case is the one the
+# hypothesis is for: a leaf covers 4096 ordinals, and `PFull{}` means *those*
+# 4096 rather than "everything", which is exactly what the counterexample in
+# tests.bend shows. `Dc.U32.hi_zero(x, 12n)` reads "x fits in 12 bits", which
+# is the leaf's extent.
+#
+# With this and the tile laws, a leaf operation is pointwise as soon as
+# compression is -- which is S-03, and S-03 is now down to one addressing
+# claim.
+# ===========================================================================
+
+law a_valid_leaf_and_its_tile_hold_the_same_ordinals:
+  for +s: S.PSet
+  for +x: U32
+  for +v: {S.PSet.valid.leaf(s) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
+  {S.PSet.mem.leaf(s, x)
+    == Wo.Words.bit(S.PSet.leaf_words(s), x) : Bool}
