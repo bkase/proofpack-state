@@ -527,3 +527,195 @@ def U32.lo_zero_high(x, k):
   match x:
     case U32{xw}:
       Word.lo_zero_high(32n, xw, k)
+
+# ---------------------------------------------------------------------------
+# And the number it reads as is the sum.
+#
+# With the value in the free bits and the base above them there is no carry
+# anywhere, so the numeric reading splits too. This is what lets the
+# enumeration's interval arithmetic be done in `Nat` without ever asking
+# whether a 32-bit addition overflowed.
+# ---------------------------------------------------------------------------
+
+law Nat.cons_add:
+  for +a: Nat
+  for +b: Nat
+  {Nat.add(1n+Nat.double(a), Nat.double(b))
+    == 1n+Nat.double(Nat.add(a, b)) : Nat}
+
+law Nat.double_add:
+  for +a: Nat
+  for +b: Nat
+  {Nat.add(Nat.double(a), Nat.double(b))
+    == Nat.double(Nat.add(a, b)) : Nat}
+
+def Nat.double_add(a, b):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      %E.Nat.sym(Nat.add(Nat.double(p), Nat.double(b)),
+        Nat.double(Nat.add(p, b)), Nat.double_add(p, b))
+        : {2n+_ == Nat.double(1n+Nat.add(p, b)) : Nat}
+      {==}
+
+law Nat.succ_add:
+  for +a: Nat
+  for +b: Nat
+  {Nat.add(1n+a, b) == 1n+Nat.add(a, b) : Nat}
+
+def Nat.succ_add(a, b):
+  {==}
+
+def Nat.cons_add(a, b):
+  %Nat.double_add(a, b)
+    : {Nat.add(1n+Nat.double(a), Nat.double(b)) == 1n+_ : Nat}
+  {==}
+
+law Word.hi_zero_to_nat:
+  for +n: Nat
+  for +w: Word(n)
+  for +hz: {Dc.Word.hi_zero(n, w, 0n) == True{} : Bool}
+  {Word.to_nat(n, w) == 0n : Nat}
+
+def Word.hi_zero_to_nat(n, w, hz):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match w:
+        case WCon{b, t}:
+          %E.Bool.not_true(b,
+            E.Bool.and_l(Bool.not(b), Dc.Word.hi_zero(p, t, 0n), hz))
+            : {Word.to_nat(1n+p, WCon{_, t}) == 0n : Nat}
+          %E.Nat.sym(Word.to_nat(p, t), 0n,
+            Word.hi_zero_to_nat(p, t,
+              E.Bool.and_r(Bool.not(b), Dc.Word.hi_zero(p, t, 0n), hz)))
+            : {Nat.double(_) == 0n : Nat}
+          {==}
+
+law Word.or_zero_left:
+  for +n: Nat
+  for +y: Word(n)
+  for +b: Word(n)
+  for +hz: {Dc.Word.hi_zero(n, y, 0n) == True{} : Bool}
+  {Word.or(n, y, b) == b : Word(n)}
+
+def Word.or_zero_left(n, y, b, hz):
+  match n:
+    case 0n:
+      match b:
+        case WNil{}:
+          {==}
+    case 1n+p:
+      match y b:
+        case WCon{yb, yt} WCon{bb, bt}:
+          %E.Bool.not_true(yb,
+            E.Bool.and_l(Bool.not(yb), Dc.Word.hi_zero(p, yt, 0n), hz))
+            : {WCon{Bool.or(_, bb), Word.or(p, yt, bt)} == WCon{bb, bt}
+              : Word(1n+p)}
+          %Dc.Word.sym(p, Word.or(p, yt, bt), bt,
+            Word.or_zero_left(p, yt, bt,
+              E.Bool.and_r(Bool.not(yb), Dc.Word.hi_zero(p, yt, 0n), hz)))
+            : {WCon{bb, _} == WCon{bb, bt} : Word(1n+p)}
+          {==}
+
+law Word.to_nat_or:
+  for +n: Nat
+  for +y: Word(n)
+  for +b: Word(n)
+  for +k: Nat
+  for +hy: {Dc.Word.hi_zero(n, y, k) == True{} : Bool}
+  for +lb: {Word.lo_zero(n, b, k) == True{} : Bool}
+  {Word.to_nat(n, Word.or(n, y, b))
+    == Nat.add(Word.to_nat(n, y), Word.to_nat(n, b)) : Nat}
+
+law Word.to_nat_or.zero:
+  for +p: Nat
+  for +y: Word(1n+p)
+  for +b: Word(1n+p)
+  for +hy: {Dc.Word.hi_zero(1n+p, y, 0n) == True{} : Bool}
+  {Word.to_nat(1n+p, Word.or(1n+p, y, b))
+    == Nat.add(Word.to_nat(1n+p, y), Word.to_nat(1n+p, b)) : Nat}
+
+def Word.to_nat_or.zero(p, y, b, hy):
+  %Dc.Word.sym(1n+p, Word.or(1n+p, y, b), b,
+    Word.or_zero_left(1n+p, y, b, hy))
+    : {Word.to_nat(1n+p, _)
+      == Nat.add(Word.to_nat(1n+p, y), Word.to_nat(1n+p, b)) : Nat}
+  %E.Nat.sym(Word.to_nat(1n+p, y), 0n,
+    Word.hi_zero_to_nat(1n+p, y, hy))
+    : {Word.to_nat(1n+p, b) == Nat.add(_, Word.to_nat(1n+p, b))
+      : Nat}
+  {==}
+
+law Word.to_nat_or.cons:
+  for +p: Nat
+  for +yb: Bool
+  for +yt: Word(p)
+  for +bt: Word(p)
+  for +ih: {Word.to_nat(p, Word.or(p, yt, bt))
+    == Nat.add(Word.to_nat(p, yt), Word.to_nat(p, bt)) : Nat}
+  {Word.to_nat(1n+p, WCon{Bool.or(yb, False{}),
+      Word.or(p, yt, bt)})
+    == Nat.add(Word.to_nat(1n+p, WCon{yb, yt}),
+         Word.to_nat(1n+p, WCon{False{}, bt})) : Nat}
+
+def Word.to_nat_or.cons(p, yb, yt, bt, ih):
+  match yb:
+    case False{}:
+      %E.Nat.sym(Word.to_nat(p, Word.or(p, yt, bt)),
+        Nat.add(Word.to_nat(p, yt), Word.to_nat(p, bt)), ih)
+        : {Nat.double(_)
+        == Nat.add(Nat.double(Word.to_nat(p, yt)),
+             Nat.double(Word.to_nat(p, bt))) : Nat}
+      E.Nat.sym(Nat.add(Nat.double(Word.to_nat(p, yt)),
+        Nat.double(Word.to_nat(p, bt))),
+        Nat.double(Nat.add(Word.to_nat(p, yt), Word.to_nat(p, bt))),
+        Nat.double_add(Word.to_nat(p, yt), Word.to_nat(p, bt)))
+    case True{}:
+      %E.Nat.sym(Word.to_nat(p, Word.or(p, yt, bt)),
+        Nat.add(Word.to_nat(p, yt), Word.to_nat(p, bt)), ih)
+        : {1n+Nat.double(_)
+        == Nat.add(1n+Nat.double(Word.to_nat(p, yt)),
+             Nat.double(Word.to_nat(p, bt))) : Nat}
+      E.Nat.sym(Nat.add(1n+Nat.double(Word.to_nat(p, yt)),
+        Nat.double(Word.to_nat(p, bt))),
+        1n+Nat.double(Nat.add(Word.to_nat(p, yt),
+          Word.to_nat(p, bt))),
+        Nat.cons_add(Word.to_nat(p, yt), Word.to_nat(p, bt)))
+
+def Word.to_nat_or(n, y, b, k, hy, lb):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match y b:
+        case WCon{yb, yt} WCon{bb, bt}:
+          match k:
+            case 0n:
+              Word.to_nat_or.zero(p, WCon{yb, yt}, WCon{bb, bt}, hy)
+            case 1n+j:
+              %E.Bool.not_true(bb,
+                E.Bool.and_l(Bool.not(bb), Word.lo_zero(p, bt, j), lb))
+                : {Word.to_nat(1n+p, WCon{Bool.or(yb, _),
+                    Word.or(p, yt, bt)})
+                  == Nat.add(Word.to_nat(1n+p, WCon{yb, yt}),
+                       Word.to_nat(1n+p, WCon{_, bt})) : Nat}
+              Word.to_nat_or.cons(p, yb, yt, bt,
+                Word.to_nat_or(p, yt, bt, j, hy,
+                  E.Bool.and_r(Bool.not(bb), Word.lo_zero(p, bt, j), lb)))
+
+law U32.to_nat_or:
+  for +y: U32
+  for +b: U32
+  for +k: Nat
+  for +hy: {Dc.U32.hi_zero(y, k) == True{} : Bool}
+  for +lb: {U32.lo_zero(b, k) == True{} : Bool}
+  {U32.to_nat(U32.or(y, b))
+    == Nat.add(U32.to_nat(y), U32.to_nat(b)) : Nat}
+
+def U32.to_nat_or(y, b, k, hy, lb):
+  match y b:
+    case U32{yw} U32{bw}:
+      Word.to_nat_or(32n, yw, bw, k, hy, lb)
