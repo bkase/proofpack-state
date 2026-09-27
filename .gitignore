@@ -9,3 +9,4 @@ PROOF.bendtt
 
 # Local scratch
 .scratch/
+.check-all.bend
