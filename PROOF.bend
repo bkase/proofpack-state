@@ -58,6 +58,7 @@
 #   proofs/decr.bend      what subtracting one does
 #   proofs/span.bend      what counting down covers
 #   proofs/leafenum.bend  a leaf enumerates exactly its members
+#   proofs/interval.bend  a subtree's bit test is an interval of ordinals
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -84,6 +85,7 @@ import ./proofs/split_add.bend as PSa
 import ./proofs/decr.bend as PDe
 import ./proofs/span.bend as PSn
 import ./proofs/leafenum.bend as PLe
+import ./proofs/interval.bend as PIt
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -529,3 +531,9 @@ def Laws.counting_down_reaches_nothing_else(k, eq, ord, x, eeq, nowrap,
 
 def Laws.a_leaf_enumerates_exactly_its_members(s, y, inr, ok):
   PLe.PSet.leaf_members_mem(s, y, inr, ok)
+
+def Laws.a_subtree_test_is_an_interval(base, x, k, lb, m):
+  PIt.Interval.bounds_of_match(base, x, k, lb, m)
+
+def Laws.an_interval_forces_the_subtree_test(base, x, k, lb, lo, hi):
+  PIt.Interval.match_of_bounds(base, x, k, lb, lo, hi)

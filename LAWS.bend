@@ -2013,3 +2013,23 @@ law a_leaf_enumerates_exactly_its_members:
   for +ok: {Le.PSet.ok.leaf(s) == True{} : Bool}
   {List.contains(~U32, ~U32.is_eq, S.PSet.leaf_members(s), y)
     == S.PSet.mem.leaf(s, y) : Bool}
+
+law a_subtree_test_is_an_interval:
+  for +base: U32
+  for +x: U32
+  for +k: Nat
+  for +lb: {Sa.U32.lo_zero(base, k) == True{} : Bool}
+  for +m: {U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) == True{} : Bool}
+  {Bool.and(C.Nat.upto(U32.to_nat(base), U32.to_nat(x)),
+    C.Nat.gt(Nat.add(U32.to_nat(base), Dc.Nat.pow2(k)), U32.to_nat(x)))
+    == True{} : Bool}
+
+law an_interval_forces_the_subtree_test:
+  for +base: U32
+  for +x: U32
+  for +k: Nat
+  for +lb: {Sa.U32.lo_zero(base, k) == True{} : Bool}
+  for +lo: {C.Nat.upto(U32.to_nat(base), U32.to_nat(x)) == True{} : Bool}
+  for +hi: {C.Nat.gt(Nat.add(U32.to_nat(base), Dc.Nat.pow2(k)),
+    U32.to_nat(x)) == True{} : Bool}
+  {U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))) == True{} : Bool}
