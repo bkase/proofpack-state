@@ -328,11 +328,13 @@
         "B-03",
         "C-02"
       ],
-      "status": "specified_checked_at_runtime",
+      "status": "partially_proved",
       "production_symbol": null,
-      "proof_symbol": null,
-      "stated_in": "LAWS.pending.bend",
-      "backed_by": "tests.bend differential and tools/differential.sh."
+      "proof_symbol": "Mach.set_computes and Mach.failure_is_reported (proofs/machine.bend)",
+      "stated_in": "LAWS.bend (the machine) and LAWS.pending.bend (the contract)",
+      "backed_by": "tests.bend differential and tools/differential.sh.",
+      "proved_part": "The evaluator machine computes the fold. Evaluation is a control word, a stack of frames and one tail call per step because two non-tail self-calls in one def overrun this runtime frame limit; Ev.direct is the fold that could not be written, and the machine agrees with it whenever it reports success. And a failure it notices is one it reports: once the completion flag is False, no continuation of the machine reports ok.",
+      "gap": "The other two steps of the contract: the rewrite pass in front of the machine (Q-01 whole pass) and reachability being computed by the frontier traversal rather than the specification iteration (C-02)."
     },
     {
       "id": "Q-04",

@@ -479,3 +479,6 @@ def Laws.a_rejected_store_says_why(u, d, eu, no):
 def Laws.an_unfinished_traversal_is_never_reported_as_complete(fuel, src, c,
   k):
   PMa.Mach.failure_is_reported(fuel, src, c, k)
+
+def Laws.the_evaluator_machine_computes_the_fold(src, e, good):
+  PMa.Mach.set_computes(src, e, good)

@@ -69,6 +69,7 @@ import ./proofs/subset.bend as Sb
 import ./proofs/batch.bend as Ba
 import ./index/store.bend as St
 import ./query/eval.bend as Qe
+import ./proofs/machine.bend as Ma
 import ./proofs/extensive.bend as Ex3
 import ./cli/main.bend as Cm
 import ./proofs/inventory.bend as Iv2
@@ -1804,3 +1805,36 @@ law an_unfinished_traversal_is_never_reported_as_complete:
   for +c: Qe.Ctl
   for +k: List<&2, Qe.Frame>
   {Qe.Val.ok(Qe.Ev.go(fuel, src, c, k, False{})) == False{} : Bool}
+
+# ===========================================================================
+# Q-03, the half that is about the machine.
+#
+# SPEC 3.6's compiler contract is `observe(execute(compile(W, q))) = [[q]]_W`.
+# Three things stand between the evaluator and that: the rewrite pass in
+# front of it (Q-01), reachability being computed by the frontier traversal
+# rather than the specification iteration (C-02), and the evaluator being an
+# explicit machine rather than a fold.
+#
+# The third is the one nobody else is blocked on, and it exists for a reason
+# that has nothing to do with semantics: two non-tail self-calls in one def
+# overrun this runtime's frame limit, so evaluation is a control word, a
+# stack of frames and one tail call per step. `Ma.Ev.direct` is the fold that
+# could not be written and `Ma.Ev.unwind` says what a stack of frames means.
+#
+# This law is that the machine computes the fold -- so the shape the runtime
+# forced is an implementation detail and not a semantic choice. It is
+# conditional on the machine reporting success, which is the honest form:
+# a run that exhausted its step budget, or a traversal that did not finish,
+# answers `ok = False` and has nothing to say about the fold.
+#
+# The induction is over the machine's own steps. The traversal step is the
+# one that needs care: the induction hypothesis goes in as an argument and is
+# used exactly once, because the case where the traversal did not finish does
+# not need it -- there the machine cannot have reported `ok` at all.
+# ===========================================================================
+
+law the_evaluator_machine_computes_the_fold:
+  for +src: Sc.Source
+  for +e: A.SetExpr
+  for +good: {Qe.Val.ok(Qe.Ev.set(src, e)) == True{} : Bool}
+  {Qe.Val.set(Qe.Ev.set(src, e)) == Ma.Ev.direct(src, e) : S.PSet}
