@@ -2047,3 +2047,35 @@ law a_full_node_enumerates_its_interval:
     S.PSet.range(Dc.Nat.pow2(k), ord, tail), x)
     == Bool.or(U32.is_eq(base, W.U32.diff(x, W.U32.mask(k))),
          List.contains(~U32, ~U32.is_eq, tail, x)) : Bool}
+
+law addition_that_does_not_carry_out_is_addition:
+  for +n: Nat
+  for +a: Word(n)
+  for +b: Word(n)
+  for +nc: {Ad.Word.carry(n, a, b, False{}, False{}) == False{} : Bool}
+  {Word.to_nat(n, Word.adc(n, a, b, False{}, False{}))
+    == Nat.add(Word.to_nat(n, a), Word.to_nat(n, b)) : Nat}
+
+law a_sum_that_fits_does_not_carry_out:
+  for +n: Nat
+  for +c: Bool
+  for +a: Word(n)
+  for +b: Word(n)
+  for +ec: {c == Ad.Word.carry(n, a, b, False{}, False{}) : Bool}
+  for +bound: {C.Nat.gt(Dc.Nat.pow2(n),
+    Nat.add(Word.to_nat(n, a), Word.to_nat(n, b))) == True{} : Bool}
+  {Word.to_nat(n, Word.adc(n, a, b, False{}, False{}))
+    == Nat.add(Word.to_nat(n, a), Word.to_nat(n, b)) : Nat}
+
+law clearing_the_top_bit_of_a_mask_narrows_it:
+  for +x: U32
+  for +k: Nat
+  {U32{Dc.Word.clear(32n, W.U32.word(U32.and(x, W.U32.mask(1n+k))), k)}
+    == U32.and(x, W.U32.mask(k)) : U32}
+
+law a_clear_top_bit_makes_two_masks_agree:
+  for +x: U32
+  for +k: Nat
+  for +hz: {Dc.U32.hi_zero(U32.and(x, W.U32.mask(1n+k)), k)
+    == True{} : Bool}
+  {U32.and(x, W.U32.mask(1n+k)) == U32.and(x, W.U32.mask(k)) : U32}

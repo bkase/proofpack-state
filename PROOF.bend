@@ -60,6 +60,8 @@
 #   proofs/leafenum.bend  a leaf enumerates exactly its members
 #   proofs/interval.bend  a subtree's bit test is an interval of ordinals
 #   proofs/nodeenum.bend  a full node enumerates exactly its interval
+#   proofs/maskwidth.bend the same ordinal, masked at two adjacent widths
+#   proofs/sum.bend       addition that does not overflow is addition
 #   proofs/inventory.bend the inventory projection names what it was told
 #   proofs/policylift.bend  G-02, from a row to an edge
 #   proofs/trie.bend      a trie reads back what was written
@@ -88,6 +90,8 @@ import ./proofs/span.bend as PSn
 import ./proofs/leafenum.bend as PLe
 import ./proofs/interval.bend as PIt
 import ./proofs/nodeenum.bend as PNe
+import ./proofs/maskwidth.bend as PMw
+import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
@@ -543,3 +547,15 @@ def Laws.an_interval_forces_the_subtree_test(base, x, k, lb, lo, hi):
 def Laws.a_full_node_enumerates_its_interval(k, base, ord, x, tail, lb,
   eo):
   PNe.Ords.range_is_an_interval(k, base, ord, x, tail, lb, eo)
+
+def Laws.addition_that_does_not_carry_out_is_addition(n, a, b, nc):
+  PSm.Word.add_of_no_carry(n, a, b, nc)
+
+def Laws.a_sum_that_fits_does_not_carry_out(n, c, a, b, ec, bound):
+  PSm.Word.add_spec(n, c, a, b, ec, bound)
+
+def Laws.clearing_the_top_bit_of_a_mask_narrows_it(x, k):
+  PMw.U32.clear_mask(x, k)
+
+def Laws.a_clear_top_bit_makes_two_masks_agree(x, k, hz):
+  PMw.U32.mask_step(x, k, hz)
