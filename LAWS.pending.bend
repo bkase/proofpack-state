@@ -54,13 +54,35 @@ import ./proofs/denote.bend as PDn
 #      The converse -- from "every member of a is a member of b" back to a
 #      zero count -- is what C-01's leastness and C-02's refinement need, so
 #      that an induction can carry "still inside" from round to round in a
-#      form it can reuse. It quantifies over ordinals, and a hypothesis
-#      quantified over ordinals cannot be used twice under Bend's affine
-#      discipline. U-01's injectivity is the same shape: an invariant over
-#      every key of a trie, needed at two different keys at once. Making
-#      those invariants decidable predicates, so the hypothesis is data
-#      rather than a function, is the route -- and it is a development, not
-#      a lemma.
+#      form it can reuse.
+#
+#      The affine obstruction to it is gone. It was that the hypothesis
+#      quantifies over ordinals and a hypothesis quantified over ordinals
+#      cannot be used twice -- but a proof by contradiction uses it exactly
+#      once, at a single ordinal, provided something produces that ordinal.
+#      `a_set_with_a_nonzero_count_has_a_member` now does: a count that is
+#      not zero exhibits the first ordinal of the set's enumeration, and the
+#      enumeration law says that ordinal is a member.
+#
+#      What is left is one identity: that the fused difference count is the
+#      count of the difference,
+#
+#        PSet.missing_count(d, a, b) == PSet.count(d, PSet.diff(d, a, b), h)
+#
+#      which is C-03's set-level fused-count theorem. With it the converse
+#      reads: if the count were not zero, the witness would be a member of
+#      `a` that is not a member of `b` (the difference is pointwise, which is
+#      proved), and the hypothesis applied at that one ordinal contradicts
+#      it. The tile-level case of the identity is already proved
+#      (`counting_a_difference_needs_no_difference`); the set-level one has a
+#      leaf case per pair of shapes and needs the count to survive
+#      compression.
+#
+#      U-01's injectivity is a different shape: an invariant over every key
+#      of a trie, needed at two different keys at once, with no count to
+#      produce a witness from. Making that invariant a decidable predicate,
+#      so the hypothesis is data rather than a function, is still the route
+#      there -- and it is a development, not a lemma.
 #
 #   2. That a set's enumeration agrees with its membership:
 #
