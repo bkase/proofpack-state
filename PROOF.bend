@@ -66,6 +66,8 @@
 #   proofs/childtest.bend which half an ordinal is in
 #   proofs/treeenum.bend  the tree enumerates exactly its members
 #   proofs/tilefit.bend   the tile walk stays inside the leaf
+#   proofs/countlen.bend  the count is the length of the enumeration
+#   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
 #   proofs/inventory.bend the inventory projection names what it was told
@@ -103,6 +105,8 @@ import ./proofs/childtest.bend as PCh
 import ./proofs/treeenum.bend as PTe
 import ./proofs/validshape.bend as PVs
 import ./proofs/tilefit.bend as PTf
+import ./proofs/countlen.bend as PCn
+import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
@@ -614,3 +618,10 @@ def Laws.a_valid_set_lists_exactly_its_members(d, s, x, v, lt, inr):
 
 def Laws.a_tile_walk_stays_inside_the_leaf(ws, len):
   PTf.Words.members_fit(ws, len)
+
+def Laws.the_count_is_the_length_of_the_enumeration(d, s, lt):
+  PCn.PSet.count_is_to_list_length(d, s, lt)
+
+def Laws.a_set_with_a_nonzero_count_has_a_member(d, s, l, ok, lt, el,
+  pos):
+  PNe2.PSet.witness(d, s, l, ok, lt, el, pos)

@@ -78,6 +78,7 @@ import ./proofs/span.bend as Sn
 import ./proofs/leafenum.bend as Le
 import ./proofs/treeenum.bend as Te
 import ./proofs/validshape.bend as Vs
+import ./proofs/nonempty.bend as Wt
 import ./proofs/shift.bend as Sh2
 import ./proofs/shift.bend as Sf
 import ./adapters/git/bytes.bend as By
@@ -2210,3 +2211,21 @@ law a_tile_walk_stays_inside_the_leaf:
   for +len: {Nat.is_eq(List.length(&2, U32, ws), 128n) == True{}
     : Bool}
   {Sh2.Ords.all_fit(Wo.Words.members(ws, 0), 12n) == True{} : Bool}
+
+law the_count_is_the_length_of_the_enumeration:
+  for +d: Nat
+  for +s: S.PSet
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {List.length(&2, U32, S.PSet.to_list(d, s))
+    == S.PSet.count(d, s, S.PSet.half(d)) : Nat}
+
+law a_set_with_a_nonzero_count_has_a_member:
+  for +d: Nat
+  for +s: S.PSet
+  for +l: List<&2, U32>
+  for +ok: {Te.PSet.ok(d, s) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +el: {l == S.PSet.to_list(d, s) : List<&2, U32>}
+  for +pos: {C.Nat.gt(S.PSet.count(d, s, S.PSet.half(d)), 0n)
+    == True{} : Bool}
+  {S.PSet.member(d, s, Wt.Ords.head(l)) == True{} : Bool}
