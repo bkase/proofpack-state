@@ -885,3 +885,23 @@ law set_difference_is_pointwise:
   {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
     == Bool.and(S.PSet.member(20n, a, x),
          Bool.not(S.PSet.member(20n, b, x))) : Bool}
+
+law set_union_is_pointwise:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.union(20n, a, b), x)
+    == Bool.or(S.PSet.member(20n, a, x),
+         S.PSet.member(20n, b, x)) : Bool}
+
+law set_intersection_is_pointwise:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
+    == Bool.and(S.PSet.member(20n, a, x),
+         S.PSet.member(20n, b, x)) : Bool}

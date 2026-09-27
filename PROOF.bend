@@ -264,3 +264,9 @@ def Laws.the_leaf_intersection_is_pointwise(a, b, x, va, vb, inr):
 
 def Laws.set_difference_is_pointwise(a, b, x, va, vb):
   PSo.PSet.diff_member(a, b, x, va, vb)
+
+def Laws.set_union_is_pointwise(a, b, x, va, vb):
+  PSo.PSet.union_member(a, b, x, va, vb)
+
+def Laws.set_intersection_is_pointwise(a, b, x, va, vb):
+  PSo.PSet.inter_member(a, b, x, va, vb)

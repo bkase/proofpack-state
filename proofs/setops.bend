@@ -259,3 +259,264 @@ def PSet.diff_member(a, b, x, va, vb):
   PSet.diff_pointwise(20n, a, b, S.PSet.half(20n), x, {==}, {==},
     va, vb, Dc.U32.hi_zero_full(x),
     U32.is_lt(x, S.PSet.half(20n)), {==})
+
+law PSet.union_pointwise:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +h: U32
+  for +x: U32
+  for +eh: {h == U32.shln(1, 11n+d) : U32}
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
+  for +bt: Bool
+  for +ebt: {bt == U32.is_lt(x, h) : Bool}
+  {S.PSet.mem(d, S.PSet.union(d, a, b), h, x)
+    == Bool.or(S.PSet.mem(d, a, h, x),
+         S.PSet.mem(d, b, h, x)) : Bool}
+
+law Bool.or_false_r3:
+  for +b: Bool
+  {b == Bool.or(b, False{}) : Bool}
+
+def Bool.or_false_r3(b):
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+law Bool.or_true_r3:
+  for +b: Bool
+  {True{} == Bool.or(b, True{}) : Bool}
+
+def Bool.or_true_r3(b):
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+def PSet.union_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
+  match d:
+    case 0n:
+      Lo.PSet.union_leaf_pointwise(a, b, x, va, vb, inv)
+    case 1n+p:
+      match a:
+        case S.PZero{}:
+          {==}
+        case S.PFull{}:
+          {==}
+        case S.PSparse{o}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.union(1n+p, S.PSparse{o}, b), h, x)
+                == Bool.or(S.PSet.mem(1n+p, S.PSparse{o}, h, x),
+                     S.PSet.mem(1n+p, b, h, x)) : Bool}, va)
+        case S.PDense{w}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.union(1n+p, S.PDense{w}, b), h, x)
+                == Bool.or(S.PSet.mem(1n+p, S.PDense{w}, h, x),
+                     S.PSet.mem(1n+p, b, h, x)) : Bool}, va)
+        case S.PBranch{al, ah}:
+          match b:
+            case S.PZero{}:
+              Bool.or_false_r3(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x))
+            case S.PFull{}:
+              Bool.or_true_r3(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x))
+            case S.PSparse{o}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.union(1n+p, S.PBranch{al, ah}, S.PSparse{o}), h, x)
+                == Bool.or(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                     S.PSet.mem(1n+p, S.PSparse{o}, h, x)) : Bool}, vb)
+            case S.PDense{w}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.union(1n+p, S.PBranch{al, ah}, S.PDense{w}), h, x)
+                == Bool.or(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                     S.PSet.mem(1n+p, S.PDense{w}, h, x)) : Bool}, vb)
+            case S.PBranch{bl, bh}:
+              match bt:
+                case True{}:
+                  %E.Bool.sym(
+                    S.PSet.mem(1n+p, S.PSet.mk(S.PSet.union(p, al, bl),
+                      S.PSet.union(p, ah, bh)), h, x),
+                    S.PSet.mem(1n+p, S.PBranch{S.PSet.union(p, al, bl),
+                      S.PSet.union(p, ah, bh)}, h, x),
+                    Co.PSet.mem_mk(p, S.PSet.union(p, al, bl),
+                      S.PSet.union(p, ah, bh), h, x))
+                    : {_ == Bool.or(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                        S.PSet.mem(1n+p, S.PBranch{bl, bh}, h, x))
+                      : Bool}
+                  %ebt : {S.PSet.mem(p, S.PSet.pick(_,
+                      S.PSet.union(p, al, bl), S.PSet.union(p, ah, bh)),
+                      U32.shr(h), S.PSet.rebase(_, h, x))
+                    == Bool.or(S.PSet.mem(p, S.PSet.pick(_, al, ah),
+                         U32.shr(h), S.PSet.rebase(_, h, x)),
+                         S.PSet.mem(p, S.PSet.pick(_, bl, bh),
+                           U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
+                  PSet.union_pointwise(p, al, bl, U32.shr(h), x,
+                    Lf.PSet.half_shr(p, h, eh, dok),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_lo(p, al, ah, va),
+                    Lf.PSet.valid_lo(p, bl, bh, vb),
+                    Lf.PSet.range_lo(p, h, x, eh, dok, ebt),
+                    U32.is_lt(x, U32.shr(h)), {==})
+                case False{}:
+                  %E.Bool.sym(
+                    S.PSet.mem(1n+p, S.PSet.mk(S.PSet.union(p, al, bl),
+                      S.PSet.union(p, ah, bh)), h, x),
+                    S.PSet.mem(1n+p, S.PBranch{S.PSet.union(p, al, bl),
+                      S.PSet.union(p, ah, bh)}, h, x),
+                    Co.PSet.mem_mk(p, S.PSet.union(p, al, bl),
+                      S.PSet.union(p, ah, bh), h, x))
+                    : {_ == Bool.or(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                        S.PSet.mem(1n+p, S.PBranch{bl, bh}, h, x))
+                      : Bool}
+                  %ebt : {S.PSet.mem(p, S.PSet.pick(_,
+                      S.PSet.union(p, al, bl), S.PSet.union(p, ah, bh)),
+                      U32.shr(h), S.PSet.rebase(_, h, x))
+                    == Bool.or(S.PSet.mem(p, S.PSet.pick(_, al, ah),
+                         U32.shr(h), S.PSet.rebase(_, h, x)),
+                         S.PSet.mem(p, S.PSet.pick(_, bl, bh),
+                           U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
+                  PSet.union_pointwise(p, ah, bh, U32.shr(h), U32.sub(x, h),
+                    Lf.PSet.half_shr(p, h, eh, dok),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_hi(p, al, ah, va),
+                    Lf.PSet.valid_hi(p, bl, bh, vb),
+                    Lf.PSet.range_hi(p, h, x, eh, dok, ebt, inv),
+                    U32.is_lt(U32.sub(x, h), U32.shr(h)), {==})
+
+law PSet.inter_pointwise:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +h: U32
+  for +x: U32
+  for +eh: {h == U32.shln(1, 11n+d) : U32}
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
+  for +bt: Bool
+  for +ebt: {bt == U32.is_lt(x, h) : Bool}
+  {S.PSet.mem(d, S.PSet.inter(d, a, b), h, x)
+    == Bool.and(S.PSet.mem(d, a, h, x),
+         S.PSet.mem(d, b, h, x)) : Bool}
+
+def PSet.inter_pointwise(d, a, b, h, x, eh, dok, va, vb, inv, bt, ebt):
+  match d:
+    case 0n:
+      Lo.PSet.inter_leaf_pointwise(a, b, x, va, vb, inv)
+    case 1n+p:
+      match a:
+        case S.PZero{}:
+          {==}
+        case S.PFull{}:
+          {==}
+        case S.PSparse{o}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.inter(1n+p, S.PSparse{o}, b), h, x)
+                == Bool.and(S.PSet.mem(1n+p, S.PSparse{o}, h, x),
+                     S.PSet.mem(1n+p, b, h, x)) : Bool}, va)
+        case S.PDense{w}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.inter(1n+p, S.PDense{w}, b), h, x)
+                == Bool.and(S.PSet.mem(1n+p, S.PDense{w}, h, x),
+                     S.PSet.mem(1n+p, b, h, x)) : Bool}, va)
+        case S.PBranch{al, ah}:
+          match b:
+            case S.PZero{}:
+              Bool.and_false_r2(
+                S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x))
+            case S.PFull{}:
+              Bool.and_true_r2(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x))
+            case S.PSparse{o}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.inter(1n+p, S.PBranch{al, ah}, S.PSparse{o}), h, x)
+                == Bool.and(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                     S.PSet.mem(1n+p, S.PSparse{o}, h, x)) : Bool}, vb)
+            case S.PDense{w}:
+              E.Bool.noconf({S.PSet.mem(1n+p,
+                S.PSet.inter(1n+p, S.PBranch{al, ah}, S.PDense{w}), h, x)
+                == Bool.and(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                     S.PSet.mem(1n+p, S.PDense{w}, h, x)) : Bool}, vb)
+            case S.PBranch{bl, bh}:
+              match bt:
+                case True{}:
+                  %E.Bool.sym(
+                    S.PSet.mem(1n+p, S.PSet.mk(S.PSet.inter(p, al, bl),
+                      S.PSet.inter(p, ah, bh)), h, x),
+                    S.PSet.mem(1n+p, S.PBranch{S.PSet.inter(p, al, bl),
+                      S.PSet.inter(p, ah, bh)}, h, x),
+                    Co.PSet.mem_mk(p, S.PSet.inter(p, al, bl),
+                      S.PSet.inter(p, ah, bh), h, x))
+                    : {_ == Bool.and(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                        S.PSet.mem(1n+p, S.PBranch{bl, bh}, h, x))
+                      : Bool}
+                  %ebt : {S.PSet.mem(p, S.PSet.pick(_,
+                      S.PSet.inter(p, al, bl), S.PSet.inter(p, ah, bh)),
+                      U32.shr(h), S.PSet.rebase(_, h, x))
+                    == Bool.and(S.PSet.mem(p, S.PSet.pick(_, al, ah),
+                         U32.shr(h), S.PSet.rebase(_, h, x)),
+                         S.PSet.mem(p, S.PSet.pick(_, bl, bh),
+                           U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
+                  PSet.inter_pointwise(p, al, bl, U32.shr(h), x,
+                    Lf.PSet.half_shr(p, h, eh, dok),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_lo(p, al, ah, va),
+                    Lf.PSet.valid_lo(p, bl, bh, vb),
+                    Lf.PSet.range_lo(p, h, x, eh, dok, ebt),
+                    U32.is_lt(x, U32.shr(h)), {==})
+                case False{}:
+                  %E.Bool.sym(
+                    S.PSet.mem(1n+p, S.PSet.mk(S.PSet.inter(p, al, bl),
+                      S.PSet.inter(p, ah, bh)), h, x),
+                    S.PSet.mem(1n+p, S.PBranch{S.PSet.inter(p, al, bl),
+                      S.PSet.inter(p, ah, bh)}, h, x),
+                    Co.PSet.mem_mk(p, S.PSet.inter(p, al, bl),
+                      S.PSet.inter(p, ah, bh), h, x))
+                    : {_ == Bool.and(S.PSet.mem(1n+p, S.PBranch{al, ah}, h, x),
+                        S.PSet.mem(1n+p, S.PBranch{bl, bh}, h, x))
+                      : Bool}
+                  %ebt : {S.PSet.mem(p, S.PSet.pick(_,
+                      S.PSet.inter(p, al, bl), S.PSet.inter(p, ah, bh)),
+                      U32.shr(h), S.PSet.rebase(_, h, x))
+                    == Bool.and(S.PSet.mem(p, S.PSet.pick(_, al, ah),
+                         U32.shr(h), S.PSet.rebase(_, h, x)),
+                         S.PSet.mem(p, S.PSet.pick(_, bl, bh),
+                           U32.shr(h), S.PSet.rebase(_, h, x))) : Bool}
+                  PSet.inter_pointwise(p, ah, bh, U32.shr(h), U32.sub(x, h),
+                    Lf.PSet.half_shr(p, h, eh, dok),
+                    Dc.Nat.gt_down(32n, 11n+p, dok), Lf.PSet.valid_hi(p, al, ah, va),
+                    Lf.PSet.valid_hi(p, bl, bh, vb),
+                    Lf.PSet.range_hi(p, h, x, eh, dok, ebt, inv),
+                    U32.is_lt(U32.sub(x, h), U32.shr(h)), {==})
+
+law PSet.union_member:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.union(20n, a, b), x)
+    == Bool.or(S.PSet.member(20n, a, x),
+         S.PSet.member(20n, b, x)) : Bool}
+
+def PSet.union_member(a, b, x, va, vb):
+  PSet.union_pointwise(20n, a, b, S.PSet.half(20n), x, {==}, {==},
+    va, vb, Dc.U32.hi_zero_full(x),
+    U32.is_lt(x, S.PSet.half(20n)), {==})
+
+law PSet.inter_member:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
+  {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
+    == Bool.and(S.PSet.member(20n, a, x),
+         S.PSet.member(20n, b, x)) : Bool}
+
+def PSet.inter_member(a, b, x, va, vb):
+  PSet.inter_pointwise(20n, a, b, S.PSet.half(20n), x, {==}, {==},
+    va, vb, Dc.U32.hi_zero_full(x),
+    U32.is_lt(x, S.PSet.half(20n)), {==})

@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 13. That count is the point of the file, so the command "failing"
+# currently 10. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -115,34 +115,10 @@ import ./query/eval.bend as Ev
 # through S-03.
 # ===========================================================================
 
-law set_difference_is_pointwise:
-  for +a: S.PSet
-  for +b: S.PSet
-  for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
-  {S.PSet.member(20n, S.PSet.diff(20n, a, b), x)
-    == Bool.and(S.PSet.member(20n, a, x),
-         Bool.not(S.PSet.member(20n, b, x))) : Bool}
-
-law set_union_is_pointwise:
-  for +a: S.PSet
-  for +b: S.PSet
-  for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
-  {S.PSet.member(20n, S.PSet.union(20n, a, b), x)
-    == Bool.or(S.PSet.member(20n, a, x), S.PSet.member(20n, b, x)) : Bool}
-
-law set_intersection_is_pointwise:
-  for +a: S.PSet
-  for +b: S.PSet
-  for +x: U32
-  for +va: {S.PSet.valid(20n, a, True{}) == True{} : Bool}
-  for +vb: {S.PSet.valid(20n, b, True{}) == True{} : Bool}
-  {S.PSet.member(20n, S.PSet.inter(20n, a, b), x)
-    == Bool.and(S.PSet.member(20n, a, x), S.PSet.member(20n, b, x)) : Bool}
-
+# S-02 is proved and lives in LAWS.bend as `set_difference_is_pointwise`,
+# `set_union_is_pointwise` and `set_intersection_is_pointwise`, at the
+# production depth and with structural validity as the only hypothesis.
+#
 # S-03 is proved and lives in LAWS.bend as
 # `compressing_a_leaf_keeps_its_members`, together with the addressing claim
 # it rested on, `the_walk_agrees_with_the_tile_address`. Compression changes

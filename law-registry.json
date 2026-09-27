@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 12 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 4 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 0 refuted as first stated and restated with the hypotheses they need, still open; 11 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 13 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 3 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 11 specified in LAWS.pending.bend and established per query or by differential test instead; 5 not applicable until the milestone named in `reason`. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -47,20 +47,20 @@
    "id": "S-02",
    "required_by": "M2",
    "name": "Representation refinement",
-   "statement": "Set difference, union and intersection are pointwise at the production depth, for structurally valid operands. (Restated: depth 20 covers 2^32 ordinals, so every U32 is in range and no range hypothesis is needed.)",
+   "statement": "Set difference, union and intersection are pointwise at the production depth, for structurally valid operands and every U32 ordinal.",
    "unlocks": "Adaptive persistent representations",
    "depends_on": [
     "U-01",
     "S-01"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "PSet.mem_mk, PSet.leaf_faithful, PSet.mem_add_go's descent (proofs/collapse.bend, proofs/faithful.bend, proofs/descend.bend)",
-   "stated_in": "LAWS.pending.bend",
+   "proof_symbol": "PSet.diff_member, PSet.union_member, PSet.inter_member (proofs/setops.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "the differential in tests.bend and tools/differential.sh: the production traversal uses these operations throughout.",
    "refuted_as_first_stated": "The original statements had no hypotheses and were false. At a leaf, PFull means that leaf's own 4096 ordinals while the tile it converts to reads False past 4096; above a leaf, a sparse or dense payload is a shape PSet.valid rejects and the node operations read it as empty while PSet.mem reads it as a member. Both counterexamples run in tests.bend.",
-   "gap": "With those and the proved tile laws, a leaf operation is pointwise as soon as compression is. So S-02 now reduces to S-03, and S-03 reduces to one addressing claim: that the enumeration walk and the tile address name the same positions.",
-   "proved_part": "The tree layer in full: the Zero/Full branch collapses preserve membership at every depth, the descent carries an ordinal into a child correctly, and a structurally valid leaf holds exactly the ordinals of the tile it converts to -- including the sparse case, which needed addressing fact A3."
+   "gap": null,
+   "proved_part": "All three, at depth 20 -- which covers 2^32 ordinals, so no hypothesis about the ordinal survives. Structural validity is the only hypothesis, and it is what every stored generation is checked against on load."
   },
   {
    "id": "S-03",
@@ -285,7 +285,7 @@
    "proof_symbol": null,
    "stated_in": "LAWS.pending.bend",
    "backed_by": "tests.bend counterexamples; the rewrites are instances of Boolean laws proved at the tile level.",
-   "gap": "Depends on S-02: every rewrite here is an instance of the union/intersection/difference pointwise laws, which are open."
+   "gap": "Every rewrite is an instance of the pointwise laws, which are now proved (S-02). What is left is the statement over a whole expression, which is an induction over the AST."
   },
   {
    "id": "Q-02",
