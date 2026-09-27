@@ -815,3 +815,47 @@ law the_walk_agrees_with_the_tile_address:
   for +x: U32
   for +wide: {List.length(&2, U32, ws) == 128n : Nat}
   {En.Words.holds(ws, 0, x) == Wo.Words.bit(ws, x) : Bool}
+
+# ===========================================================================
+# S-02, at the leaf -- the leaf operations are pointwise.
+#
+# A leaf operation converts both operands to words, works there, and
+# compresses the result back. All three steps are proved above: conversion is
+# faithful, the tile kernel is pointwise (law S-01), and compression changes
+# no member (law S-03). These put them together.
+#
+# The hypotheses are the ones the counterexamples in `tests.bend` need: both
+# operands are structurally valid leaves, and the ordinal is one the leaf
+# covers.
+# ===========================================================================
+
+law the_leaf_difference_is_pointwise:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
+  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
+  {S.PSet.mem.leaf(S.PSet.diff.leaf(a, b), x)
+    == Bool.and(S.PSet.mem.leaf(a, x),
+         Bool.not(S.PSet.mem.leaf(b, x))) : Bool}
+
+law the_leaf_union_is_pointwise:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
+  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
+  {S.PSet.mem.leaf(S.PSet.union.leaf(a, b), x)
+    == Bool.or(S.PSet.mem.leaf(a, x), S.PSet.mem.leaf(b, x)) : Bool}
+
+law the_leaf_intersection_is_pointwise:
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid.leaf(a) == True{} : Bool}
+  for +vb: {S.PSet.valid.leaf(b) == True{} : Bool}
+  for +inr: {Dc.U32.hi_zero(x, 12n) == True{} : Bool}
+  {S.PSet.mem.leaf(S.PSet.inter.leaf(a, b), x)
+    == Bool.and(S.PSet.mem.leaf(a, x), S.PSet.mem.leaf(b, x)) : Bool}

@@ -196,3 +196,27 @@ def U32.is_eq_refl(a):
       %Cmp.sym(Word.cmp(32n, w, w), EQ{}, Word.cmp_refl(32n, w))
         : {Cmp.is_eq(_) == True{} : Bool}
       {==}
+
+# A `Nat` successor is never zero; used to discharge impossible list-length
+# cases.
+def Nat.code2(n: Nat) -> Type:
+  match n:
+    case 0n:
+      Unit
+    case 1n+p:
+      Empty
+
+def Nat.trim2(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n+p:
+      1n+0n
+
+def Nat.empty2(e: {0n == 1n+0n : Nat}) -> Empty:
+  %e : Nat.code2(_)
+  Unit{}
+
+def Nat.noconf2(-A: Type, -k: Nat, e: {1n+k == 0n : Nat}) -> A:
+  Empty.absurd(A, Nat.empty2(Equal.cong(Nat, Nat, Nat.trim2, 0n, 1n+k,
+    Equal.sym(Nat, 1n+k, 0n, e))))

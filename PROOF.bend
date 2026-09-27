@@ -33,6 +33,7 @@
 #   proofs/compress.bend  what compression decides
 #   proofs/faithful.bend  a valid leaf and its tile agree
 #   proofs/walk.bend      the walk and the address agree
+#   proofs/leafops.bend   the leaf operations are pointwise
 
 import Base
 import ./LAWS.bend as Laws
@@ -61,6 +62,7 @@ import ./proofs/enum.bend as PEn
 import ./proofs/compress.bend as PCp
 import ./proofs/faithful.bend as PFa
 import ./proofs/walk.bend as PWk
+import ./proofs/leafops.bend as PLo
 
 # --- B-01: the word kernel --------------------------------------------------
 
@@ -248,3 +250,12 @@ def Laws.compressing_a_leaf_keeps_its_members(ws, x, wide, inr):
 
 def Laws.the_walk_agrees_with_the_tile_address(ws, x, wide):
   PWk.Words.holds_bit(ws, x, wide)
+
+def Laws.the_leaf_difference_is_pointwise(a, b, x, va, vb, inr):
+  PLo.PSet.diff_leaf_pointwise(a, b, x, va, vb, inr)
+
+def Laws.the_leaf_union_is_pointwise(a, b, x, va, vb, inr):
+  PLo.PSet.union_leaf_pointwise(a, b, x, va, vb, inr)
+
+def Laws.the_leaf_intersection_is_pointwise(a, b, x, va, vb, inr):
+  PLo.PSet.inter_leaf_pointwise(a, b, x, va, vb, inr)

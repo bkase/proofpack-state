@@ -711,3 +711,19 @@ def PSet.mem_insert(s, x, v):
   PSet.mem_add_go(20n, s, S.PSet.half(20n), x,
     U32.is_lt(x, S.PSet.half(20n)), {==}, {==}, {==}, v,
     Dc.U32.hi_zero_full(x))
+
+law Nat.succ_inj2:
+  for +a: Nat
+  for +b: Nat
+  for +e: {1n+a == 1n+b : Nat}
+  {a == b : Nat}
+
+def Nat.pred2(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n+p:
+      p
+
+def Nat.succ_inj2(a, b, e):
+  Equal.cong(Nat, Nat, Nat.pred2, 1n+a, 1n+b, e)
