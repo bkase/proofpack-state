@@ -32,10 +32,31 @@ The proofs cover:
 | `M-02` | readiness is an empty difference |
 | `M-03` | missing distributes over a union of requirements; inventory tiers compose |
 | `I-01` | an additions-only update needs no re-derivation; "add wins" in a patch |
+| `P-01` | inserting an ordinal into a structurally valid set leaves it present, at the depth the product runs at, with no hypothesis on the ordinal. The sharing half -- that retained old roots are undisturbed -- is a property of Bend's affine values, not an equation; §3 |
+| `G-02` | at a row: the tree-data filter drops exactly the commit targets. Lifting that to `Graph.edge` over the assembled tries is still open |
+| `E-01` | of a produced dependency witness: every step is a real policy edge, and it ends at the object asked about. That it *starts* at a root depends on the levels being a genuine BFS layering, which is `C-02` |
+| `S-02` (part) | the Zero/Full branch collapses of SPEC 5.3 preserve membership, at every depth and for every ordinal |
+| addressing | an ordinal is below a power of two exactly when it fits in that many bits; rebasing into a node's upper half keeps it inside the child; a bit index is below a word's width; halving a half-width moves the bit down |
 
 `LAWS.pending.bend` states, in the same syntax, the obligations this release
 specifies but has **not** proved. `law-registry.json` records the status of
 each of the registry's obligations individually.
+
+### Four laws that were false
+
+Four obligations in `LAWS.pending.bend` were not merely unproved: as first
+written they were **false**, and each counterexample now runs on every build
+from `tests.bend`. A `PDense` leaf narrower than 128 words loses the bit it
+was just given; a leaf difference past ordinal 4096 is not pointwise; a
+sparse payload above the leaf level breaks the union law; compression past
+4096 is not member-preserving.
+
+Every one of those is a value `PSet.valid` rejects, or an ordinal outside the
+leaf it is asked about -- so the statements were missing the structural
+invariant the code documents and the store checks on load. They have been
+restated with it, and `P-01` was then proved outright. That is the honest
+reading of "specified but not proved": a precise open claim is worth having,
+and a false one is worth catching.
 
 ### What a proved law does not say
 

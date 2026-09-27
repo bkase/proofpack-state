@@ -56,10 +56,19 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 26 laws in `LAWS.bend`, discharged by `PROOF.bend`,
+**What is proved.** 39 laws in `LAWS.bend`, discharged by `PROOF.bend`,
 covering the word kernel, the tile kernel, the fused count, the statistics
-monoid, the least-missing theorem and the checked accumulator. Section 4
+monoid, the least-missing theorem, the checked accumulator, the persistent
+insert (`P-01`, in full at the depth the product runs at), the tree-data row
+filter, two of the three parts of a dependency witness, the Zero/Full branch
+collapses, and the addressing arithmetic the set tree descends on. Section 4
 below lists each with the optimization it unlocks.
+
+Four of the laws in `LAWS.pending.bend` turned out to be **false** as first
+written -- each was missing the structural invariant `PSet.valid` states -- and
+each counterexample now runs on every build. They have been restated with the
+hypothesis they need, and `P-01` was then proved outright. `TRUST.md` §1 has
+the list.
 
 **What is checked at run time instead.** The closure traversal (by the
 certificate `pp git verify` runs), dependency witnesses (by an independent
@@ -79,11 +88,10 @@ script refuses to make one. No GPU speed claim is made anywhere.
 
 * Every result envelope reports `"lineage": "ephemeral"`, including answers
   from a stored generation. The store exists; the envelope has not caught up.
-* `TRUST.md` §4 and several `law-registry.json` entries (`P-01`, `D-01`,
-  `I-03`, `Q-04`, `U-02`) still say there is no derived store and no matrix
-  command. Both landed after those files were written. The store has
-  structural validation on load, which is the check `D-01` will be stated
-  over, but the `D-01` law itself is not yet written.
+* `D-01` is live but unstated: the store has full structural validation on
+  load, which is the check `D-01` would be stated over, and
+  `tools/differential.sh` rejects four kinds of corruption -- but the law
+  itself is not yet written.
 * `OPTIMIZATIONS.md` §4 describes a set-at-a-time traversal. The traversal
   was changed to per-vertex when the set-at-a-time shape proved quadratic on
   long commit chains (see `closure/reach.bend`). The law situation is
