@@ -127,3 +127,11 @@ def Uni.identify(u: Universe) -> List<&2, O.Oid>:
   match u:
     case Uni{f, next, table, oids}:
       List.reverse(&2, O.Oid, oids)
+
+# The object ids most recently assigned an ordinal, in ordinal order. The
+# importer uses this to learn which objects a batch just discovered, without
+# rebuilding the whole identity list every round.
+def Uni.recent(+u: Universe, +n: Nat) -> List<&2, O.Oid>:
+  match u:
+    case Uni{f, next, table, oids}:
+      List.reverse(&2, O.Oid, List.take(&2, O.Oid, oids, n))

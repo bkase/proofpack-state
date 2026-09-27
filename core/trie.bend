@@ -53,9 +53,11 @@ def Trie.depth.go(+fuel: Nat, +cap: Nat, +n: Nat, d: Nat, done: Bool) -> Nat:
 def Trie.depth(+n: Nat) -> Nat:
   Trie.depth.go(33n, 1n, n, 0n, C.Nat.upto(n, 1n))
 
-# The half-width of a node at depth `d`: 2^(d-1) for d >= 1.
+# The half-width of a node at depth `d`: 2^(d-1) for d >= 1. Written as a
+# shift by d-1 rather than a shift by d halved, because at the maximum depth
+# 32 the full width does not fit a U32 and `U32.shln(1, 32n)` is zero.
 def Trie.half(+d: Nat) -> U32:
-  U32.shrn(U32.shln(1, d), 1n)
+  U32.shln(1, Nat.sub(d, 1n))
 
 # ---------------------------------------------------------------------------
 # Lookup. One compare, one shift and one conditional subtract per level, the
