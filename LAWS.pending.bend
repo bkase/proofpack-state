@@ -43,6 +43,41 @@ import ./proofs/intern.bend as PIn
 import ./proofs/denote.bend as PDn
 
 # ===========================================================================
+# What the remaining gaps have in common.
+#
+# Ten obligations are proved in part, and their open halves are not ten
+# independent problems. They route through two missing pieces.
+#
+#   1. The converse of the subset bridge. `a_subset_contains_every_member`
+#      turns a zero fused-difference count into a statement about an ordinal.
+#      The converse -- from "every member of a is a member of b" back to a
+#      zero count -- is what C-01's leastness and C-02's refinement need, so
+#      that an induction can carry "still inside" from round to round in a
+#      form it can reuse. It quantifies over ordinals, and a hypothesis
+#      quantified over ordinals cannot be used twice under Bend's affine
+#      discipline. U-01's injectivity is the same shape: an invariant over
+#      every key of a trie, needed at two different keys at once. Making
+#      those invariants decidable predicates, so the hypothesis is data
+#      rather than a function, is the route -- and it is a development, not
+#      a lemma.
+#
+#   2. That a set's enumeration agrees with its membership:
+#
+#        List.contains(PSet.to_list(d, s), x)  ==  PSet.member(d, s, x)
+#
+#      Q-01's whole pass needs it (closure and filter both go through
+#      `to_list`, so they respect pointwise equality only if enumeration
+#      does), Q-04's reuse needs it (equal members must give equal
+#      statistics), and Q-03's contract needs Q-01. Nothing blocks it in
+#      principle: it needs the base-offset arithmetic of `PSet.members`,
+#      which is the one piece of `U32` arithmetic this release has managed to
+#      route around everywhere else.
+#
+# The rest are their own problems: C-01's pigeonhole, C-04's exactness
+# argument, D-01's text round trip, and G-01's grammar predicate.
+# ===========================================================================
+
+# ===========================================================================
 # The addressing arithmetic -- closed.
 #
 # Almost everything that was open in this file reduced to the same short list
