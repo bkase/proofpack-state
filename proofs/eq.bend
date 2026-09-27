@@ -232,3 +232,78 @@ def Bool.not_true(b, ok):
       {==}
     case True{}:
       Bool.noconf({False{} == True{} : Bool}, ok)
+
+# A false `Bool` equation, at `Cmp`: used where an impossible comparison arm
+# has to be discharged.
+def Cmp.noconf(-A: Type, e: {False{} == True{} : Bool}) -> A:
+  Bool.noconf(A, e)
+
+# Distinct comparison results are distinct.
+def Cmp.eq_code(c: Cmp) -> Type:
+  match c:
+    case EQ{}:
+      Unit
+    case LT{}:
+      Empty
+    case GT{}:
+      Empty
+
+def Cmp.gt_code(c: Cmp) -> Type:
+  match c:
+    case GT{}:
+      Unit
+    case LT{}:
+      Empty
+    case EQ{}:
+      Empty
+
+def Cmp.lt_code(c: Cmp) -> Type:
+  match c:
+    case LT{}:
+      Unit
+    case EQ{}:
+      Empty
+    case GT{}:
+      Empty
+
+def Cmp.eq_not_lt.go(e: {EQ{} == LT{} : Cmp}) -> Empty:
+  %e : Cmp.eq_code(_)
+  Unit{}
+
+def Cmp.eq_not_lt(-A: Type, e: {EQ{} == LT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.eq_not_lt.go(e))
+
+def Cmp.gt_not_lt.go(e: {GT{} == LT{} : Cmp}) -> Empty:
+  %e : Cmp.gt_code(_)
+  Unit{}
+
+def Cmp.gt_not_lt(-A: Type, e: {GT{} == LT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.gt_not_lt.go(e))
+
+def Cmp.lt_not_eq.go(e: {LT{} == EQ{} : Cmp}) -> Empty:
+  %e : Cmp.lt_code(_)
+  Unit{}
+
+def Cmp.lt_not_eq(-A: Type, e: {LT{} == EQ{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.lt_not_eq.go(e))
+
+def Cmp.gt_not_eq.go(e: {GT{} == EQ{} : Cmp}) -> Empty:
+  %e : Cmp.gt_code(_)
+  Unit{}
+
+def Cmp.eq_not_gt.go(e: {EQ{} == GT{} : Cmp}) -> Empty:
+  %e : Cmp.eq_code(_)
+  Unit{}
+
+def Cmp.eq_not_gt(-A: Type, e: {EQ{} == GT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.eq_not_gt.go(e))
+
+def Cmp.lt_not_gt.go(e: {LT{} == GT{} : Cmp}) -> Empty:
+  %e : Cmp.lt_code(_)
+  Unit{}
+
+def Cmp.lt_not_gt(-A: Type, e: {LT{} == GT{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.lt_not_gt.go(e))
+
+def Cmp.gt_not_eq(-A: Type, e: {GT{} == EQ{} : Cmp}) -> A:
+  Empty.absurd(A, Cmp.gt_not_eq.go(e))

@@ -38,6 +38,7 @@
 #   proofs/empty.bend     an empty set has no members
 #   proofs/closure.bend   closing nothing gives nothing
 #   proofs/cert.bend      what an accepted certificate means
+#   proofs/order.bend     comparison agrees with the numeric order
 
 import Base
 import ./LAWS.bend as Laws
@@ -51,7 +52,8 @@ import ./proofs/missing.bend as PM
 import ./proofs/eq.bend as PE
 import ./proofs/policy.bend as PPol
 import ./proofs/addr.bend as PAd
-import ./proofs/ords.bend as POr
+import ./proofs/ords.bend as POrd
+import ./proofs/order.bend as POrder
 import ./proofs/bitset.bend as PBs
 import ./proofs/leaf.bend as PLf
 import ./proofs/witness.bend as PWit
@@ -178,7 +180,7 @@ def Laws.inserting_into_a_leaf_keeps_that_ordinal(s, x, fits):
   PLf.PSet.mem_add_leaf(s, x, fits)
 
 def Laws.inserting_into_an_ordinal_list_keeps_that_ordinal(xs, x):
-  POr.Ords.elem_insert(xs, x)
+  POrd.Ords.elem_insert(xs, x)
 
 def Laws.setting_a_bit_reads_it_back(ws, x):
   PBs.Words.bit_set(ws, x)
@@ -307,3 +309,6 @@ def Laws.an_accepted_certificate_matches_its_levels(td, g, sd, roots,
 def Laws.an_accepted_certificate_has_layered_predecessors(td, g, sd,
   roots, levels, c, ok):
   PCe.Cert.accepts_layers(td, g, sd, roots, levels, c, ok)
+
+def Laws.comparing_two_ordinals_compares_their_values(a, b):
+  POrder.U32.cmp_spec(a, b)

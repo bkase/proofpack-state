@@ -39,6 +39,7 @@ import ./core/count.bend as C
 import ./core/ords.bend as Or
 import ./proofs/descend.bend as Dc
 import ./proofs/split.bend as Sp
+import ./proofs/order.bend as Or2
 import ./proofs/adder.bend as Ad
 import ./proofs/enum.bend as En
 import ./proofs/collapse.bend as Co
@@ -1042,3 +1043,21 @@ law an_accepted_certificate_has_layered_predecessors:
     S.PSet.is_subset(sd, S.PSet.from_list(sd,
       Ct.Cert.first(levels, roots)),
       S.PSet.from_list(sd, roots))) == True{} : Bool}
+
+# ===========================================================================
+# A1 -- machine-word comparison agrees with the numeric order.
+#
+# The last of the addressing facts. `U32.cmp` walks the bit vector comparing
+# the high bits first with the low bit as the tiebreak; `Nat.cmp` walks two
+# unary numbers. They agree, which is what lets a proof move between "this
+# ordinal is smaller" and "this number is smaller".
+#
+# The power-of-two case was enough for the set tree's descent and was proved
+# earlier; this is the general statement, and it is what the
+# ascending-offsets invariant of a sparse leaf is stated with.
+# ===========================================================================
+
+law comparing_two_ordinals_compares_their_values:
+  for +a: U32
+  for +b: U32
+  {U32.cmp(a, b) == Nat.cmp(U32.to_nat(a), U32.to_nat(b)) : Cmp}
