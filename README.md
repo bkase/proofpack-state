@@ -56,7 +56,7 @@ case, including the derived store round trip and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 87 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 88 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -88,7 +88,8 @@ the set algebra itself:
 
 Partly proved, with the remaining half stated precisely: `E-01` (two of the three parts of a dependency
 witness), `C-03` (closing nothing gives nothing, pointwise as well as at
-`PZero`, and the closure contains every member of its roots), `C-04` (what an accepted certificate means), `U-01` (the lookup
+`PZero`, and the closure contains every member of its roots), `G-03` (the
+projection names every id the universe knows), `C-04` (what an accepted certificate means), `U-01` (the lookup
 round trip; injectivity is open), `Q-01` (every rewrite; the whole pass is
 open), `D-01` (what structural validity rules out). Section 4 below lists each law with the optimization it
 unlocks.
@@ -509,7 +510,8 @@ is a runtime check or a differential rather than a theorem.
 | **Q-03** compiler soundness | `the_evaluator_computes_the_denotation` | the end-to-end refinement `observe(execute(compile(q))) = [[q]]` | the `tests.bend` differential against `spec/query.bend`, and the Git differential |
 | **G-02** Git policies | `a_filtered_row_drops_exactly_the_commit_targets`, `the_tree_data_policy_drops_exactly_the_parent_edges`, on `a_table_built_from_a_list_answers_the_same_descent_over_the_list` | history versus current-tree requirements as a proved projection: the policy can be applied to a row instead of re-deriving a graph | `tools/differential.sh`: `tree-data` counts and bytes against `rev-parse` plus `ls-tree -r -t` with gitlinks excluded |
 | **U-01** identity mapping | `interning_an_id_then_finding_it_gives_the_same_ordinal`, on `reading_a_trie_at_the_key_just_written_gives_that_value` | dense ordinals with no identity confusion: an object may be referenced long before it is fetched, and the second mention gets the first mention's ordinal | injectivity -- the other half -- by construction in `intern.bend`: only the fresh branch writes a slot, and it hands out `next` and then increments it |
-| **E-01**, **G-01**, **G-03**, **S-04** | registered but not written as laws | checked witnesses; the parser contract; inventory projection; Boolean pruning | `Explain.valid` on every witness; the differential's corpus (merge, tag chains, symlink, empty blob, non-UTF-8 name, gitlink); the structural shortcuts being instances of proved tile laws |
+| **G-03** inventory projection | `the_projection_contains_every_id_the_universe_names` | partial receiver caches: a receiver's report is projected into the source universe without assuming its store is graph-closed | the converse -- that nothing else is in the projection -- by `tools/differential.sh`: inventory totals against `cat-file --batch-all-objects`, and no reported-missing object actually present in the receiver |
+| **E-01**, **G-01**, **S-04** | registered but not written as laws | checked witnesses; the parser contract; Boolean pruning | `Explain.valid` on every witness; the differential's corpus (merge, tag chains, symlink, empty blob, non-UTF-8 name, gitlink); the structural shortcuts being instances of proved tile laws |
 
 ### 4.3 Not applicable yet
 

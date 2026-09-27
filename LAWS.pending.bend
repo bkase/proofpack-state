@@ -337,17 +337,37 @@ law the_evaluator_computes_the_denotation:
 # ===========================================================================
 # G-01, G-03 -- the Git adapter.
 #
-# These are the obligations that cross out of the algebra and into a real
-# repository, and they are the ones a proof can least reach: G-01 is about a
-# byte grammar, G-03 about a projection between two universes. Neither is a
-# statement about a definition in this tree; both are statements about
-# agreeing with something outside it.
+# G-01 is about a byte grammar: that parsing Git's object metadata is sound
+# and complete within the declared grammar and the explicit size limits. It
+# is not a statement about a definition in this tree -- there is no encoder
+# here to invert, and "the grammar" is Git's, not ours -- so what would make
+# it a law is a written grammar predicate in Bend and a proof that the parser
+# accepts exactly what satisfies it. This release does not have that
+# predicate, and writing one that is *faithful* to Git rather than to the
+# parser is the hard half: a predicate read off the parser would make the law
+# true by construction and worth nothing.
 #
 # Backed by: tools/differential.sh, which checks both policies and the
 # inventory against independent Git plumbing on three repositories, over a
 # corpus that includes a merge, a tag to a tag, a tag to a tree, a tag to a
 # blob, a symlink, a zero-byte blob, a non-UTF-8 tree entry name and a
 # gitlink with no submodule present.
+#
+# G-03 is half proved. `the_projection_contains_every_id_the_universe_names`
+# in LAWS.bend is the direction that decides whether an answer can be
+# trusted: every id on a receiver's report that the source universe names has
+# its ordinal in the projection, so the projection cannot under-report and
+# make `pp` claim an object is missing that the receiver has.
+#
+# What is open is the converse -- that the projection contains *nothing
+# else*. It reduces to a statement about the set, not about the adapter: that
+# a set built by folding insertion over a list has only the ordinals on that
+# list. That is the converse of `inserting_adds_exactly_that_ordinal`, which
+# this release proves in one direction only: inserting `y` leaves `x` present
+# when it was, but nothing says it leaves `x` absent when it was not. Proving
+# that is the pointwise form of P-01 -- `mem(insert(s, y), x)` equals
+# `or(x = y, mem(s, x))` -- and it needs the sparse leaf's offset insert and
+# the tile's bit set to be pointwise too, in the direction that adds nothing.
 #
 # G-02 is closed. The row-level half was proved earlier; the lift to
 # `Graph.edge` is now proved too and lives in LAWS.bend as

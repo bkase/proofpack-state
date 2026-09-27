@@ -64,6 +64,8 @@ import ./proofs/denote.bend as Dn
 import ./proofs/extensive.bend as Ex2
 import ./proofs/table.bend as Tb
 import ./proofs/insert.bend as In
+import ./adapters/git/inventory.bend as Iv
+import ./adapters/git/intern.bend as Ui2
 import ./proofs/missing.bend as M
 
 # ===========================================================================
@@ -1438,3 +1440,37 @@ law a_set_built_from_a_list_has_every_ordinal_on_it:
   for +x: U32
   for +ok: {List.contains(~U32, ~U32.is_eq, xs, x) == True{} : Bool}
   {S.PSet.member(20n, S.PSet.from_list(20n, xs), x) == True{} : Bool}
+
+# ===========================================================================
+# G-03, in part -- the inventory projection names what it was told.
+#
+# A receiver reports the object ids it holds. `Inv.project` turns that report
+# into a set of source ordinals by looking each id up in the source
+# universe's identity table: an id the source never named has no ordinal,
+# which is what out-of-scope means and why it is counted and reported rather
+# than discarded.
+#
+# This is the direction that decides whether an answer can be trusted: every
+# id on the report that the universe names has its ordinal in the projection.
+# Dropping one would make `pp` report an object as missing that the receiver
+# actually has -- the failure that matters, because it is the one that causes
+# an unnecessary transfer or a wrong readiness answer.
+#
+# Two things do it. `Oid.eq` decides equality of the complete digest, so an id
+# that matches the one asked about *is* that id; no hash-collision assumption
+# appears anywhere (SPEC 8.4). And insertion never loses a member, so an
+# ordinal put in by one step survives every later step.
+#
+# The converse -- that the projection contains *nothing else* -- is still
+# open, and LAWS.pending.bend says what it needs.
+# ===========================================================================
+
+law the_projection_contains_every_id_the_universe_names:
+  for +u: Ui2.Universe
+  for +oids: List<&2, Od.Oid>
+  for +o: Od.Oid
+  for +x: U32
+  for +f: {Ui2.Uni.find(Ui2.Uni.table(u), o) == Some{x} : Maybe<&2, U32>}
+  for +ok: {List.contains(~Od.Oid, ~Od.Oid.eq, oids, o) == True{} : Bool}
+  {S.PSet.member(20n, Iv.Inventory.present(Iv.Inv.project(u, oids)), x)
+    == True{} : Bool}
