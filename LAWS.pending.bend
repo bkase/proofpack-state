@@ -64,19 +64,26 @@ import ./proofs/denote.bend as PDn
 #      not zero exhibits the first ordinal of the set's enumeration, and the
 #      enumeration law says that ordinal is a member.
 #
-#      What is left is one identity: that the fused difference count is the
-#      count of the difference,
+#      What is left is that the fused walk is right about what it emits. The
+#      counting half of it is now proved -- the fused count is the length of
+#      the fused list (`the_fused_count_is_the_length_of_the_fused_list`) --
+#      so a nonzero count means the list has a first ordinal. The converse
+#      then reads: that ordinal is a member of `a` and not of `b`, and the
+#      hypothesis applied at that one ordinal contradicts it.
 #
-#        PSet.missing_count(d, a, b) == PSet.count(d, PSet.diff(d, a, b), h)
+#      So the remaining obligation is exactly:
 #
-#      which is C-03's set-level fused-count theorem. With it the converse
-#      reads: if the count were not zero, the witness would be a member of
-#      `a` that is not a member of `b` (the difference is pointwise, which is
-#      proved), and the hypothesis applied at that one ordinal contradicts
-#      it. The tile-level case of the identity is already proved
-#      (`counting_a_difference_needs_no_difference`); the set-level one has a
-#      leaf case per pair of shapes and needs the count to survive
-#      compression.
+#        List.contains(PSet.missing(d, a, b), x)
+#          ==  and(PSet.member(d, a, x), not(PSet.member(d, b, x)))
+#
+#      the fused analogue of `enumerating_a_set_lists_exactly_its_members`.
+#      Its tree arms are the ones that law already has. Its leaf has an arm
+#      per pair of shapes, and the arms where a sparse operand is merged as a
+#      list need something this release does not have: `Ords.diff` is a merge
+#      and is only right on ascending lists, so those arms need the walk's
+#      output to be ascending -- for a sparse leaf `PSet.valid` says so, but
+#      for a tile it is a statement about `Words.members` that has to be
+#      proved.
 #
 #      U-01's injectivity is a different shape: an invariant over every key
 #      of a trie, needed at two different keys at once, with no count to
