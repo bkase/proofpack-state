@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 9. That count is the point of the file, so the command "failing"
+# currently 6. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -223,49 +223,28 @@ law the_traversal_returns_the_specification_closure:
 # What is left of C-01 is the fixed point itself: that the iteration is
 # stable after `n` rounds, which is the pigeonhole argument over the universe.
 
-# Edge-closure, in the pointwise form the rest of LAWS.bend is written in --
-# no `is_subset`, so this one is not waiting on the count. It is waiting on
-# the fixed point: the iteration is edge-closed only once it is stable, and
-# that it is stable after `n` rounds is C-01, which needs a pigeonhole
-# argument over the universe this release has not written.
-law closure_is_edge_closed_at_every_edge:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +r: S.PSet
-  for +u: U32
-  for +v: U32
-  for +mu: {S.PSet.member(20n, Sp.Spec.closure(n, td, g, 20n, r), u)
-    == True{} : Bool}
-  for +e: {G.Graph.edge(td, g, u, v) == True{} : Bool}
-  {S.PSet.member(20n, Sp.Spec.closure(n, td, g, 20n, r), v)
-    == True{} : Bool}
-
-law closure_is_edge_closed:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +sd: Nat
-  for +r: S.PSet
-  {Sp.Spec.closed(td, g, sd, Sp.Spec.closure(n, td, g, sd, r))
-    == True{} : Bool}
+# Edge-closure is closed, in both forms, and so is idempotence. What used to
+# stand here said the fixed point was waiting on "a pigeonhole argument over
+# the universe this release has not written". It is written:
+# `the_enumeration_of_a_valid_set_ascends` makes the length of `PSet.to_list`
+# a cardinality, `a_proper_subset_is_strictly_smaller` makes each round that
+# is not edge-closed strictly bigger than the one before, and
+# `every_set_is_inside_the_universe_of_its_own_depth` bounds how often that
+# can happen. `closure_is_edge_closed`,
+# `closure_is_edge_closed_at_every_edge` and `closure_is_idempotent` are in
+# LAWS.bend.
+#
+# They carry the fuel condition SPEC 3.3 states -- at least as many rounds as
+# the universe has ordinals -- because that is what makes the iteration
+# stable, and `Spec.closure` passes exactly that plus one. The edge form also
+# carries the ordinal's range, which was free at the fixed production depth
+# and has to be said once the law is stated at any depth.
 
 # Union preservation is closed and lives in LAWS.bend as
 # `closure_preserves_unions`. It is not a fact about the fixed point: a round
 # distributes over a union because `post` does, so it holds at every fuel,
 # settled or not. Monotonicity in the roots closed the same way, as
 # `closure_is_monotone_in_its_roots`.
-
-law closure_is_idempotent:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +sd: Nat
-  for +r: S.PSet
-  for +x: U32
-  {S.PSet.member(sd,
-      Sp.Spec.closure(n, td, g, sd, Sp.Spec.closure(n, td, g, sd, r)), x)
-    == S.PSet.member(sd, Sp.Spec.closure(n, td, g, sd, r), x) : Bool}
 
 # ===========================================================================
 # C-04 -- the certificate's own soundness.

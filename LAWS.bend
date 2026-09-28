@@ -2568,3 +2568,122 @@ law the_successor_image_of_a_union_is_the_union_of_the_images:
         Sp2.Spec.post(td, g, sd, b)),
       Sp2.Spec.post(td, g, sd, S.PSet.union(sd, a, b))))
     == True{} : Bool}
+
+# ---------------------------------------------------------------------------
+# The fixed point.
+#
+# The enumeration of a set that passed `PSet.valid` ascends, which is what
+# makes its length a cardinality: an ascending list inside another is no
+# longer, and strictly shorter when the other holds an ordinal it does not.
+# So a round that is not edge-closed is strictly bigger than the round before
+# it, and a set at this depth is no bigger than the universe -- which bounds
+# the number of rounds that can change anything.
+#
+# That is the pigeonhole, and with it `Spec.closure` is a fixed point rather
+# than a chain that has run for a while: edge-closed at every edge, and
+# unchanged by closing it again. The fuel condition is the one SPEC 3.3
+# states -- at least as many rounds as the universe has ordinals -- and
+# `Spec.closure` passes exactly that plus one.
+# ---------------------------------------------------------------------------
+
+law the_enumeration_of_a_valid_set_ascends:
+  for +d: Nat
+  for +s: S.PSet
+  for +v: {S.PSet.valid(d, s, True{}) == True{} : Bool}
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {Ol.Ords.asc(S.PSet.to_list(d, s)) == True{} : Bool}
+
+law a_subset_is_no_bigger_than_the_set_it_is_inside:
+  for +d: Nat
+  for +b: S.PSet
+  for +a: S.PSet
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +ab: {S.PSet.is_subset(d, a, b) == True{} : Bool}
+  {C.Nat.upto(S.PSet.count(d, a, S.PSet.half(d)),
+    S.PSet.count(d, b, S.PSet.half(d))) == True{} : Bool}
+
+law a_proper_subset_is_strictly_smaller:
+  for +d: Nat
+  for +b: S.PSet
+  for +a: S.PSet
+  for +h: U32
+  for +t: List<&2, U32>
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +el: {Con{h, t} == S.PSet.missing(d, b, a) : List<&2, U32>}
+  for +ab: {S.PSet.is_subset(d, a, b) == True{} : Bool}
+  {C.Nat.upto(1n+S.PSet.count(d, a, S.PSet.half(d)),
+    S.PSet.count(d, b, S.PSet.half(d))) == True{} : Bool}
+
+law every_set_is_inside_the_universe_of_its_own_depth:
+  for +d: Nat
+  for +a: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {S.PSet.is_subset(d, a, S.PFull{}) == True{} : Bool}
+
+law a_tile_is_its_subset_plus_the_difference:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +sub: {Wo.Words.count(Wo.Words.diff(a, b)) == 0n : Nat}
+  {Wo.Words.count(b)
+    == Nat.add(Wo.Words.count(a),
+         Wo.Words.count(Wo.Words.diff(b, a))) : Nat}
+
+law closure_is_edge_closed:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +fuel: {C.Nat.upto(
+    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
+    : Bool}
+  {Sp2.Spec.closed(td, g, sd, Sp2.Spec.closure(n, td, g, sd, r))
+    == True{} : Bool}
+
+law closure_is_edge_closed_at_every_edge:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +u: U32
+  for +v: U32
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +invu: {Dc.U32.hi_zero(u, 12n+sd) == True{} : Bool}
+  for +fuel: {C.Nat.upto(
+    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
+    : Bool}
+  for +mu: {S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd, r), u)
+    == True{} : Bool}
+  for +e: {Gr.Graph.edge(td, g, u, v) == True{} : Bool}
+  {S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd, r), v)
+    == True{} : Bool}
+
+law closure_is_idempotent:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +x: U32
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
+  for +fuel: {C.Nat.upto(
+    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
+    : Bool}
+  {S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd,
+      Sp2.Spec.closure(n, td, g, sd, r)), x)
+    == S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd, r), x)
+    : Bool}

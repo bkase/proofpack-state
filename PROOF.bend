@@ -83,6 +83,12 @@
 #   proofs/postmono.bend  the successor step is monotone
 #   proofs/lfp.bend       the closure iteration, as a growing chain
 #   proofs/closalg.bend   monotone in its roots, and additive over them
+#   proofs/ascend.bend    the enumeration ascends
+#   proofs/sublist.bend   an ascending list inside another is no longer
+#   proofs/cardsplit.bend counting a tile and the difference inside it
+#   proofs/setcard.bend   a proper subset is strictly smaller
+#   proofs/settle.bend    the pigeonhole: the iteration settles
+#   proofs/fixpoint.bend  what the fixed point gives
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -138,6 +144,12 @@ import ./proofs/graphrange.bend as PGr
 import ./proofs/postmono.bend as PPm
 import ./proofs/lfp.bend as PLp
 import ./proofs/closalg.bend as PCa
+import ./proofs/ascend.bend as PAs
+import ./proofs/sublist.bend as PSl
+import ./proofs/cardsplit.bend as PCsp
+import ./proofs/setcard.bend as PScd
+import ./proofs/settle.bend as PSet2
+import ./proofs/fixpoint.bend as PFx
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -736,3 +748,33 @@ def Laws.closure_preserves_unions(n, td, sd, g, a, b, x, gf, lt, va,
 def Laws.the_successor_image_of_a_union_is_the_union_of_the_images(
   td, sd, g, a, b, gf, lt, va, vb):
   PCa.Spec.post_union(td, sd, g, a, b, gf, lt, va, vb)
+
+def Laws.the_enumeration_of_a_valid_set_ascends(d, s, v, dok):
+  PAs.Ords.asc_to_list(d, s, v, dok)
+
+def Laws.a_subset_is_no_bigger_than_the_set_it_is_inside(d, b, a, vb,
+  va, lt, ab):
+  PScd.PSet.count_le(d, b, a, vb, va, lt, ab)
+
+def Laws.a_proper_subset_is_strictly_smaller(d, b, a, h, t, vb, va,
+  lt, el, ab):
+  PScd.PSet.count_lt(d, b, a, h, t, vb, va, lt, el, ab)
+
+def Laws.every_set_is_inside_the_universe_of_its_own_depth(d, a, va,
+  lt):
+  PScd.PSet.subset_full(d, a, va, lt)
+
+def Laws.a_tile_is_its_subset_plus_the_difference(a, b, sub):
+  PCsp.Words.count_split(a, b, sub)
+
+def Laws.closure_is_edge_closed(n, td, sd, g, r, gf, lt, vr, fuel):
+  PSet2.Spec.closure_is_closed(n, td, sd, g, r, gf, lt, vr, fuel)
+
+def Laws.closure_is_edge_closed_at_every_edge(n, td, sd, g, r, u, v,
+  gf, lt, vr, invu, fuel, mu, e):
+  PFx.Spec.closure_edge(n, td, sd, g, r, u, v, gf, lt, vr, invu,
+    fuel, mu, e)
+
+def Laws.closure_is_idempotent(n, td, sd, g, r, x, gf, lt, vr, inv,
+  fuel):
+  PFx.Spec.closure_idem(n, td, sd, g, r, x, gf, lt, vr, inv, fuel)
