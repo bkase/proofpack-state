@@ -48,6 +48,7 @@ import ./closure/graph.bend as Gr
 import ./spec/closure.bend as Sp2
 import ./proofs/graphrange.bend as Gi
 import ./proofs/rwpass.bend as Rp
+import ./proofs/traversal.bend as Tl
 import ./closure/reach.bend as Re
 import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
@@ -2720,3 +2721,62 @@ law every_denotation_is_a_valid_set:
   for +vl: {Rp.SetExpr.valid_lits(e) == True{} : Bool}
   for +gf: {Rp.Src.graphs_fit(src) == True{} : Bool}
   {S.PSet.valid(20n, Q.Den.eval(src, e), True{}) == True{} : Bool}
+
+# ---------------------------------------------------------------------------
+# The traversal refines the specification.
+#
+# Two inclusions, proved by opposite means. The traversal never leaves the
+# closure, because every vertex it adds is a successor of one it had already
+# accepted and the closure is edge-closed. The closure never leaves the
+# traversal, because a finished traversal is itself edge-closed and holds the
+# roots -- and the closure is the least such set.
+#
+# What makes a finished traversal edge-closed is the invariant the frontier
+# exists to maintain: every vertex seen has either had its successors pushed
+# already, or is still waiting on a frontier. When both frontiers are empty,
+# the first disjunct holds everywhere.
+#
+# The conditions are the ones the product establishes: the graph's successors
+# are ordinals of the universe, the roots are too, the depth is the
+# production depth or less, the fuel is at least the universe's size -- and
+# the traversal reports `done`. An unfinished traversal is `ResourceLimit`,
+# never an answer (SPEC 3.3), which is why that is a hypothesis rather than a
+# claim.
+# ---------------------------------------------------------------------------
+
+law the_traversal_returns_the_specification_closure:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +x: U32
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
+  for +fuel: {C.Nat.upto(
+    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
+    : Bool}
+  for +done: {Re.Reach.done(sd, Re.Reach.closure(n, td, g, sd,
+    roots)) == True{} : Bool}
+  {S.PSet.member(sd,
+      Re.Reach.seen(sd, Re.Reach.closure(n, td, g, sd, roots)), x)
+    == S.PSet.member(sd,
+        Sp2.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
+        x) : Bool}
+
+law a_finished_traversal_is_edge_closed:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
+  for +done: {Re.Reach.done(sd, Re.Reach.closure(n, td, g, sd,
+    roots)) == True{} : Bool}
+  {Sp2.Spec.closed(td, g, sd,
+    Re.Reach.seen(sd, Re.Reach.closure(n, td, g, sd, roots)))
+    == True{} : Bool}

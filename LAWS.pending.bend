@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 5. That count is the point of the file, so the command "failing"
+# currently 4. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -188,27 +188,22 @@ import ./proofs/denote.bend as PDn
 # zero". That converse quantifies over ordinals, and a hypothesis quantified
 # over ordinals cannot be used twice under Bend's affine discipline.
 #
-# C-02 is that the production frontier traversal returns the same set as the
-# specification iteration. That is the interesting one, and it is the one the
-# closure certificate exists for: SPEC 4.4's conditions establish exactness
-# per query, independently of how the answer was computed.
+# C-02 is closed. `the_traversal_returns_the_specification_closure` is in
+# LAWS.bend, proved as two inclusions by opposite means: the traversal never
+# leaves the closure because every vertex it adds is a successor of one it
+# had already accepted and the closure is edge-closed, and the closure never
+# leaves the traversal because a finished traversal is itself edge-closed and
+# holds the roots -- and the closure is the least such set.
 #
-# Backed by: `pp git verify` (the certificate), and the five-graph
-# differential in tests.bend.
+# What makes a finished traversal edge-closed is the invariant the frontier
+# exists to maintain, written out as `Reach.settled`: every vertex seen has
+# either had its successors pushed already, or is still waiting on a
+# frontier. When both frontiers are empty the first disjunct holds
+# everywhere, which is edge-closure.
+#
+# `done` is a hypothesis rather than a claim, because an unfinished traversal
+# is `ResourceLimit` and never an answer (SPEC 3.3).
 # ===========================================================================
-
-law the_traversal_returns_the_specification_closure:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +sd: Nat
-  for +roots: List<&2, U32>
-  for +x: U32
-  {S.PSet.member(sd,
-      R.Reach.seen(sd, R.Reach.closure(n, td, g, sd, roots)), x)
-    == S.PSet.member(sd,
-        Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
-        x) : Bool}
 
 # Extensivity is closed in both forms. The pointwise one is
 # `the_closure_contains_every_member_of_its_roots`; the counted one is

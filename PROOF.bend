@@ -90,6 +90,7 @@
 #   proofs/settle.bend    the pigeonhole: the iteration settles
 #   proofs/fixpoint.bend  what the fixed point gives
 #   proofs/rwpass.bend    the optimizer pass, whole
+#   proofs/traversal.bend the traversal refines the specification
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -152,6 +153,7 @@ import ./proofs/setcard.bend as PScd
 import ./proofs/settle.bend as PSet2
 import ./proofs/fixpoint.bend as PFx
 import ./proofs/rwpass.bend as PRp
+import ./proofs/traversal.bend as PTl
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -786,3 +788,12 @@ def Laws.rewriting_preserves_denotation(src, e, x, vl, gf):
 
 def Laws.every_denotation_is_a_valid_set(e, src, vl, gf):
   PRp.Eval.valid(e, src, vl, gf)
+
+def Laws.the_traversal_returns_the_specification_closure(n, td, sd,
+  g, roots, x, gf, lt, rfit, inv, fuel, done):
+  PTl.Reach.closure_member(n, td, sd, g, roots, x, gf, lt, rfit, inv,
+    fuel, done)
+
+def Laws.a_finished_traversal_is_edge_closed(n, td, sd, g, roots, gf,
+  lt, rfit, done):
+  PTl.Reach.closure_closed(n, td, sd, g, roots, gf, lt, rfit, done)
