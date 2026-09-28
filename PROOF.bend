@@ -89,6 +89,7 @@
 #   proofs/setcard.bend   a proper subset is strictly smaller
 #   proofs/settle.bend    the pigeonhole: the iteration settles
 #   proofs/fixpoint.bend  what the fixed point gives
+#   proofs/rwpass.bend    the optimizer pass, whole
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -150,6 +151,7 @@ import ./proofs/cardsplit.bend as PCsp
 import ./proofs/setcard.bend as PScd
 import ./proofs/settle.bend as PSet2
 import ./proofs/fixpoint.bend as PFx
+import ./proofs/rwpass.bend as PRp
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -778,3 +780,9 @@ def Laws.closure_is_edge_closed_at_every_edge(n, td, sd, g, r, u, v,
 def Laws.closure_is_idempotent(n, td, sd, g, r, x, gf, lt, vr, inv,
   fuel):
   PFx.Spec.closure_idem(n, td, sd, g, r, x, gf, lt, vr, inv, fuel)
+
+def Laws.rewriting_preserves_denotation(src, e, x, vl, gf):
+  PRp.Rw.simplify_member(src, e, x, vl, gf)
+
+def Laws.every_denotation_is_a_valid_set(e, src, vl, gf):
+  PRp.Eval.valid(e, src, vl, gf)

@@ -47,6 +47,7 @@ import ./proofs/collapse.bend as Co
 import ./closure/graph.bend as Gr
 import ./spec/closure.bend as Sp2
 import ./proofs/graphrange.bend as Gi
+import ./proofs/rwpass.bend as Rp
 import ./closure/reach.bend as Re
 import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
@@ -2687,3 +2688,35 @@ law closure_is_idempotent:
       Sp2.Spec.closure(n, td, g, sd, r)), x)
     == S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd, r), x)
     : Bool}
+
+# ---------------------------------------------------------------------------
+# The optimizer pass, whole.
+#
+# Each rewrite was already proved to keep every member. What was open was the
+# pass, because `Rw.simplify` also recurses inside `Reach` and `Filter`, and
+# there the induction needs a congruence: a subexpression simplified to a set
+# with the same *members*, not the same representation, has to close and
+# filter to a set with the same members.
+#
+# `PSet.same` -- mutual `PSet.is_subset` -- is the equality that carries, and
+# every operator is a congruence for it. The hypotheses are the ones the
+# product establishes: the expression's literals are sets the store would
+# accept, and the source's two policy graphs have successors that are
+# ordinals of the universe.
+# ---------------------------------------------------------------------------
+
+law rewriting_preserves_denotation:
+  for +src: Sc.Source
+  for +e: A.SetExpr
+  for +x: U32
+  for +vl: {Rp.SetExpr.valid_lits(e) == True{} : Bool}
+  for +gf: {Rp.Src.graphs_fit(src) == True{} : Bool}
+  {S.PSet.member(20n, Q.Den.eval(src, Rw.Rw.simplify(e)), x)
+    == S.PSet.member(20n, Q.Den.eval(src, e), x) : Bool}
+
+law every_denotation_is_a_valid_set:
+  for +e: A.SetExpr
+  for +src: Sc.Source
+  for +vl: {Rp.SetExpr.valid_lits(e) == True{} : Bool}
+  for +gf: {Rp.Src.graphs_fit(src) == True{} : Bool}
+  {S.PSet.valid(20n, Q.Den.eval(src, e), True{}) == True{} : Bool}

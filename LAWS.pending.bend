@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 6. That count is the point of the file, so the command "failing"
+# currently 5. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -353,8 +353,19 @@ law a_produced_witness_starts_at_a_requested_root:
 # will not let an induction use one twice, which this proof needs -- once for
 # each operand.
 #
-# So the whole-pass law is stated below with the hypothesis the per-rewrite
-# laws need, and it is the congruence step alone that is missing.
+# Q-01 is closed. `rewriting_preserves_denotation` is in LAWS.bend, with the
+# congruence step written: `PSet.same` -- mutual `PSet.is_subset` -- is a
+# decidable equality on sets that an induction can carry, every operator is a
+# congruence for it, and the bridge from "these two sets agree at every
+# ordinal either enumerates" to `PSet.same` is what lets the per-rewrite
+# laws, which are pointwise, be used inside it.
+#
+# The hypothesis is stronger than the per-rewrite laws asked for: the
+# literals are sets that passed `PSet.valid`, not just ones that are well
+# shaped, because the enumeration bridge the congruence runs on is stated
+# over `PSet.valid`. The source's two policy graphs also have to have
+# successors that are ordinals of the universe, which is what `Store.succ`
+# checks on load.
 #
 # Q-03 is SPEC 3.6's compiler contract itself:
 #
@@ -364,14 +375,6 @@ law a_produced_witness_starts_at_a_requested_root:
 # agree on every expression. Backed by the differential in tests.bend, which
 # runs exactly this comparison for `Reach` over five graphs.
 # ===========================================================================
-
-law rewriting_preserves_denotation:
-  for +src: Idx.Source
-  for +e: A.SetExpr
-  for +x: U32
-  for +ok: {PDn.SetExpr.wf_lits(e) == True{} : Bool}
-  {S.PSet.member(20n, Den.Den.eval(src, Rw.Rw.simplify(e)), x)
-    == S.PSet.member(20n, Den.Den.eval(src, e), x) : Bool}
 
 law the_evaluator_computes_the_denotation:
   for +src: Idx.Source
