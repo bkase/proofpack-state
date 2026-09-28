@@ -77,6 +77,9 @@
 #   proofs/subsetconv.bend  the converse of the subset bridge
 #   proofs/subsetalg.bend the subset relation is transitive
 #   proofs/validkeep.bend the algebra keeps the shape the store checks
+#   proofs/insertvalid.bend  insertion keeps it too
+#   proofs/listset.bend   building a set from a list, at any depth
+#   proofs/graphrange.bend  a graph whose successors are ordinals
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -126,6 +129,9 @@ import ./proofs/treediff.bend as PTd
 import ./proofs/subsetconv.bend as PSc2
 import ./proofs/subsetalg.bend as PSa2
 import ./proofs/validkeep.bend as PVk
+import ./proofs/insertvalid.bend as PIvd
+import ./proofs/listset.bend as PLs
+import ./proofs/graphrange.bend as PGr
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -688,3 +694,9 @@ def Laws.difference_keeps_a_set_valid(d, a, b, va, vb):
 def Laws.the_union_of_two_subsets_is_a_subset(d, a, b, c, va, vb, vc,
   lt, ac, bc):
   PSa2.PSet.subset_union(d, a, b, c, va, vb, vc, lt, ac, bc)
+
+def Laws.inserting_keeps_a_set_valid(d, s, x, dok, inv, v):
+  PIvd.PSet.valid_insert(d, s, x, dok, inv, v)
+
+def Laws.a_set_built_from_a_list_is_valid(xs, d, dok, fits):
+  PIvd.PSet.valid_from_list(xs, d, dok, fits)

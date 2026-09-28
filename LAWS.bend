@@ -2395,3 +2395,20 @@ law the_union_of_two_subsets_is_a_subset:
   for +ac: {S.PSet.is_subset(d, a, c) == True{} : Bool}
   for +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool}
   {S.PSet.is_subset(d, S.PSet.union(d, a, b), c) == True{} : Bool}
+
+law inserting_keeps_a_set_valid:
+  for +d: Nat
+  for +s: S.PSet
+  for +x: U32
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+d) == True{} : Bool}
+  for +v: {S.PSet.valid(d, s, True{}) == True{} : Bool}
+  {S.PSet.valid(d, S.PSet.insert(d, s, x), True{}) == True{} : Bool}
+
+law a_set_built_from_a_list_is_valid:
+  for +xs: List<&2, U32>
+  for +d: Nat
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +fits: {Sh2.Ords.all_fit(xs, 12n+d) == True{} : Bool}
+  {S.PSet.valid(d, S.PSet.from_list(d, xs), True{}) == True{}
+    : Bool}
