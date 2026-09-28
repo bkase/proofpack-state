@@ -31,13 +31,10 @@ import ../adapters/git/bytes.bend as B
 import ../adapters/git/intern.bend as I
 import ../adapters/git/import.bend as Im
 import ../adapters/git/inventory.bend as Inv
-import ../adapters/git/git.bend as Gi
 import ../query/ast.bend as A
 import ../query/eval.bend as Ev
 import ../spec/query.bend as Den
 import ../execute/plan.bend as X
-import ../host/proc.bend as P
-import ../index/store.bend as St
 import ./args.bend as Ar
 import ./json.bend as J
 # ---------------------------------------------------------------------------
@@ -592,13 +589,6 @@ def Cmd.inventory.got(+cx: Ctx, have: String,
     case Inv.IOk{inv}:
       Cmd.inventory.emit(cx, have, inv)
 
-def Cmd.inventory(+cx: Ctx, have: String) -> IO(Unit):
-  +h = have
-  do IO<Unit>:
-    ir : Inv.InvResult <- Inv.Inv.observe(h, Idx.Source.uni(Ctx.src(cx)),
-      Idx.Source.fmt(Ctx.src(cx)))
-    Cmd.inventory.got(cx, h, ir)
-
 # ---------------------------------------------------------------------------
 # Dispatch.
 # ---------------------------------------------------------------------------
@@ -703,15 +693,6 @@ def Cmd.missing.have(+cx: Ctx, have: String, +v: Ev.Val,
       Cmd.missing.checked(cx, have, inv,
         Ev.Val.set(v), Ev.Val.ok(v), Ev.Val.err(v), want_oids, ready_gate)
 
-def Cmd.missing(+cx: Ctx, have: String, want_oids: Bool,
-  ready_gate: Bool) -> IO(Unit):
-  +h = have
-  do IO<Unit>:
-    ir : Inv.InvResult <- Inv.Inv.observe(h, Idx.Source.uni(Ctx.src(cx)),
-      Idx.Source.fmt(Ctx.src(cx)))
-    Cmd.missing.have(cx, h, Cli.required(Ctx.src(cx), Ctx.policy(cx)),
-      ir, want_oids, ready_gate)
-
 # ---------------------------------------------------------------------------
 # pp git explain
 #
@@ -750,29 +731,18 @@ def Cli.env.or(r: Result<&1, &1, U32 & String, String>) -> String:
     case Done{v}:
       v
 
-def Cli.store.mac.go(v: U32 & (P.Bytes & String)) -> Bool:
+def Cli.store.mac.go(v: U32 & (B.Bytes & String)) -> Bool:
   match v:
     case Tuple{st, rest}:
       U32.is_zero(st)
 
 def Cli.store.mac(r: Result<&1, &1, U32 & String,
-  U32 & (P.Bytes & String)>) -> Bool:
+  U32 & (B.Bytes & String)>) -> Bool:
   match r:
     case Fail{e}:
       False{}
     case Done{v}:
       Cli.store.mac.go(v)
-
-def Cli.store.dir(+ar: Ar.Args) -> IO(String):
-  do IO<String>:
-    h : Result<&1, &1, U32 & String, String> <- IO.get_env("HOME")
-    x : Result<&1, &1, U32 & String, String> <-
-      IO.get_env("XDG_CACHE_HOME")
-    +home : String = Cli.env.or(h)
-    lib : Result<&1, &1, U32 & String, U32 & (P.Bytes & String)> <-
-      P.Host.run_bytes("test", ["-d", home ++ "/Library"], "", 1024, 5000)
-    return Cli.store.given(ar,
-      Cli.store.of(home, Cli.env.or(x), Cli.store.mac(lib)))
 
 # ---------------------------------------------------------------------------
 # pp git import -- the "once" of SPEC 1.1.
@@ -791,15 +761,6 @@ def Cmd.import.emit(+cx: Ctx, store: String, name: String, ok: Bool) ->
         J.Json.field("imported", Cli.stats_json(
           Ev.Ev.stats(Ctx.src(cx), Den.Den.universe(
             Idx.Source.n(Ctx.src(cx))))))])))
-
-def Cmd.import(+cx: Ctx, store: String, name: String) -> IO(Unit):
-  +st = store
-  +nm = name
-  +src = Ctx.src(cx)
-  do IO<Unit>:
-    ok : Bool <- St.Store.publish(st, nm,
-      St.Store.encode(src, Idx.Source.metas(src), Idx.Source.rows(src)))
-    Cmd.import.emit(cx, st, nm, ok)
 
 # ---------------------------------------------------------------------------
 # pp git matrix -- many inventories against one requirement, from one load.
@@ -1024,23 +985,6 @@ def Cmd.matrix.add(+cells: List<&2, Cell>, name: String,
       List.append(&2, Cell, cells,
         [Cl{name, iv, Cmd.matrix.first_dup(cells, iv)}])
 
-def Cmd.matrix.scan(+cx: Ctx, haves: List<&2, String>,
-  cells: List<&2, Cell>) -> IO(List<&2, Cell>):
-  match haves:
-    case Nil{}:
-      IO.pure(List<&2, Cell>, cells)
-    case Con{h, t}:
-      +hh = h
-      do IO<List<&2, Cell>>:
-        r : Inv.InvResult <- Inv.Inv.observe(hh,
-          Idx.Source.uni(Ctx.src(cx)), Idx.Source.fmt(Ctx.src(cx)))
-        Cmd.matrix.scan(cx, t, Cmd.matrix.add(cells, hh, r))
-
-def Cmd.matrix(+cx: Ctx, haves: List<&2, String>) -> IO(Unit):
-  do IO<Unit>:
-    cells : List<&2, Cell> <- Cmd.matrix.scan(cx, haves, Nil{})
-    Cmd.matrix.emit(cx, Cli.required(Ctx.src(cx), Ctx.policy(cx)), cells)
-
 def Cli.usage() -> String:
   "pp -- ProofPack State\n"
     ++ "\n"
@@ -1095,131 +1039,3 @@ def Cli.which(+cmd: String) -> Nat:
   +ns = {["stats", "missing", "ready", "explain", "retention",
     "inventory", "verify", "import", "matrix"] : List<&2, String>}
   Cli.which.go(cmd, ns, 0n, Cli.head_eq(ns, cmd))
-
-def Cli.go.pick(+ar: Ar.Args, +cx: Ctx, +keep_n: Nat, k: Nat) ->
-  IO(Unit):
-  match k:
-    case 0n:
-      Cmd.stats(cx)
-    case 1n+a:
-      match a:
-        case 0n:
-          Cmd.missing(cx, Ar.Args.one(ar, "have-repo", ""),
-            String.eq(Ar.Args.one(ar, "output", "stats"), "oids"),
-            False{})
-        case 1n+b:
-          match b:
-            case 0n:
-              Cmd.missing(cx, Ar.Args.one(ar, "have-repo", ""), False{}, True{})
-            case 1n+c:
-              match c:
-                case 0n:
-                  Cmd.explain(cx, Ar.Args.one(ar, "object", ""))
-                case 1n+d:
-                  match d:
-                    case 0n:
-                      Cmd.retention(cx, Ar.Args.values(ar, "remove"), keep_n,
-                        String.eq(Ar.Args.one(ar, "output", "stats"),
-                          "oids"))
-                    case 1n+e:
-                      match e:
-                        case 0n:
-                          Cmd.inventory(cx, Ar.Args.one(ar, "have-repo", ""))
-                        case 1n+f:
-                          match f:
-                            case 0n:
-                              Cmd.verify(cx)
-                            case 1n+g:
-                              match g:
-                                case 0n:
-                                  Cmd.import(cx,
-                                    Ar.Args.one(ar, "store-dir", ""),
-                                    Ar.Args.one(ar, "as", "source"))
-                                case 1n+h:
-                                  match h:
-                                    case 0n:
-                                      Cmd.matrix(cx,
-                                        Ar.Args.values(ar, "have-repo"))
-                                    case 1n+j:
-                                      Cli.fail(
-                                        "InvalidInput: unknown command")
-
-def Cli.go(+ar: Ar.Args, +cmd: String, +cx: Ctx, +keep_n: Nat) ->
-  IO(Unit):
-  Cli.go.pick(ar, cx, keep_n, Cli.which(cmd))
-
-def Cli.dispatch(+ar: Ar.Args, +cmd: String, repo: String,
-  +p: Idx.Policy, refs: List<&2, String>, backend: Backend, +keep_n: Nat,
-  b: Idx.Built) -> IO(Unit):
-  match b:
-    case Idx.BErr{msg}:
-      Cli.fail(msg)
-    case Idx.BOk{src}:
-      Cli.go(ar, cmd, Cx{repo, src, p, refs, backend}, keep_n)
-
-def Args.of_dir(ar: Ar.Args, dir: String) -> Ar.Args:
-  Con{Ar.Flag{"store-dir", dir}, ar}
-
-def Cli.source.pick(+repo: String, all: List<&2, String>, +store: String,
-  graph: String, fresh: Bool) -> IO(Idx.Built):
-  match fresh:
-    case True{}:
-      Idx.Idx.import(repo, all)
-    case False{}:
-      St.Store.load(store, graph)
-
-# A query names either a stored graph snapshot (`--graph NAME`, resolved
-# against the derived store) or a repository to import now (`--repo PATH`).
-# SPEC 9.1: a stored ref alias resolves within the named snapshot, and
-# updating the live Git ref does not mutate it -- observing new roots takes
-# an explicit import.
-def Cli.source(+ar: Ar.Args, +repo: String, all: List<&2, String>,
-  +store: String, +graph: String) -> IO(Idx.Built):
-  Cli.source.pick(repo, all, store, graph, String.is_empty(graph))
-
-def Cli.run.checked(+ar: Ar.Args, +cmd: String, +repo: String,
-  +p: Idx.Policy, +refs: List<&2, String>, +bk: Backend,
-  removed: List<&2, String>, all: List<&2, String>, ok: Bool) ->
-  IO(Unit):
-  match ok:
-    case False{}:
-      Cli.fail("BackendUnavailable: --backend metal was requested, but "
-        ++ "this process has no GPU: either the binary was built without a "
-        ++ "`!` call, no device was found, or --gpu off was passed")
-    case True{}:
-      do IO<Unit>:
-        dir : String <- Cli.store.dir(ar)
-        +sd : String = dir
-        b : Idx.Built <- Cli.source(ar, repo, all, sd,
-          Ar.Args.one(ar, "graph", ""))
-        Cli.dispatch(Args.of_dir(ar, sd), cmd, repo, p, refs, bk,
-          List.length(&2, String, refs), b)
-
-def Cli.run(+ar: Ar.Args, +cmd: String, repo: String, +p: Idx.Policy,
-  +refs: List<&2, String>, requested: String,
-  removed: List<&2, String>) -> IO(Unit):
-  +rp = repo
-  +rm = removed
-  do IO<Unit>:
-    gpu : Bool <- P.Host.gpu_enabled()
-    +bk : Backend = Cli.backend_of(requested, gpu)
-    Cli.run.checked(ar, cmd, rp, p, refs, bk, rm,
-      List.append(&2, String, refs, rm), Cli.backend_ok(bk))
-
-def Cli.top.pick(+ar: Ar.Args, +cmd: String, ok: Bool) -> IO(Unit):
-  match ok:
-    case False{}:
-      IO.print(Cli.usage())
-    case True{}:
-      Cli.run(ar, cmd, Ar.Args.one(ar, "repo", "."),
-        Cli.policy(Ar.Args.one(ar, "mode", "full")),
-        Cli.roots_of(ar), Ar.Args.one(ar, "backend", "auto"),
-        Ar.Args.values(ar, "remove"))
-
-def Cli.top(+ar: Ar.Args, area: String, +cmd: String) -> IO(Unit):
-  Cli.top.pick(ar, cmd, Bool.and(String.eq(area, "git"),
-    Bool.not(String.is_empty(cmd))))
-
-def Cli.entry(xs: List<&1, String>) -> IO(Unit):
-  +ar = Ar.Args.of(xs)
-  Cli.top(ar, Ar.Args.word(ar, 0n), Ar.Args.word(ar, 1n))

@@ -21,7 +21,6 @@ import ../adapters/git/oid.bend as O
 import ../adapters/git/intern.bend as I
 import ../adapters/git/parse.bend as Pa
 import ../adapters/git/import.bend as Im
-import ../adapters/git/git.bend as Gi
 
 def Idx.td() -> Nat:
   32n
@@ -320,71 +319,6 @@ def Idx.assemble(+f: O.Fmt, +a: Im.FAcc, roots: List<&2, U32>,
 # before any body is fetched, and everything after that refers to the pinned
 # vector rather than to a moving ref. Once published, the derived graph is
 # immutable even if the live repository changes.
-# ---------------------------------------------------------------------------
-
-def Idx.rounds() -> Nat:
-  4194304n
-
-def Idx.import.fold(a: Im.FAcc, +f: O.Fmt, roots: List<&2, U32>,
-  root_oids: List<&2, O.Oid>) -> Built:
-  Idx.assemble(f, a, roots, root_oids)
-
-def Idx.import.loop(+repo: String, +f: O.Fmt, root_oids: List<&2, O.Oid>,
-  roots: List<&2, U32>, u: I.Universe, queue: List<&2, O.Oid>) ->
-  IO(Built):
-  do IO<Built>:
-    a : Im.FAcc <- Im.Imp.loop(Idx.rounds(), repo, f,
-      Im.FA{u, Nil{}, Nil{}, Nil{}, Nil{}, True{}, ""}, queue)
-    return Idx.import.fold(a, f, roots, root_oids)
-
-def Idx.import.seeded(+repo: String, +f: O.Fmt, rs: Im.Roots, ok: Bool) ->
-  IO(Built):
-  match ok:
-    case False{}:
-      IO.pure(Built, BErr{Im.Roots.err(rs)})
-    case True{}:
-      +oids = Im.Roots.oids(rs)
-      +sd = Idx.seed.all(oids, I.Uni.new(f))
-      +u = Seed.uni(sd)
-      Idx.import.loop(repo, f, oids, Seed.ords(sd), u, I.Uni.identify(u))
-
-def Idx.import.roots(+repo: String, refs: List<&2, String>, +f: O.Fmt) ->
-  IO(Built):
-  do IO<Built>:
-    rs : Im.Roots <- Im.Imp.roots(refs, repo, f,
-      Im.Rts{Nil{}, True{}, ""})
-    +r2 : Im.Roots = rs
-    Idx.import.seeded(repo, f, r2, Im.Roots.ok(r2))
-
-def Idx.import.with_fmt(+repo: String, refs: List<&2, String>,
-  mf: Maybe<&2, O.Fmt>) -> IO(Built):
-  match mf:
-    case None{}:
-      IO.pure(Built,
-        BErr{"UnsupportedRepository: unrecognised object format"})
-    case Some{f}:
-      Idx.import.roots(repo, refs, f)
-
-def Idx.import.checked(+repo: String, refs: List<&2, String>, out: Gi.Out,
-  ran: Bool) -> IO(Built):
-  match ran:
-    case False{}:
-      IO.pure(Built,
-        BErr{"UnsupportedRepository: not a Git repository: "
-          ++ Gi.Out.err(out)})
-    case True{}:
-      Idx.import.with_fmt(repo, refs, Gi.Git.fmt_of(Gi.Out.body(out)))
-
-def Idx.import(+repo: String, refs: List<&2, String>) -> IO(Built):
-  do IO<Built>:
-    fo : Gi.Out <- Gi.Git.object_format(repo)
-    +f0 : Gi.Out = fo
-    Idx.import.checked(repo, refs, f0, U32.is_zero(Gi.Out.status(f0)))
-
-# ---------------------------------------------------------------------------
-# Reading the per-ordinal tables back out, in ordinal order. The store
-# encoder needs them; nothing on a query path does, so the O(n * depth) walk
-# is paid once per import rather than per query.
 # ---------------------------------------------------------------------------
 
 def Source.metas.go(+src: Source, +k: Nat, +i: U32,

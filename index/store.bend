@@ -26,7 +26,6 @@
 import Base
 import ../core/count.bend as C
 import ../core/trie.bend as T
-import ../host/proc.bend as P
 import ../adapters/git/bytes.bend as B
 import ../adapters/git/oid.bend as O
 import ../adapters/git/intern.bend as I
@@ -567,15 +566,3 @@ def Store.write.opened(text: String,
 # Write to a temporary name and rename it into place. A crash or a
 # cancellation leaves the previous generation intact; readers never see a
 # half-built one (SPEC 6.5).
-def Store.publish(store: String, name: String, text: String) -> IO(Bool):
-  +st = store
-  +nm = name
-  do IO<Bool>:
-    md : Result<&1, &1, U32 & String, U32 & (P.Bytes & String)> <-
-      P.Host.mkdir_p(st)
-    f : Result<&1, &1, U32 & String, File> <-
-      File.open(Store.temp(st, nm), "w")
-    ok : Bool <- Store.write.opened(text, f)
-    mv : Result<&1, &1, U32 & String, U32 & (P.Bytes & String)> <-
-      P.Host.rename(Store.temp(st, nm), Store.path(st, nm))
-    return ok

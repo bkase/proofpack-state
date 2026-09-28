@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Typecheck every module through a single root-level entry.
 # See docs/MODULES.md for why the entry has to be at the root.
+#
+# The entry imports the whole tree, host/proc.bend included, so Bend reports
+# the definitions that reach unsafe or foreign code. That report is expected
+# here and is not a type error -- but the *set* is pinned in tools/effects.txt,
+# so a definition that newly reaches the outside fails this step until it is
+# recorded deliberately. Everything the laws import is outside that set; see
+# `bend PROOF.bend --verdict`, which reports no such reliance at all.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
@@ -19,5 +26,36 @@ entry="$root/.check-all.bend"
   echo "  0n"
 } > "$entry"
 
-trap 'rm -f "$entry"' EXIT
-"$root/tools/bend" "$entry" --check-only
+log="$(mktemp)"
+trap 'rm -f "$entry" "$log"' EXIT
+"$root/tools/bend" "$entry" --check-only > "$log" 2>&1 || true
+
+if grep -q '^ALL PROOFS CHECK' "$log"; then
+  cat "$log"
+  exit 0
+fi
+
+# The only tolerated failure is the effects report, and only with the pinned
+# set. Anything else -- a type error, a different definition reaching the
+# outside -- is a real failure.
+if ! grep -q '^Error: [0-9]* defs rely on unsafe or foreign code:' "$log"; then
+  cat "$log"
+  exit 1
+fi
+if grep -qv -e '^SOME PROOFS FAIL$' -e '^Error: [0-9]* defs rely on unsafe or foreign code:$' \
+     -e '^- ' -e '^$' "$log"; then
+  echo "typecheck: output past the effects report" >&2
+  cat "$log"
+  exit 1
+fi
+
+sed -n 's/^- //p' "$log" | sort > "$log.set"
+if ! diff -u "$root/tools/effects.txt" "$log.set"; then
+  echo "typecheck: the set of definitions reaching unsafe or foreign code changed." >&2
+  echo "If that is intended, update tools/effects.txt and say why in TRUST.md." >&2
+  rm -f "$log.set"
+  exit 1
+fi
+rm -f "$log.set"
+echo "ALL MODULES TYPECHECK"
+echo "$(wc -l < "$root/tools/effects.txt" | tr -d ' ') defs reach unsafe or foreign code, as pinned in tools/effects.txt"

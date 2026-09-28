@@ -13,10 +13,14 @@ is labelled "mathematically verified" because the binary ships with proofs.
 ## 1. Proved
 
 `bend PROOF.bend` discharges every law in `LAWS.bend`, and
-`bend PROOF.bend --safe` rechecks the result with the BendTT kernel, which
-has a proof in Lean. On this machine, with Lean 4.28.0-rc1, both pass and
-`--safe` excludes nothing: no law's proof reaches an `@unsafe` def or a
-foreign definition.
+`bend PROOF.bend --verdict` rechecks the result with the BendTT kernel, which
+has a proof in Lean. On this machine, with Bend 2.0.32 and Lean 4.34.0, both
+pass. `--verdict` prints `ALL PROOFS CHECK` only when nothing in the file
+relies on an `@unsafe` def or on foreign code, so that verdict is now also
+the statement that no law's proof reaches the process boundary — Bend counts
+reaching by import, not by call, so the effectful modules are separate files
+that `LAWS.bend` does not import (see README 5.3, and `tools/effects.txt`,
+which pins the 42 definitions that do reach it).
 
 The proofs cover:
 
@@ -159,13 +163,13 @@ This is C, it is spliced into the program after the runtime, and the effect
 ABI is the runtime's internals with no stability promise. **Rebuild it on
 every toolchain bump.** It is the only foreign code in this release.
 
-**The compiler.** Bend's `--safe` mode gives a second checking path through a
-kernel with a Lean proof, but the guide is explicit that the translation from
-Bend to BendTT is itself unproved, that a foreign def is checked as a model
-built from its type rather than as its C or JS code, and that `@unsafe` defs
-are out of scope. This release has no `@unsafe` defs. It has one foreign def
-(`Host.run_bytes`), which `--safe` checks as a model of its type — that is, it
-checks that the *type* is used consistently, not that the C is correct.
+**The compiler.** Bend's `--verdict` mode gives a second checking path through
+a kernel with a Lean proof, but the guide is explicit that the translation from
+Bend to BendTT is itself unproved. This release has no `@unsafe` defs. It has
+two foreign defs (`Host.run_bytes`, `Host.gpu_enabled`), and `--verdict`
+accepts the file only because no definition it checks reaches them: what is
+proved is proved about the pure code, and the C is outside it. Nothing here
+checks that the C is correct.
 
 Separately, the compiler's lowering is trusted end to end. `U32.and` is
 *defined* in Base as a bit-vector operation and the laws are proved against

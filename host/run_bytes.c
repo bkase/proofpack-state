@@ -6,6 +6,12 @@
 // behavioural change: stdout is returned as a list of bytes rather than
 // decoded as UTF-8.
 //
+// Re-checked against release 2.0.32 (revision 4f856f6): upstream's
+// process_run.c and process_run.js are byte-identical between the two
+// releases, so this vendored copy is still current. That check is what
+// "rebuild on every toolchain bump" means in practice -- diff upstream's
+// file, not just re-run the tests.
+//
 // Why it exists is in TRUST.md. In short: `Process.run` answers a `String`,
 // and this runtime builds a String with `io_str`, which decodes UTF-8 and
 // substitutes U+FFFD for anything invalid. Git object bodies are binary, and

@@ -3,8 +3,9 @@
 #
 #   1. every module typechecks through one root-level entry
 #   2. `bend PROOF.bend` -- fails while any law in LAWS.bend is open or false
-#   3. `bend PROOF.bend --safe` -- rechecks with the proven BendTT kernel and
-#      lists what it leaves out, when Lean is available
+#   3. `bend PROOF.bend --verdict` -- rechecks every law with the proven BendTT
+#      kernel and fails if anything reaches unsafe or foreign code, when Lean
+#      is available
 #   4. the executable checks in tests.bend
 #   5. the Git differential against independent plumbing
 #   6. a build of `pp` itself
@@ -36,15 +37,15 @@ step typecheck            "$root/tools/check.sh"
 step proof                "$root/tools/bend" PROOF.bend
 step bendtt               "$root/tools/bend" PROOF.bend -o "$out/PROOF.bendtt"
 
-printf '%-34s ' "proof-safe"
+printf '%-34s ' "proof-verdict"
 if command -v lean > /dev/null; then
-  if "$root/tools/bend" PROOF.bend --safe > "$out/proof-safe.log" 2>&1; then
+  if "$root/tools/bend" PROOF.bend --verdict > "$out/proof-verdict.log" 2>&1; then
     echo "ok ($(lean --version | head -1))"
   else
-    echo FAILED; fail=1; sed 's/^/    /' "$out/proof-safe.log" | head -20
+    echo FAILED; fail=1; sed 's/^/    /' "$out/proof-verdict.log" | head -20
   fi
 else
-  echo "skipped (no lean on PATH; --safe needs the BendTT kernel)"
+  echo "skipped (no lean on PATH; --verdict needs the BendTT kernel)"
 fi
 
 step build-tests          "$root/tools/bend" tests.bend -o "$root/build/tests"

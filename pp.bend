@@ -8,7 +8,7 @@
 # docs/MODULES.md.
 
 import Base
-import ./cli/main.bend as Cli
+import ./cli/run.bend as Cli
 
 def main() -> IO(Unit):
   do IO<Unit>:

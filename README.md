@@ -41,10 +41,11 @@ As of 28 September 2026, on the `main` branch:
 
 **The release gate is green.** `tools/gate.sh` runs eight steps and all pass on
 this machine: every module typechecks; `bend PROOF.bend` discharges every law
-in `LAWS.bend`; `bend PROOF.bend --safe` rechecks them with the BendTT kernel
-(which has a Lean proof) and excludes nothing; `tests.bend` passes; `pp`
-builds; and the Git differential agrees with independent Git plumbing on every
-case, including the derived store round trip and four injected corruptions.
+in `LAWS.bend`; `bend PROOF.bend --verdict` rechecks them with the BendTT
+kernel (which has a Lean proof) and reports no reliance on unsafe or foreign
+code; `tests.bend` passes; `pp` builds; and the Git differential agrees with
+independent Git plumbing on every case, including the derived store round trip
+and four injected corruptions.
 
 **What has been built**, by the specification's milestones:
 
@@ -170,13 +171,14 @@ Everything runs on one pinned Bend release, verified by sha256 against the
 hash in the pinned revision's own `flake.nix`:
 
 ```sh
-tools/bootstrap.sh          # fetch and verify bend 2.0.31 into .toolchain/
+tools/bootstrap.sh          # fetch and verify bend 2.0.32 into .toolchain/
 tools/bend version          # never uses a bend on PATH
 ```
 
-`tools/bend` refuses to run anything but that artifact. `--safe` additionally
-needs Lean on PATH (the gate finds `~/.elan/bin`); native builds need clang,
-and a binary containing a `!` call needs clang 19 or newer.
+`tools/bend` refuses to run anything but that artifact. `--verdict`
+additionally needs Lean 4.34.0 on PATH (the gate finds `~/.elan/bin`); native
+builds need clang, and a binary containing a `!` call needs clang 19 or
+newer.
 
 ### Build, prove, test
 
@@ -308,6 +310,12 @@ git cat-file (bytes)                       adapters/git/git.bend, host/run_bytes
   -> fused statistics, never a bitmap      query/eval.bend
   -> a JSON envelope with provenance       cli/main.bend, cli/json.bend
 ```
+
+Every module named there is pure. The steps that actually start a process
+live in five modules of their own -- `adapters/git/fetch.bend`,
+`adapters/git/observe.bend`, `index/ingest.bend`, `index/publish.bend` and
+`cli/run.bend` -- which import the pure ones and are imported only by
+`pp.bend`. Section 5.3 says why that separation is load-bearing.
 
 Alongside it, and deliberately slow: `spec/closure.bend` recomputes `post`
 over the whole set every round, and `spec/query.bend` maps each operator to
@@ -618,15 +626,36 @@ makes `bit i of mask(k) == (i < k)` provable with no carry reasoning. It
 costs 32 cells once per query, for the one word that straddles the end of
 the universe, so it never enters a loop.
 
-### 5.3 `--safe` and the BendTT kernel
+### 5.3 `--verdict` and the BendTT kernel
 
-`bend PROOF.bend --safe` translates the checked file to BendTT and rechecks
-it with a small kernel that has a proof in Lean. It lists what it leaves out:
-`@unsafe` defs, and foreign defs, which it checks as a model built from their
-type rather than their C. This release has **no `@unsafe` defs**, and no
-proof reaches either foreign def (`Host.run_bytes`, `Host.gpu_enabled`), so
-`--safe` excludes nothing and the gate records that. The translation itself
-is unproved, which `TRUST.md` says plainly.
+`bend PROOF.bend --verdict` translates the checked file to BendTT and rechecks
+it with a small kernel that has a proof in Lean. It prints `ALL PROOFS CHECK`
+only when every definition outside `Base` is a valid proof that both Bend and
+the kernel accept, *and* nothing in the file relies on an `@unsafe` def or on
+foreign code. It prints that here.
+
+Getting the second half required a module split. Bend counts a definition as
+reaching foreign code if its module imports a module that has it, called or
+not — so `LAWS.bend` importing `cli/main.bend` used to drag the subprocess
+effect into the proof closure. Each of the five affected modules now has a
+pure half, which the laws import, and an effect-only half, which only the
+executable does:
+
+| pure | effectful |
+|---|---|
+| `adapters/git/gitout.bend` | `adapters/git/git.bend` |
+| `adapters/git/import.bend` | `adapters/git/fetch.bend` |
+| `adapters/git/inventory.bend` | `adapters/git/observe.bend` |
+| `index/source.bend` | `index/ingest.bend` |
+| `index/store.bend` | `index/publish.bend` |
+| `cli/main.bend` | `cli/run.bend` |
+
+Nothing moved that a law mentions; the split changed no law statement and no
+proof. `tools/effects.txt` pins the 42 definitions that do reach the outside,
+and `tools/check.sh` fails if that set changes, so a new effect has to be
+recorded deliberately rather than appearing by import.
+
+The BendTT translation itself is unproved, which `TRUST.md` says plainly.
 
 ### 5.4 Termination without `@unsafe`
 

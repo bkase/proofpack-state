@@ -379,7 +379,7 @@ def Words.members_fit(ws, len):
 #
 # Stated for any count-down that does not wrap, and proved structurally --
 # the closed computation at 4096 ordinals typechecks but exhausts the
-# kernel's fuel under `--safe`.
+# kernel's fuel under `--verdict`.
 # ---------------------------------------------------------------------------
 
 law Nat.pos_of_le_succ:

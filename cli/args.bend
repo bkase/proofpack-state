@@ -95,8 +95,13 @@ def Args.parse(+fuel: Nat, acc: Args, s: PStep) -> Args:
           +r = rest
           Args.parse(g, Con{a, acc}, Args.step(r))
 
+# `IO.args()` answers the whole argv, program name first. That name is not an
+# argument: `pp git stats ...` has "git" as its first word, and a parse that
+# kept argv[0] would read the executable's path as the area and print the
+# usage for every invocation. Dropping it here is the one place argv becomes
+# arguments.
 def Args.of(xs: List<&1, String>) -> Args:
-  +ys = Args.dup(xs)
+  +ys = {List.tail(&2, String, Args.dup(xs)) : List<&2, String>}
   Args.parse(1n+List.length(&2, String, ys), Nil{}, Args.step(ys))
 
 # ---------------------------------------------------------------------------

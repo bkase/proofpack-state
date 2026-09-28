@@ -1,9 +1,11 @@
 # PROOF.bend -- discharges every law in LAWS.bend.
 #
 # `bend PROOF.bend` fails while any law is open or false and prints
-# "All terms check." once every one holds. `bend PROOF.bend --safe`
-# re-checks the result with the proven BendTT kernel and lists what it
-# leaves out; `tools/gate.sh` runs both and records the exclusion audit.
+# "ALL PROOFS CHECK" once every one holds. `bend PROOF.bend --verdict`
+# re-checks the result with the proven BendTT kernel, and accepts it only if
+# nothing here relies on an `@unsafe` def or on foreign code -- which is why
+# the effectful halves of the adapter, index and CLI modules are separate
+# files this closure never imports. `tools/gate.sh` runs both.
 #
 # Each def here delegates to the module that does the work, so the structure
 # of the argument stays where the definitions are:

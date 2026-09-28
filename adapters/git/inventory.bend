@@ -27,7 +27,6 @@ import ./bytes.bend as B
 import ./oid.bend as O
 import ./intern.bend as I
 import ./parse.bend as Pa
-import ./git.bend as Gi
 
 # 64 MiB of `--batch-check` output: about a million objects at ~60 bytes an
 # entry. Past that the call fails rather than truncating, and the caller
@@ -104,28 +103,3 @@ def Inv.project(+u: I.Universe, oids: List<&2, O.Oid>) -> Inventory:
 # ---------------------------------------------------------------------------
 # Observing a repository.
 # ---------------------------------------------------------------------------
-
-def Inv.observe.parsed(+u: I.Universe, ol: Pa.OidList, ok: Bool) ->
-  InvResult:
-  match ok:
-    case False{}:
-      IErr{"InvalidInput: malformed cat-file --batch-check stream"}
-    case True{}:
-      IOk{Inv.project(u, Pa.OidList.oids(ol))}
-
-def Inv.observe.checked(+u: I.Universe, +f: O.Fmt, out: Gi.Out,
-  ran: Bool) -> InvResult:
-  match ran:
-    case False{}:
-      IErr{"UnsupportedRepository: git cat-file --batch-all-objects failed: "
-        ++ Gi.Out.err(out)}
-    case True{}:
-      +ol = Pa.Parse.oids(f, Gi.Out.body(out))
-      Inv.observe.parsed(u, ol, Pa.OidList.ok(ol))
-
-def Inv.observe(repo: String, +u: I.Universe, +f: O.Fmt) ->
-  IO(InvResult):
-  do IO<InvResult>:
-    out : Gi.Out <- Gi.Git.all_objects(repo, Inv.max_bytes())
-    +o2 : Gi.Out = out
-    return Inv.observe.checked(u, f, o2, U32.is_zero(Gi.Out.status(o2)))

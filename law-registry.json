@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--safe`); 10 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 not applicable until the milestone named in `reason`. Every obligation the release is subject to now has something proved about it. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--verdict`); 10 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 not applicable until the milestone named in `reason`. Every obligation the release is subject to now has something proved about it. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -43,7 +43,7 @@
    "production_symbol": "core/words.bend Words.and / Words.or / Words.diff / Words.at",
    "proof_symbol": "proofs/words.bend",
    "public_law": "LAWS.bend tile_difference_is_pointwise, tile_intersection_is_pointwise, tile_union_is_pointwise",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "S-02",
@@ -219,7 +219,7 @@
    "production_symbol": "core/set.bend PSet.diff / PSet.missing, query/eval.bend Ev.missing_stats",
    "proof_symbol": "proofs/missing.bend",
    "public_law": "LAWS.bend the_missing_set_covers_the_requirement, the_missing_set_is_the_least_one",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "M-02",
@@ -234,7 +234,7 @@
    "production_symbol": "core/set.bend PSet.is_subset, query/eval.bend Ev.ready",
    "proof_symbol": "proofs/missing.bend",
    "public_law": "LAWS.bend readiness_is_an_empty_difference",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "M-03",
@@ -249,7 +249,7 @@
    "production_symbol": "core/set.bend PSet.diff / PSet.union",
    "proof_symbol": "proofs/missing.bend",
    "public_law": "LAWS.bend missing_distributes_over_a_union_of_requirements, inventory_tiers_compose",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "R-01",
@@ -264,7 +264,7 @@
    "production_symbol": "core/words.bend Words.at",
    "proof_symbol": "proofs/words.bend",
    "public_law": "LAWS.bend tile_*_is_pointwise, which are stated at a position and so commute with restriction to disjoint ranges",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "R-02",
@@ -280,7 +280,7 @@
    "production_symbol": "query/ast.bend Stats.add / Stats.zero / Stats.of_kind",
    "proof_symbol": "proofs/stats.bend",
    "public_law": "LAWS.bend statistics_have_a_left_identity, statistics_have_a_right_identity, statistics_add_commutatively, statistics_add_associatively, every_object_counts_once",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "Q-01",
@@ -316,7 +316,7 @@
    "production_symbol": "core/words.bend Words.diff_count",
    "proof_symbol": "proofs/words.bend",
    "public_law": "LAWS.bend counting_a_difference_needs_no_difference",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "Q-03",
@@ -372,7 +372,7 @@
    "production_symbol": "core/set.bend PSet.diff / PSet.union",
    "proof_symbol": "proofs/missing.bend",
    "public_law": "LAWS.bend an_additions_only_update_needs_no_rederivation, add_wins_in_a_patch",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "I-02",
@@ -435,7 +435,7 @@
    "production_symbol": "core/word.bend U32.diff / U32.popcount / U32.mask, core/words.bend U32.test",
    "proof_symbol": "proofs/word.bend, proofs/popcount.bend, proofs/bits.bend",
    "public_law": "LAWS.bend word_difference_is_pointwise, word_intersection_is_pointwise, word_union_is_pointwise, shifting_right_reads_the_next_bit_up, the_tail_mask_hides_every_padding_bit, popcount_counts_the_bits_that_are_set, the_fast_bit_test_agrees_with_the_bit_vector",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "B-02",
@@ -448,7 +448,7 @@
    "production_symbol": "core/count.bend Nat.add / Count.add / Count.ceiling",
    "proof_symbol": "proofs/nat.bend",
    "public_law": "LAWS.bend the_accumulator_has_an_identity, the_accumulator_adds_commutatively, the_accumulator_adds_associatively",
-   "gate": "bend PROOF.bend, and bend PROOF.bend --safe"
+   "gate": "bend PROOF.bend, and bend PROOF.bend --verdict"
   },
   {
    "id": "B-03",

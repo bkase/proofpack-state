@@ -25,6 +25,7 @@ import ../../core/count.bend as C
 import ../../host/proc.bend as P
 import ./bytes.bend as B
 import ./oid.bend as O
+import ./gitout.bend as Go
 
 def Git.base(repo: String) -> List<&2, String>:
   ["-C", repo, "--no-replace-objects", "--no-lazy-fetch",
@@ -33,38 +34,20 @@ def Git.base(repo: String) -> List<&2, String>:
 def Git.timeout() -> U32:
   600000
 
-type Out is Data:
-  Out{status: U32, body: B.Bytes, err: String}
-
-def Out.status(o: Out) -> U32:
-  match o:
-    case Out{status, body, err}:
-      status
-
-def Out.body(o: Out) -> B.Bytes:
-  match o:
-    case Out{status, body, err}:
-      body
-
-def Out.err(o: Out) -> String:
-  match o:
-    case Out{status, body, err}:
-      err
-
-def Git.pack(r: U32 & (P.Bytes & String)) -> Out:
+def Git.pack(r: U32 & (P.Bytes & String)) -> Go.Out:
   match r:
     case Tuple{st, rest}:
       match rest:
         case Tuple{body, err}:
-          Out{st, body, err}
+          Go.Out{st, body, err}
 
-def Git.fail(e: U32 & String) -> Out:
+def Git.fail(e: U32 & String) -> Go.Out:
   match e:
     case Tuple{code, msg}:
-      Out{U32.or(code, 4294967040), Nil{}, msg}
+      Go.Out{U32.or(code, 4294967040), Nil{}, msg}
 
 def Git.wrap(r: Result<&1, &1, U32 & String, U32 & (P.Bytes & String)>) ->
-  Out:
+  Go.Out:
   match r:
     case Fail{e}:
       Git.fail(e)
@@ -72,8 +55,8 @@ def Git.wrap(r: Result<&1, &1, U32 & String, U32 & (P.Bytes & String)>) ->
       Git.pack(v)
 
 def Git.run(repo: String, sub: List<&2, String>, input: String,
-  +max: U32) -> IO(Out):
-  do IO<Out>:
+  +max: U32) -> IO(Go.Out):
+  do IO<Go.Out>:
     r : Result<&1, &1, U32 & String, U32 & (P.Bytes & String)> <-
       P.Host.run_bytes("git",
         List.append(&2, String, Git.base(repo), sub), input, max,
@@ -84,53 +67,38 @@ def Git.run(repo: String, sub: List<&2, String>, input: String,
 # The individual calls.
 # ---------------------------------------------------------------------------
 
-def Git.fmt_of.pick(two: Bool, one: Bool) -> Maybe<&2, O.Fmt>:
-  match two:
-    case True{}:
-      Some{O.Sha256{}}
-    case False{}:
-      match one:
-        case True{}:
-          Some{O.Sha1{}}
-        case False{}:
-          None{}
-
-def Git.fmt_of(+bs: B.Bytes) -> Maybe<&2, O.Fmt>:
-  Git.fmt_of.pick(B.Bytes.starts(B.Bytes.of_string("sha256"), bs),
-    B.Bytes.starts(B.Bytes.of_string("sha1"), bs))
-
-def Git.object_format(repo: String) -> IO(Out):
+def Git.object_format(repo: String) -> IO(Go.Out):
   Git.run(repo, ["rev-parse", "--show-object-format"], "", 4096)
 
-def Git.git_dir(repo: String) -> IO(Out):
+def Git.git_dir(repo: String) -> IO(Go.Out):
   Git.run(repo, ["rev-parse", "--absolute-git-dir"], "", 65536)
 
 # Resolve one requested root to a complete object id. `--verify` refuses an
 # ambiguous or absent name rather than guessing, and `--end-of-options` stops
 # a ref that looks like a flag from becoming one.
-def Git.resolve(repo: String, ref: String) -> IO(Out):
+def Git.resolve(repo: String, ref: String) -> IO(Go.Out):
   Git.run(repo, ["rev-parse", "--verify", "--end-of-options", ref], "", 4096)
 
 # Type and size for each object id on stdin. No contents, so a blob's bytes
 # are never read.
-def Git.batch_check(repo: String, oids: String, +max: U32) -> IO(Out):
+def Git.batch_check(repo: String, oids: String, +max: U32) -> IO(Go.Out):
   Git.run(repo, ["cat-file", "--batch-check", "--buffer"], oids, max)
 
 # Contents for each object id on stdin. Only ever called with commits, trees
 # and tags.
-def Git.batch(repo: String, oids: String, +max: U32) -> IO(Out):
+def Git.batch(repo: String, oids: String, +max: U32) -> IO(Go.Out):
   Git.run(repo, ["cat-file", "--batch", "--buffer"], oids, max)
 
 # Every object the selected store reports as present, including alternates.
 # This is an inventory observation, not a graph (SPEC 8.1).
-def Git.all_objects(repo: String, +max: U32) -> IO(Out):
+def Git.all_objects(repo: String, +max: U32) -> IO(Go.Out):
   Git.run(repo,
     ["cat-file", "--batch-check", "--batch-all-objects", "--unordered",
       "--buffer"], "", max)
 
 # The independent oracle for the differential tests of SPEC 11.1. Never used
 # to build a graph.
-def Git.rev_list_objects(repo: String, root: String, +max: U32) -> IO(Out):
+def Git.rev_list_objects(repo: String, root: String, +max: U32) -> IO(Go.Out):
   Git.run(repo,
     ["rev-list", "--objects", "--no-object-names", "--end-of-options", root],
     "", max)

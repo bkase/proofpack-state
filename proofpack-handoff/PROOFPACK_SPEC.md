@@ -68,10 +68,12 @@ The performance thesis is **prune first, reuse second, fuse third, parallelize l
 | Metrics | Object count and uncompressed logical object payload bytes, not network or reclaimable disk bytes |
 | Persistence | Single writer, immutable generations, atomically published manifests |
 | API | CLI and bounded JSON batch protocol; no public network daemon initially |
-| Proof gate | `bend PROOF.bend --safe`, exclusion audit, and tests over the production implementation |
+| Proof gate | `bend PROOF.bend --verdict`, the effects manifest, and tests over the production implementation |
 | Native integration | Small effect/storage boundary; no opaque C implementation of the set engine |
 
 The proposed source baseline is `bendlang/bend` commit **`af569d4826913b2ce3557e9829ccad31fcf86f94`**, inspected on 27 September 2026. That commit names version 2.0.31 in its Nix flake. Pin both source revision and actual compiler artifact; record any additional runtime patch separately. This is a reproducibility choice, not a claim that this revision is independently audited. [S1]
+
+The implementation has since moved to **`4f856f61392425f25f5798e8773c50a18cc3ae51`** (version 2.0.32); `toolchain.lock.json` is the live pin, and `docs/evidence/T01.md` records what changed. Two differences matter to this specification: the kernel recheck is `--verdict` rather than `--safe`, and it now refuses a file in which anything relies on unsafe or foreign code — which forces the effectful code to live in modules the proof closure does not import.
 
 ---
 
@@ -684,7 +686,7 @@ Target proofs over the actual set implementation, closure algorithm/checker, que
 
 Initially trusted or externally validated components include Git decoding and object identity mapping; filesystem and subprocess effects; compiler lowering; any proposed native storage primitive; runtime scheduling; Metal/OS/hardware; and the assertion that a recorded inventory described actual readable storage at observation time.
 
-The inspected Bend guide provides a second checking path through `--safe`, but explicitly identifies an unproved translation, foreign implementation modeling, and exclusions for unsafe definitions. Record those facts in `TRUST.md`; do not advertise a verified driver or fully proved distributed system. [S1]
+The inspected Bend guide provides a second checking path through `--safe` (`--verdict` from 2.0.32), but explicitly identifies the translation from Bend to the kernel's language as itself unproved. Record that in `TRUST.md`; do not advertise a verified driver or fully proved distributed system. [S1]
 
 ### 10.2 Repository structure
 

@@ -36,12 +36,11 @@
 
 import Base
 import ../../core/count.bend as C
-import ../../host/proc.bend as P
 import ./bytes.bend as B
 import ./oid.bend as O
 import ./intern.bend as I
 import ./parse.bend as Pa
-import ./git.bend as Gi
+import ./gitout.bend as Gi
 import ../../core/trie.bend as T
 
 # One object's metadata: uncompressed logical payload size, and type. Not a
@@ -345,29 +344,6 @@ def Imp.root.read(acc: Roots, +f: O.Fmt, ref: String, out: Gi.Out,
       Imp.root.take(acc, ref,
         O.Oid.of_hex(f, B.Cut.taken(B.Bytes.line(Gi.Out.body(out)))))
 
-def Imp.roots(refs: List<&2, String>, +repo: String, +f: O.Fmt,
-  acc: Roots) -> IO(Roots):
-  match refs:
-    case Nil{}:
-      IO.pure(Roots, acc)
-    case Con{ref, t}:
-      +r = ref
-      do IO<Roots>:
-        out : Gi.Out <- Gi.Git.resolve(repo, r)
-        +o2 : Gi.Out = out
-        Imp.roots(t, repo, f,
-          Imp.root.read(acc, f, r, o2, U32.is_zero(Gi.Out.status(o2))))
-
-# ---------------------------------------------------------------------------
-# The object table: complete object id -> type, size, and the object ids the
-# body names. Bucketed on a digest word like the interning table, and
-# compared on the complete key, so a collision costs a list step and never a
-# wrong answer.
-#
-# This is *not* the universe. Nothing here has an ordinal; an object is in the
-# universe only once the walk below reaches it.
-# ---------------------------------------------------------------------------
-
 type Obj is Data:
   Ob{oid: O.Oid, kind: U32, size: U32, kids: List<&2, Pa.Child>}
 
@@ -601,84 +577,3 @@ def Imp.bodies.add(+f: O.Fmt, +l: Load, out: Gi.Out, ran: Bool) -> Load:
           ++ Gi.Out.err(out)}
     case True{}:
       Imp.bodies.parsed(f, l, Pa.Parse.recs(f, Gi.Out.body(out)))
-
-def Imp.bodies(+fuel: Nat, +repo: String, +f: O.Fmt, l: Load,
-  oids: List<&2, O.Oid>) -> IO(Load):
-  match fuel:
-    case 0n:
-      IO.pure(Load, Ld{Load.tab(l), False{},
-        "ResourceLimit: too many body chunks"})
-    case 1n+g:
-      match oids:
-        case Nil{}:
-          IO.pure(Load, l)
-        case Con{o, t}:
-          +q = {Con{o, t} : List<&2, O.Oid>}
-          do IO<Load>:
-            out : Gi.Out <- Gi.Git.batch(repo,
-              Imp.hex_lines(f, List.take(&2, O.Oid, q, Imp.chunk())),
-              Imp.batch_bytes())
-            +o2 : Gi.Out = out
-            Imp.bodies(g, repo, f,
-              Imp.bodies.add(f, l, o2, U32.is_zero(Gi.Out.status(o2))),
-              List.drop(&2, O.Oid, q, Imp.chunk()))
-
-# The whole import: one `--batch-check --batch-all-objects` call, the body
-# chunks, then the pure walk.
-def Imp.all.parsed(+repo: String, +f: O.Fmt, inf: Pa.Infos, ok: Bool) ->
-  IO(Load):
-  match ok:
-    case False{}:
-      IO.pure(Load, Ld{T.Trie.gap(ObjBucket), False{},
-        "InvalidInput: malformed cat-file --batch-check stream"})
-    case True{}:
-      +items = Pa.Infos.items(inf)
-      Imp.bodies(1n+List.length(&2, Pa.Info, items), repo, f,
-        Ld{Tab.of_infos(items, T.Trie.gap(ObjBucket)), True{}, ""},
-        Imp.nonblob(items))
-
-def Imp.all.checked(+repo: String, +f: O.Fmt, out: Gi.Out, ran: Bool) ->
-  IO(Load):
-  match ran:
-    case False{}:
-      IO.pure(Load, Ld{T.Trie.gap(ObjBucket), False{},
-        "UnsupportedRepository: git cat-file --batch-all-objects failed: "
-          ++ Gi.Out.err(out)})
-    case True{}:
-      +inf = Pa.Parse.infos(f, Gi.Out.body(out))
-      Imp.all.parsed(repo, f, inf, Pa.Infos.ok(inf))
-
-# 256 MiB of `--batch-check --batch-all-objects` output: about four million
-# objects at ~60 bytes an entry. Past that the call fails rather than
-# truncating, and the caller reports ResourceLimit.
-def Imp.all_bytes() -> U32:
-  268435456
-
-def Imp.all(+repo: String, +f: O.Fmt) -> IO(Load):
-  do IO<Load>:
-    out : Gi.Out <- Gi.Git.all_objects(repo, Imp.all_bytes())
-    +o2 : Gi.Out = out
-    Imp.all.checked(repo, f, o2, U32.is_zero(Gi.Out.status(o2)))
-
-# Every object in the store, doubled -- the walk visits each reachable one
-# once and can never see more than the store holds.
-def Imp.walk_fuel(+t: T.Trie<ObjBucket>) -> Nat:
-  4194304n
-
-def Imp.loop.walk(+l: Load, u: I.Universe, queue: List<&2, O.Oid>,
-  ok: Bool) -> FAcc:
-  match ok:
-    case False{}:
-      FA{u, Nil{}, Nil{}, Nil{}, Nil{}, False{}, Load.err(l)}
-    case True{}:
-      Imp.walk(Imp.walk_fuel(Load.tab(l)), Load.tab(l),
-        FA{u, Nil{}, Nil{}, Nil{}, Nil{}, True{}, ""}, queue, Nil{})
-
-def Imp.loop(+fuel: Nat, +repo: String, +f: O.Fmt, +a: FAcc,
-  queue: List<&2, O.Oid>) -> IO(FAcc):
-  +q = queue
-  +u = FAcc.uni(a)
-  do IO<FAcc>:
-    l : Load <- Imp.all(repo, f)
-    +l2 : Load = l
-    return Imp.loop.walk(l2, u, q, Load.ok(l2))
