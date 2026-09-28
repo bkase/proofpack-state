@@ -2505,3 +2505,66 @@ law the_closure_is_inside_every_edge_closed_set_holding_its_roots:
   for +rx: {S.PSet.is_subset(sd, r, xx) == True{} : Bool}
   {S.PSet.is_subset(sd, Sp2.Spec.closure(n, td, g, sd, r), xx)
     == True{} : Bool}
+
+# ---------------------------------------------------------------------------
+# The closure algebra that holds at every fuel.
+#
+# Monotonicity and union preservation are not facts about the fixed point.
+# They hold round by round: a round is a union of monotone things, and a
+# round distributes over a union because `post` does. So both are stated at
+# any number of rounds, and hold whether or not the iteration has settled.
+# ---------------------------------------------------------------------------
+
+law closure_is_monotone_in_its_roots:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +x: S.PSet
+  for +y: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool}
+  for +vy: {S.PSet.valid(sd, y, True{}) == True{} : Bool}
+  for +xy: {S.PSet.is_subset(sd, x, y) == True{} : Bool}
+  {S.PSet.is_subset(sd, Sp2.Spec.closure(n, td, g, sd, x),
+    Sp2.Spec.closure(n, td, g, sd, y)) == True{} : Bool}
+
+law closure_preserves_unions:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +va: {S.PSet.valid(sd, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(sd, b, True{}) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
+  {S.PSet.member(sd,
+      Sp2.Spec.closure(n, td, g, sd, S.PSet.union(sd, a, b)), x)
+    == S.PSet.member(sd, S.PSet.union(sd,
+         Sp2.Spec.closure(n, td, g, sd, a),
+         Sp2.Spec.closure(n, td, g, sd, b)), x) : Bool}
+
+law the_successor_image_of_a_union_is_the_union_of_the_images:
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +a: S.PSet
+  for +b: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +va: {S.PSet.valid(sd, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(sd, b, True{}) == True{} : Bool}
+  {Bool.and(S.PSet.is_subset(sd,
+      Sp2.Spec.post(td, g, sd, S.PSet.union(sd, a, b)),
+      S.PSet.union(sd, Sp2.Spec.post(td, g, sd, a),
+        Sp2.Spec.post(td, g, sd, b))),
+    S.PSet.is_subset(sd,
+      S.PSet.union(sd, Sp2.Spec.post(td, g, sd, a),
+        Sp2.Spec.post(td, g, sd, b)),
+      Sp2.Spec.post(td, g, sd, S.PSet.union(sd, a, b))))
+    == True{} : Bool}

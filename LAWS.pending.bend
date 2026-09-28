@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 10. That count is the point of the file, so the command "failing"
+# currently 9. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -250,19 +250,11 @@ law closure_is_edge_closed:
   {Sp.Spec.closed(td, g, sd, Sp.Spec.closure(n, td, g, sd, r))
     == True{} : Bool}
 
-law closure_preserves_unions:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +sd: Nat
-  for +a: S.PSet
-  for +b: S.PSet
-  for +x: U32
-  {S.PSet.member(sd,
-      Sp.Spec.closure(n, td, g, sd, S.PSet.union(sd, a, b)), x)
-    == S.PSet.member(sd,
-        S.PSet.union(sd, Sp.Spec.closure(n, td, g, sd, a),
-          Sp.Spec.closure(n, td, g, sd, b)), x) : Bool}
+# Union preservation is closed and lives in LAWS.bend as
+# `closure_preserves_unions`. It is not a fact about the fixed point: a round
+# distributes over a union because `post` does, so it holds at every fuel,
+# settled or not. Monotonicity in the roots closed the same way, as
+# `closure_is_monotone_in_its_roots`.
 
 law closure_is_idempotent:
   for +n: Nat

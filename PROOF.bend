@@ -82,6 +82,7 @@
 #   proofs/graphrange.bend  a graph whose successors are ordinals
 #   proofs/postmono.bend  the successor step is monotone
 #   proofs/lfp.bend       the closure iteration, as a growing chain
+#   proofs/closalg.bend   monotone in its roots, and additive over them
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -136,6 +137,7 @@ import ./proofs/listset.bend as PLs
 import ./proofs/graphrange.bend as PGr
 import ./proofs/postmono.bend as PPm
 import ./proofs/lfp.bend as PLp
+import ./proofs/closalg.bend as PCa
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -722,3 +724,15 @@ def Laws.closure_contains_its_roots(n, td, sd, g, r, gf, lt, vr):
 def Laws.the_closure_is_inside_every_edge_closed_set_holding_its_roots(
   n, td, sd, g, r, xx, gf, lt, vr, vx, cl, rx):
   PLp.Spec.closure_least(n, td, sd, g, r, xx, gf, lt, vr, vx, cl, rx)
+
+def Laws.closure_is_monotone_in_its_roots(n, td, sd, g, x, y, gf, lt,
+  vx, vy, xy):
+  PCa.Spec.closure_mono(n, td, sd, g, x, y, gf, lt, vx, vy, xy)
+
+def Laws.closure_preserves_unions(n, td, sd, g, a, b, x, gf, lt, va,
+  vb, inv):
+  PCa.Spec.closure_union(n, td, sd, g, a, b, x, gf, lt, va, vb, inv)
+
+def Laws.the_successor_image_of_a_union_is_the_union_of_the_images(
+  td, sd, g, a, b, gf, lt, va, vb):
+  PCa.Spec.post_union(td, sd, g, a, b, gf, lt, va, vb)
