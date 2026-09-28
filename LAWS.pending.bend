@@ -406,48 +406,73 @@ import ./proofs/denote.bend as PDn
 # stray sparse or dense payload as empty while `PSet.mem` reads it as a
 # member.
 #
-# What is not stated: that decode inverts encode. The differential checks the
-# round trip observationally -- a stored generation answers identically to the
-# import that produced it, on both policies -- and checks that four kinds of
-# corruption are rejected, each corruption derived from the file so that it
-# cannot silently become a no-op.
+# What is not stated: that decode inverts encode. That half is a theorem about
+# *text*, not about the algebra. Closing it means proving, in order: that the
+# hex alphabet round-trips digit for digit; that eight nibbles written
+# most-significant-first and read back by Horner accumulation give the word
+# again; that decimal `show` and parse invert
+# each other; that the line splitter re-splits exactly what the writer joined;
+# and that `String` and `B.Bytes` agree across the boundary the file crosses.
+# None of that is hard in principle and none of it is about sets, closure or
+# queries.
+#
+# Two things worth writing down for whoever does close it, both checked
+# against the compiler rather than guessed.
+#
+# The Horner step is `cur * 16 + d`, and the multiplication looks like a wall.
+# It is not: `Word.mul` peels the bits of its *first* operand, so `cur * 16`
+# with a symbolic `cur` stays stuck, while `16 * cur` reduces -- to four
+# shifts and an add of zero. That half costs one
+# `Word.adc(n, Word.zero(n), y, False, False) == y` lemma and a one-token
+# change in `Oid.of_hex.go`, which is free at run time because either
+# spelling lowers to the same machine multiply.
+#
+# The addition is the real work. `shl^4(cur) + d` is an add of two words whose
+# set bits are disjoint -- the accumulator's low nibble is clear, the digit's
+# high bits are -- so it is a disjunction, but saying so needs a lemma that
+# this tree does not have: adding words with disjoint bits is `or`. That is
+# the piece to build first, and it is worth building on its own terms, since
+# the same fact is what would let any packed-field encoding be proved.
+#
+# What backs it instead is stronger evidence than usual for a round trip: the
+# differential runs it observationally on real repositories -- a stored
+# generation answers identically to the import that produced it, on both
+# policies -- and then corrupts the file four ways, each corruption derived
+# from the file itself so that it cannot silently become a no-op, and checks
+# that each is rejected with its error class. An encoder and decoder that
+# disagreed would have to disagree in a way that survives both.
 #
 # ===========================================================================
-# Q-04 -- batch deduplication.
+# Q-04 -- closed.
 #
-# `pp git matrix` answers one cell per *distinct* inventory and points every
-# duplicate at the cell it shares with, reporting `distinct_inventories`
-# alongside `cells`. The obligation is that this changes no answer and no
-# position: a deduplicated batch returns what the undeduplicated one would
-# have, in the caller's order.
-#
-# The order half is proved and lives in LAWS.bend:
+# All three parts are in LAWS.bend. The order half was already there:
 # `the_matrix_rows_are_the_cells_in_order` and
-# `the_matrix_has_one_row_per_cell`. `Cmd.matrix.rows` builds the output with
-# an accumulator and reverses once at the end, and that agrees with the same
-# walk written in order -- so a cell's position in the output is its position
-# in the input, whether or not its answer was reused.
+# `the_matrix_has_one_row_per_cell` say a cell's position in the output is its
+# position in the input, whether or not its answer was reused. What a reused
+# answer *is* was there too:
+# `a_reused_answer_is_the_first_one_recorded_under_that_name`.
 #
-# What a reused answer *is* is proved too:
-# `a_reused_answer_is_the_first_one_recorded_under_that_name`. The lookup
-# agrees with a plain find-first-by-name, so a duplicate reuses the recorded
-# answer of the first cell whose name it points at, and nothing the
-# deduplication invented.
+# What this file said was open -- the step to "the answer that cell would have
+# computed" -- is now `a_reused_answer_is_the_answer_that_cell_would_have_
+# computed`, over `Cmd.matrix.answer`, which is the cell's answer as a
+# function of the requirement and the inventory alone. (Splitting that out of
+# `Cmd.matrix.compute` is the only production change the proof asked for: it
+# names the thing the law is about.)
 #
-# What is open is the step from there to "the answer that cell would have
-# computed". `Cmd.matrix.same` compares two inventories with `PSet.is_subset`
-# in both directions, which now gives equal *members*
-# (`a_subset_contains_every_member`); going from equal members to an equal
-# statistic needs the enumeration of a set to agree with its membership --
-# `List.contains(PSet.to_list(d, s), x) == PSet.member(d, s, x)` -- which
-# this release does not prove. That lemma is the one piece several of the
-# remaining obligations share.
+# The route was not the one predicted here. Readiness needed no enumeration at
+# all -- it *is* a subset test, so transitivity carries it across. The missing
+# statistics needed more than "equal members", because they fold over
+# `PSet.missing`, a list, and a fold sees order and repetition. What closes it
+# is that the fused difference walk ascends strictly, which makes the list a
+# function of its members: the two lists are not merely equivalent, they are
+# the same list. Both halves are published as laws of their own
+# (`the_fused_difference_ascends`,
+# `two_ascending_lists_with_the_same_members_are_the_same_list`), because
+# neither is about the matrix.
 #
-# Backed by: tests.bend checks that three cells over two distinct inventories
-# report `cells 3 distinct 2` with the third row pointing at the first, and
-# that the shared row's answer is the one the first cell computed.
-# ===========================================================================
-
+# Backed by, still: tests.bend checks that three cells over two distinct
+# inventories report `cells 3 distinct 2` with the third row pointing at the
+# first, and that the shared row's answer is the one the first cell computed.
 # ===========================================================================
 # I-02, I-03, U-02 -- incremental reuse.
 #

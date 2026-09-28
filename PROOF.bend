@@ -170,6 +170,9 @@ import ./proofs/trieput.bend as PTp
 import ./proofs/interninj.bend as PIji
 import ./proofs/layering.bend as PLy
 import ./proofs/levels.bend as PLv
+import ./proofs/dedup.bend as PDd
+import ./proofs/ascext.bend as PAe
+import ./proofs/ascdiffwalk.bend as PAw
 import ./proofs/nat.bend as N
 import ./proofs/word.bend as PW
 import ./proofs/popcount.bend as PP
@@ -456,6 +459,25 @@ def Laws.interning_an_id_then_finding_it_gives_the_same_ordinal(u, o):
 def Laws.interning_gives_different_ids_different_ordinals(f, os, x, y, a, b,
   room, same, fx, fy):
   PIji.Uni.inj(f, os, x, y, a, b, room, same, fx, fy)
+
+def Laws.a_reused_answer_is_the_answer_that_cell_would_have_computed(src, k,
+  h1, h2, vk, v1, v2, sm):
+  PDd.Cmd.matrix.answer_same(src, k, h1, h2, vk, v1, v2, sm)
+
+def Laws.two_inventories_that_compare_equal_are_equally_ready(k, h1, h2, vk,
+  v1, v2, sm):
+  PDd.Ev.ready_same(k, h1, h2, vk, v1, v2, sm)
+
+def Laws.two_inventories_that_compare_equal_leave_the_same_objects_missing(k,
+  h1, h2, vk, v1, v2, sm):
+  PDd.Ords.missing_eq(20n, k, h1, h2, vk, v1, v2, {==}, sm)
+
+def Laws.the_fused_difference_ascends(d, a, b, va, vb, dok):
+  PAw.Ords.asc_missing(d, a, b, va, vb, dok)
+
+def Laws.two_ascending_lists_with_the_same_members_are_the_same_list(x, y,
+  ax, ay, sm):
+  PAe.Ords.asc_ext(x, y, ax, ay, sm)
 
 def Laws.the_traversal_records_a_breadth_first_layering(n, td, g, sd, roots):
   PLv.Lv.closure_chain(n, td, g, sd, roots)

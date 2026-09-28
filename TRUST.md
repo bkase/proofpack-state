@@ -45,7 +45,8 @@ The proofs cover:
 | `S-04` | the emptiness test only accepts a set with no members, and the three admitted Boolean rewrites follow |
 | `C-03` | all five: closing the empty set gives the empty set, extensivity, monotonicity in the roots, union preservation and idempotence. The last three follow from `C-01`: a round is monotone and commutes with union because the successor image does, and idempotence is leastness applied to a set that is already edge-closed |
 | `C-01` | all three things "least fixed point" says: the closure contains its roots; it is edge-closed; and it is inside every edge-closed set that contains the roots. Edge-closure is a pigeonhole over the rounds -- a round that is not edge-closed exhibits a witness through the fused difference list and so is strictly bigger than the one before, and every set is inside a bounding set the graph respects, which bounds how many rounds can change. Leastness carries `PSet.is_subset` from round to round, which is decidable data and so may be used as often as the induction needs |
-| `Q-04` (part) | the matrix restores the caller's positions -- the accumulate-and-reverse agrees with the in-order walk, one row per cell -- and a reused answer is the recorded answer of the first cell whose name the duplicate points at |
+| `Q-04` | all three parts. The matrix restores the caller's positions -- the accumulate-and-reverse agrees with the in-order walk, one row per cell. A reused answer is the recorded answer of the first cell whose name the duplicate points at. And it is the answer that cell would have computed: two inventories that compare equal are equally ready, because readiness is itself a subset test, and leave the same objects missing, because the fused difference walk ascends strictly, which makes the list the statistics fold over a function of its members rather than of the tree that produced it |
+| ascending lists | the fused difference ascends, at any depth, for structurally valid operands; and two ascending lists with the same members are the same list. That second one is what turns "equal members" into an equal fold, which a statistic needs and a count does not |
 | subset | `PSet.is_subset`, which is a count, related to membership: a subset contains every member. Three obligations waited on that bridge |
 | counting | the count is the length of the list the set enumerates, so a count that is not zero exhibits an ordinal -- the first one enumerated -- and the enumeration law says it is a member |
 | subset, both ways | the converse: a set whose members are all in another is a subset, for the decidable test the production code computes. The ordinal-quantified hypothesis is used once, at the ordinal a nonzero count exhibits, and the hypothesis itself is data -- every ordinal on a list is a member -- so a caller builds it out of laws. `PSet.is_subset` is transitive, proved that way, which is the shape the closure inductions need |
@@ -171,6 +172,17 @@ two foreign defs (`Host.run_bytes`, `Host.gpu_enabled`), and `--verdict`
 accepts the file only because no definition it checks reaches them: what is
 proved is proved about the pure code, and the C is outside it. Nothing here
 checks that the C is correct.
+
+`--verdict` also has coverage gaps, and this release found one. On Bend 2.0.32
+it refuses any file in which a *type* conversion has to normalize a term past
+about 850 list cells, reporting a mismatch between Bend's own checker and the
+Lean kernel rather than a proof error. A full leaf here is 4096 ordinals, so
+four proofs in `proofs/ascdiff.bend` had to name their one-step reductions as
+equations and rewrite with them, instead of leaving the conversion implicit.
+That is a change of proof *structure*, not of what is proved, and the laws are
+identical either way -- but it is worth knowing that the second checking path
+constrains how a proof may be written. `docs/bendtt-verdict-mismatch.md` is the
+reduction, the measured threshold, and the report.
 
 Separately, the compiler's lowering is trusted end to end. `U32.and` is
 *defined* in Base as a bit-vector operation and the laws are proved against

@@ -886,14 +886,20 @@ def Cmd.matrix.seen(done: List<&2, Answered>, +same_as: String) ->
   Maybe<&2, String>:
   Cmd.matrix.seen.pick(done, same_as, String.is_empty(same_as))
 
-def Cmd.matrix.compute(+cx: Ctx, k: S.PSet, +c: Cell) -> String:
-  +h = Inv.Inventory.present(Cell.inv(c))
-  +kk = k
+# A cell's answer, as a function of the requirement and the inventory alone.
+# Naming it is what lets law Q-04 be stated about it: two inventories that
+# compare equal give the same string here, so the answer a duplicate reuses
+# is the answer it would have computed.
+def Cmd.matrix.answer(+src: Idx.Source, +k: S.PSet, +h: S.PSet) -> String:
   J.Json.obj([
     J.Json.field("ready_at_observation",
-      J.Json.bool(Ev.Ev.ready(kk, h))),
+      J.Json.bool(Ev.Ev.ready(k, h))),
     J.Json.field("missing",
-      Cli.stats_json(Ev.Ev.missing_stats(Ctx.src(cx), kk, h)))])
+      Cli.stats_json(Ev.Ev.missing_stats(src, k, h)))])
+
+def Cmd.matrix.compute(+cx: Ctx, k: S.PSet, +c: Cell) -> String:
+  Cmd.matrix.answer(Ctx.src(cx), k,
+    Inv.Inventory.present(Cell.inv(c)))
 
 def Cmd.matrix.answer_of(+cx: Ctx, k: S.PSet, +c: Cell,
   reuse: Maybe<&2, String>) -> String:

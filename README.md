@@ -57,7 +57,7 @@ and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 176 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 181 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -84,6 +84,11 @@ the set algebra itself:
   union-preserving; and an accepted certificate means an exact closure.
 * `Q-03`: the evaluator computes the denotation -- the stack machine `pp`
   actually runs agrees with the specification evaluator, member for member.
+* `Q-04`: `pp git matrix`'s deduplication changes no answer and no position.
+  The last piece was that two inventories which compare equal leave the same
+  objects *missing*, not merely the same members missing: the statistics fold
+  over a list, so the fused difference had to be shown to ascend strictly,
+  which makes that list a function of its members.
 * `Q-01`: the whole rewrite pass keeps the denotation -- not just each
   rewrite family, but `Rw.simplify` including its recursion into `Reach` and
   `Filter`. The set operations keep a set in the shape the pointwise laws
@@ -118,8 +123,7 @@ three of a *produced* one -- the third resting on the traversal's levels being
 a genuine breadth-first layering, which is proved of `Reach.closure` rather
 than assumed.
 
-Partly proved, with the remaining half stated precisely: `Q-04` (the matrix
-restores the caller's positions, and what a reused answer is), `D-01` (what
+Partly proved, with the remaining half recorded as prose: `D-01` (what
 structural validity rules out; that decode inverts encode is a round trip
 through text), `G-01` (the parser never reads short; soundness for Git's
 grammar as a whole would need a grammar predicate faithful to Git rather than
@@ -133,8 +137,8 @@ hypothesis they need, and `P-01` was then proved outright. `TRUST.md` §1 has
 the list.
 
 Every obligation this release is subject to now has something proved about
-it: 24 discharged in full, 3 in part with the remaining half stated precisely
-in `LAWS.pending.bend`, and 5 not applicable until a later milestone.
+it: 25 discharged in full, 2 in part with the remaining half recorded in
+`LAWS.pending.bend`, and 5 not applicable until a later milestone.
 
 **What is still checked at run time rather than proved.** That decode inverts
 encode, and that the metadata parser is complete for Git's grammar -- neither
@@ -190,6 +194,11 @@ tools/bend version          # never uses a bend on PATH
 additionally needs Lean 4.34.0 on PATH (the gate finds `~/.elan/bin`); native
 builds need clang, and a binary containing a `!` call needs clang 19 or
 newer.
+
+Most of the gate's time goes to the two steps that check the proofs: the
+whole-tree typecheck and `PROOF.bend` check them separately, so the proof
+modules are checked twice. That is the price of the typecheck step also
+catching a module no entry point reaches.
 
 ### Build, prove, test
 

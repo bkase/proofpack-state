@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 24 proved and discharged by `bend PROOF.bend` (and re-checked by the Lean-proved BendTT kernel under `--verdict`); 3 proved in part, with the proved half in LAWS.bend and the remaining half recorded in LAWS.pending.bend as prose, since none of the three is a statement about this tree's algebra; 5 not applicable until the milestone named in `reason`. LAWS.pending.bend holds no open law. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 25 proved and discharged by `bend PROOF.bend` (and re-checked by the Lean-proved BendTT kernel under `--verdict`); 2 proved in part, with the proved half in LAWS.bend and the remaining half recorded in LAWS.pending.bend as prose, since neither is a statement about this tree's algebra; 5 not applicable until the milestone named in `reason`. LAWS.pending.bend holds no open law. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -348,15 +348,15 @@
     "Q-01",
     "R-01"
    ],
-   "status": "partially_proved",
-   "production_symbol": "Cmd.matrix.lookup",
-   "proof_symbol": "Rows.from_empty, Rows.one_per_cell, Rows.lookup_is_find (proofs/batch.bend)",
+   "status": "proved",
+   "production_symbol": "Cmd.matrix.answer / Cmd.matrix.rows / Cmd.matrix.lookup",
+   "proof_symbol": "Rows.spec and Rows.found (proofs/batch.bend); Cmd.matrix.answer_same, Ev.ready_same and Ords.missing_eq (proofs/dedup.bend), on Ords.asc_missing (proofs/ascdiffwalk.bend) and Ords.asc_ext (proofs/ascext.bend)",
    "reason": "M3. No batch matrix command yet.",
    "backed_by": "`pp git matrix` deduplicates identical inventories and answers one cell per distinct inventory, reporting `distinct_inventories` and naming the cell each duplicate shares with. tests.bend checks that three cells over two distinct inventories report `cells 3 distinct 2` with the third row pointing at the first.",
-   "note": "Was recorded as not applicable while there was no batch command. `pp git matrix` shipped in M4, so the obligation is live.",
-   "stated_in": "LAWS.bend (order and what a reused answer is) and LAWS.pending.bend (that it is the answer the cell would have computed)",
-   "proved_part": "The order half, in full: Cmd.matrix.rows builds the output with an accumulator and reverses once, and it agrees with the same walk written in order, with one row per cell -- so a cell position in the output is its position in the input whatever deduplication did to its answer. And what a reused answer is: the lookup agrees with a plain find-first-by-name, so a duplicate reuses the recorded answer of the first cell whose name it points at and nothing the deduplication invented.",
-   "gap": "That the reused answer is the answer the duplicate cell would have computed. Cmd.matrix.same compares two inventories with PSet.is_subset both ways, which now gives equal members; going from equal members to an equal statistic needs the enumeration to agree with membership, which is now proved and published as a_valid_set_lists_exactly_its_members, for any set that passed the store's own validity check. What remains is carrying that equality into the statistic: the members agree ordinal by ordinal, and an equality quantified over ordinals cannot be used twice under Bend's affine discipline, so the step to an equal fold needs the same decidable form the subset converse needs."
+   "note": "Cmd.matrix.answer was split out of Cmd.matrix.compute so the law could be stated about the cell's answer as a function of the requirement and the inventory alone. That is the only production change the proof asked for.",
+   "stated_in": "LAWS.bend",
+   "proved_part": "All three parts. Order: a cell's position in the output is its position in the input, whether or not its answer was reused, and there is one row per cell. Identity: a duplicate reuses the recorded answer of the first cell whose name it points at. And correctness: two inventories that compare equal give the same answer -- the same readiness, because readiness is itself a subset test and transitivity carries it across; and the same missing statistics, because the fused difference walk ascends strictly, which makes the list it folds over a function of its members rather than of the tree that produced it.",
+   "gap": "None."
   },
   {
    "id": "I-01",

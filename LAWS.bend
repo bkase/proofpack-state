@@ -101,6 +101,7 @@ import ./proofs/intern.bend as Pin
 import ./proofs/interninj.bend as Ij
 import ./proofs/layering.bend as Ly
 import ./proofs/levels.bend as Lv
+import ./proofs/ascext.bend as Ae
 import ./closure/reach.bend as Rh
 
 # ===========================================================================
@@ -1812,14 +1813,14 @@ law a_stable_round_has_reached_an_edge_closed_set:
   {S.PSet.member(20n, xs, v) == True{} : Bool}
 
 # ===========================================================================
-# Q-04, in part -- the matrix restores the caller's positions.
+# Q-04 -- batch deduplication changes no answer and no position.
 #
 # `pp git matrix` answers one cell per distinct inventory and points every
 # duplicate at the cell it shares with. The obligation has two halves: that
 # deduplicating changes no answer, and that restoring caller positions
 # changes no order.
 #
-# This is the second half. `Cmd.matrix.rows` builds the output with an
+# Start with the order. `Cmd.matrix.rows` builds the output with an
 # accumulator and reverses once at the end -- which is what makes the order
 # question worth asking -- and `Ba.Rows.spec` is the same walk written the
 # obvious way, in order and without an accumulator. The two agree, and the
@@ -1832,11 +1833,15 @@ law a_stable_round_has_reached_an_edge_closed_set:
 # recorded answer of the first cell whose name it points at, and nothing the
 # deduplication invented.
 #
-# What is still open is the step from there to "the same answer it would have
-# computed", which needs two cells that compare equal to have inventories
-# that *are* equal as values -- `PSet.is_subset` gives equal members, and
-# going from equal members to an equal statistic needs the enumeration to
-# agree with membership. LAWS.pending.bend says so.
+# The fourth is the step from there to "the same answer it would have
+# computed". `Cmd.matrix.same` is `PSet.is_subset` in both directions, which
+# says nothing on its face about what the cells compute. Readiness is easy --
+# it *is* a subset test, so transitivity carries it across. The missing
+# statistics are the work: they fold over `PSet.missing`, a *list*, and a fold
+# sees order and repetition, not just membership. What closes it is that
+# `PSet.missing` ascends strictly, which makes the list a function of its
+# members, so the two lists are not merely equivalent -- they are the same
+# list.
 # ===========================================================================
 
 law the_matrix_rows_are_the_cells_in_order:
@@ -1860,6 +1865,62 @@ law a_reused_answer_is_the_first_one_recorded_under_that_name:
   for +want: String
   {Cm.Cmd.matrix.lookup(done, want, None{})
     == Ba.Rows.found(done, want) : Maybe<&2, String>}
+
+law a_reused_answer_is_the_answer_that_cell_would_have_computed:
+  for +src: Sc.Source
+  for +k: S.PSet
+  for +h1: S.PSet
+  for +h2: S.PSet
+  for +vk: {S.PSet.valid(20n, k, True{}) == True{} : Bool}
+  for +v1: {S.PSet.valid(20n, h1, True{}) == True{} : Bool}
+  for +v2: {S.PSet.valid(20n, h2, True{}) == True{} : Bool}
+  for +sm: {Cm.Cmd.matrix.same(h1, h2) == True{} : Bool}
+  {Cm.Cmd.matrix.answer(src, k, h1)
+    == Cm.Cmd.matrix.answer(src, k, h2) : String}
+
+# The two halves of that, separately, because each is what a reader of the
+# JSON wants: a duplicate cell reports the same readiness, and the same
+# missing statistics, as the cell it shares with.
+law two_inventories_that_compare_equal_are_equally_ready:
+  for +k: S.PSet
+  for +h1: S.PSet
+  for +h2: S.PSet
+  for +vk: {S.PSet.valid(20n, k, True{}) == True{} : Bool}
+  for +v1: {S.PSet.valid(20n, h1, True{}) == True{} : Bool}
+  for +v2: {S.PSet.valid(20n, h2, True{}) == True{} : Bool}
+  for +sm: {Cm.Cmd.matrix.same(h1, h2) == True{} : Bool}
+  {Qe.Ev.ready(k, h1) == Qe.Ev.ready(k, h2) : Bool}
+
+law two_inventories_that_compare_equal_leave_the_same_objects_missing:
+  for +k: S.PSet
+  for +h1: S.PSet
+  for +h2: S.PSet
+  for +vk: {S.PSet.valid(20n, k, True{}) == True{} : Bool}
+  for +v1: {S.PSet.valid(20n, h1, True{}) == True{} : Bool}
+  for +v2: {S.PSet.valid(20n, h2, True{}) == True{} : Bool}
+  for +sm: {Cm.Cmd.matrix.same(h1, h2) == True{} : Bool}
+  {S.PSet.missing(20n, k, h1) == S.PSet.missing(20n, k, h2)
+    : List<&2, U32>}
+
+# And the structural fact both rest on, which is about enumeration rather
+# than about the matrix: the fused difference ascends, and an ascending list
+# is a function of its members.
+law the_fused_difference_ascends:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +dok: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {Ol.Ords.asc(S.PSet.missing(d, a, b)) == True{} : Bool}
+
+law two_ascending_lists_with_the_same_members_are_the_same_list:
+  for +x: List<&2, U32>
+  for +y: List<&2, U32>
+  for +ax: {Ol.Ords.asc(x) == True{} : Bool}
+  for +ay: {Ol.Ords.asc(y) == True{} : Bool}
+  for +sm: {Ae.Ords.same_lists(x, y) == True{} : Bool}
+  {x == y : List<&2, U32>}
 
 # ===========================================================================
 # D-01, in part -- what accepting a stored generation means.
