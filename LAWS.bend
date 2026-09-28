@@ -50,6 +50,7 @@ import ./proofs/graphrange.bend as Gi
 import ./proofs/rwpass.bend as Rp
 import ./proofs/traversal.bend as Tl
 import ./proofs/certsound.bend as Cs
+import ./proofs/evalmach.bend as Em
 import ./closure/reach.bend as Re
 import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
@@ -2846,3 +2847,42 @@ law an_accepted_certificate_means_an_exact_closure:
   {S.PSet.member(sd, c, x)
     == S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd,
          S.PSet.from_list(sd, roots)), x) : Bool}
+
+# ---------------------------------------------------------------------------
+# The compiler contract.
+#
+# SPEC 3.6 asks that the production evaluator and the denotation agree.
+# `Ev.go` is an explicit machine -- a control word, a stack of frames, one
+# tail call per step -- because this runtime will not compile the obvious
+# two-self-call fold, so the proof is the usual one for such a machine: the
+# stack is given a meaning, and every step keeps the meaning of the whole
+# configuration.
+#
+# Every step but one is definitional: pushing a frame and evaluating a
+# subexpression is exactly what the stack's meaning unfolds to. The one step
+# that is not is `Reach`, where the machine runs the frontier traversal and
+# the meaning names the specification closure -- which is law C-02, and why
+# the equality carried through the machine is `PSet.same` rather than a value
+# equality.
+#
+# `Val.ok` is a hypothesis: a traversal that ran out of budget is
+# `ResourceLimit`, never an answer.
+# ---------------------------------------------------------------------------
+
+law the_evaluator_computes_the_denotation:
+  for +src: Sc.Source
+  for +e: A.SetExpr
+  for +x: U32
+  for +uu: S.PSet
+  for +gf: {Rp.Src.graphs_fit(src) == True{} : Bool}
+  for +su: {Em.Src.graphs_in(src, uu) == True{} : Bool}
+  for +vu: {S.PSet.valid(20n, uu, True{}) == True{} : Bool}
+  for +fu: {S.PSet.is_subset(20n, Q.Den.universe(Sc.Source.n(src)),
+    uu) == True{} : Bool}
+  for +fuelc: {C.Nat.upto(S.PSet.count(20n, uu, S.PSet.half(20n)),
+    1n+Sc.Source.n(src)) == True{} : Bool}
+  for +vl: {Rp.SetExpr.valid_lits(e) == True{} : Bool}
+  for +le: {Em.Ev.lits_in(uu, e) == True{} : Bool}
+  for ok: {Qe.Val.ok(Qe.Ev.run(src, e)) == True{} : Bool}
+  {S.PSet.member(20n, Qe.Val.set(Qe.Ev.run(src, e)), x)
+    == S.PSet.member(20n, Q.Den.eval(src, e), x) : Bool}

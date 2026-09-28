@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 3. That count is the point of the file, so the command "failing"
+# currently 2. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -350,22 +350,16 @@ law a_produced_witness_starts_at_a_requested_root:
 # successors that are ordinals of the universe, which is what `Store.succ`
 # checks on load.
 #
-# Q-03 is SPEC 3.6's compiler contract itself:
+# Q-03 is closed. `the_evaluator_computes_the_denotation` is in LAWS.bend:
+# `Ev.go` is an explicit machine, so the proof gives its stack a meaning and
+# shows that every step keeps the meaning of the whole configuration. Every
+# step but one is definitional; the one that is not is `Reach`, where the
+# machine runs the frontier traversal and the meaning names the specification
+# closure -- which is law C-02, and why the equality carried is `PSet.same`.
 #
-#     observe(execute_b(compile(W, q))) = [[q]]_W
-#
-# stated here as: the production evaluator and the denotational evaluator
-# agree on every expression. Backed by the differential in tests.bend, which
-# runs exactly this comparison for `Reach` over five graphs.
+# `Val.ok` is a hypothesis, because a traversal that ran out of budget is
+# `ResourceLimit` and never an answer.
 # ===========================================================================
-
-law the_evaluator_computes_the_denotation:
-  for +src: Idx.Source
-  for e: A.SetExpr
-  for +x: U32
-  for ok: {Ev.Val.ok(Ev.Ev.run(src, e)) == True{} : Bool}
-  {S.PSet.member(20n, Ev.Val.set(Ev.Ev.run(src, e)), x)
-    == S.PSet.member(20n, Den.Den.eval(src, e), x) : Bool}
 
 # ===========================================================================
 # G-01, G-03 -- the Git adapter.

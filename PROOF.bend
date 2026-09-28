@@ -92,6 +92,7 @@
 #   proofs/rwpass.bend    the optimizer pass, whole
 #   proofs/traversal.bend the traversal refines the specification
 #   proofs/certsound.bend an accepted certificate is exact
+#   proofs/evalmach.bend  the evaluator computes the denotation
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -156,6 +157,7 @@ import ./proofs/fixpoint.bend as PFx
 import ./proofs/rwpass.bend as PRp
 import ./proofs/traversal.bend as PTl
 import ./proofs/certsound.bend as PCs2
+import ./proofs/evalmach.bend as PEvm
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -808,3 +810,7 @@ def Laws.an_accepted_certificate_means_an_exact_closure(n, td, sd, g,
   fuel, ok):
   PCs2.Cert.exact(n, td, sd, g, roots, levels, c, x, uu, gf, su, lt,
     rfit, lfit, vu, vc, ru, inv, fuel, ok)
+
+def Laws.the_evaluator_computes_the_denotation(src, e, x, uu, gf, su,
+  vu, fu, fuelc, vl, le, ok):
+  PEvm.Ev.run_member(src, e, x, uu, gf, su, vu, fu, fuelc, vl, le, ok)
