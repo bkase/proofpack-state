@@ -2382,3 +2382,16 @@ law difference_keeps_a_set_valid:
   for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
   for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
   {S.PSet.valid(d, S.PSet.diff(d, a, b), True{}) == True{} : Bool}
+
+law the_union_of_two_subsets_is_a_subset:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +c: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +vc: {S.PSet.valid(d, c, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +ac: {S.PSet.is_subset(d, a, c) == True{} : Bool}
+  for +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool}
+  {S.PSet.is_subset(d, S.PSet.union(d, a, b), c) == True{} : Bool}

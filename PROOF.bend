@@ -684,3 +684,7 @@ def Laws.intersection_keeps_a_set_valid(d, a, b, va, vb):
 
 def Laws.difference_keeps_a_set_valid(d, a, b, va, vb):
   PVk.PSet.valid_diff(d, a, b, va, vb)
+
+def Laws.the_union_of_two_subsets_is_a_subset(d, a, b, c, va, vb, vc,
+  lt, ac, bc):
+  PSa2.PSet.subset_union(d, a, b, c, va, vb, vc, lt, ac, bc)

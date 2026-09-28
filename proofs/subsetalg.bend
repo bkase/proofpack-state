@@ -23,6 +23,8 @@ import ./treeenum.bend as Te
 import ./validshape.bend as Vs
 import ./nonempty.bend as Ne2
 import ./subsetconv.bend as Sc
+import ./setops.bend as So
+import ./validkeep.bend as Vk
 import ../core/count.bend as C
 import ../core/word.bend as W
 import ../core/set.bend as S
@@ -250,3 +252,122 @@ def PSet.subset_trans(d, a, b, c, va, vb, vc, lt, ab, bc):
   Sc.PSet.subset_of_members(d, a, c, va, vc, lt,
     Ords.all_mem_chain(S.PSet.to_list(d, a), d, a, b, c, va, vb, vc,
       lt, ab, bc, Ords.all_in_self(S.PSet.to_list(d, a))))
+
+# ---------------------------------------------------------------------------
+# The union of two subsets is a subset.
+# ---------------------------------------------------------------------------
+
+def PSet.member_union(+d: Nat, +a: S.PSet, +b: S.PSet, +y: U32,
+  +va: {S.PSet.valid(d, a, True{}) == True{} : Bool},
+  +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool},
+  +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool},
+  +inv: {Dc.U32.hi_zero(y, 12n+d) == True{} : Bool},
+  +mu: {S.PSet.member(d, S.PSet.union(d, a, b), y) == True{} : Bool})
+  -> {Bool.or(S.PSet.member(d, a, y), S.PSet.member(d, b, y))
+    == True{} : Bool}:
+  %So.PSet.union_pointwise(d, a, b, S.PSet.half(d), y, {==}, lt,
+    Sh.PSet.valid_wf(d, a, va), Sh.PSet.valid_wf(d, b, vb), inv,
+    U32.is_lt(y, S.PSet.half(d)), {==})
+    : {_ == True{} : Bool}
+  mu
+
+def PSet.member_right(+d: Nat, +a: S.PSet, +b: S.PSet, +y: U32,
+  +ee: {False{} == S.PSet.member(d, a, y) : Bool},
+  +ou: {Bool.or(S.PSet.member(d, a, y), S.PSet.member(d, b, y))
+    == True{} : Bool})
+  -> {S.PSet.member(d, b, y) == True{} : Bool}:
+  %E.Bool.sym(False{}, S.PSet.member(d, a, y), ee)
+    : {Bool.or(_, S.PSet.member(d, b, y)) == True{} : Bool}
+  ou
+
+def PSet.member_of_union_side(+d: Nat, +a: S.PSet, +b: S.PSet,
+  +c: S.PSet, +y: U32, +e: Bool,
+  +va: {S.PSet.valid(d, a, True{}) == True{} : Bool},
+  +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool},
+  +vc: {S.PSet.valid(d, c, True{}) == True{} : Bool},
+  +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool},
+  +inv: {Dc.U32.hi_zero(y, 12n+d) == True{} : Bool},
+  +ac: {S.PSet.is_subset(d, a, c) == True{} : Bool},
+  +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool},
+  +ee: {e == S.PSet.member(d, a, y) : Bool},
+  +ou: {Bool.or(S.PSet.member(d, a, y), S.PSet.member(d, b, y))
+    == True{} : Bool})
+  -> {S.PSet.member(d, c, y) == True{} : Bool}:
+  match e:
+    case True{}:
+      PSet.subset_member_at(d, a, c, y, va, vc, lt, inv, ac,
+        E.Bool.sym(True{}, S.PSet.member(d, a, y), ee))
+    case False{}:
+      PSet.subset_member_at(d, b, c, y, vb, vc, lt, inv, bc,
+        PSet.member_right(d, a, b, y, ee, ou))
+
+law Ords.all_mem_union:
+  for +l: List<&2, U32>
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +c: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +vc: {S.PSet.valid(d, c, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +ac: {S.PSet.is_subset(d, a, c) == True{} : Bool}
+  for +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool}
+  for +ai: {Ords.all_in(l,
+    S.PSet.to_list(d, S.PSet.union(d, a, b))) == True{} : Bool}
+  {Sc.Ords.all_mem(l, d, c) == True{} : Bool}
+
+def Ords.all_mem_union(l, d, a, b, c, va, vb, vc, lt, ac, bc, ai):
+  match l:
+    case Nil{}:
+      {==}
+    case Con{y, t}:
+      E.Bool.and_both(S.PSet.member(d, c, y),
+        Sc.Ords.all_mem(t, d, c),
+        PSet.member_of_union_side(d, a, b, c, y,
+          S.PSet.member(d, a, y), va, vb, vc, lt,
+          PSet.in_range_of_to_list(d, S.PSet.union(d, a, b), y,
+            Vk.PSet.valid_union(d, a, b, va, vb), lt,
+            E.Bool.and_l(List.contains(~U32, ~U32.is_eq,
+              S.PSet.to_list(d, S.PSet.union(d, a, b)), y),
+              Ords.all_in(t,
+                S.PSet.to_list(d, S.PSet.union(d, a, b))), ai)),
+          ac, bc, {==},
+          PSet.member_union(d, a, b, y, va, vb, lt,
+            PSet.in_range_of_to_list(d, S.PSet.union(d, a, b), y,
+              Vk.PSet.valid_union(d, a, b, va, vb), lt,
+              E.Bool.and_l(List.contains(~U32, ~U32.is_eq,
+                S.PSet.to_list(d, S.PSet.union(d, a, b)), y),
+                Ords.all_in(t,
+                  S.PSet.to_list(d, S.PSet.union(d, a, b))), ai)),
+            PSet.member_of_to_list(d, S.PSet.union(d, a, b), y,
+              Vk.PSet.valid_union(d, a, b, va, vb), lt,
+              E.Bool.and_l(List.contains(~U32, ~U32.is_eq,
+                S.PSet.to_list(d, S.PSet.union(d, a, b)), y),
+                Ords.all_in(t,
+                  S.PSet.to_list(d, S.PSet.union(d, a, b))), ai)))),
+        Ords.all_mem_union(t, d, a, b, c, va, vb, vc, lt, ac, bc,
+          E.Bool.and_r(List.contains(~U32, ~U32.is_eq,
+            S.PSet.to_list(d, S.PSet.union(d, a, b)), y),
+            Ords.all_in(t,
+              S.PSet.to_list(d, S.PSet.union(d, a, b))), ai)))
+
+law PSet.subset_union:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +c: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +vc: {S.PSet.valid(d, c, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +ac: {S.PSet.is_subset(d, a, c) == True{} : Bool}
+  for +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool}
+  {S.PSet.is_subset(d, S.PSet.union(d, a, b), c) == True{} : Bool}
+
+def PSet.subset_union(d, a, b, c, va, vb, vc, lt, ac, bc):
+  Sc.PSet.subset_of_members(d, S.PSet.union(d, a, b), c,
+    Vk.PSet.valid_union(d, a, b, va, vb), vc, lt,
+    Ords.all_mem_union(S.PSet.to_list(d, S.PSet.union(d, a, b)), d, a,
+      b, c, va, vb, vc, lt, ac, bc,
+      Ords.all_in_self(S.PSet.to_list(d, S.PSet.union(d, a, b)))))
