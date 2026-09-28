@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 4. That count is the point of the file, so the command "failing"
+# currently 3. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -244,31 +244,19 @@ import ./proofs/denote.bend as PDn
 # ===========================================================================
 # C-04 -- the certificate's own soundness.
 #
-# `Cert.check` runs SPEC 4.4's four conditions and this release *relies* on
-# their meaning: conditions 1-2 give Reach(R) inside C, and condition 3's
-# well-founded predecessor chains give C inside Reach(R). That argument is
-# written out in closure/cert.bend and in TRUST.md; it is not mechanised.
+# C-04 is closed. `an_accepted_certificate_means_an_exact_closure` is in
+# LAWS.bend: conditions 1 and 2 make the candidate an edge-closed set
+# containing the roots, and the closure is the least such set, so the closure
+# is inside the candidate; condition 3 walks the other way, level 0 being
+# inside the closure because the closure holds the roots and every later level
+# because the closure is edge-closed and each member is one edge from the
+# level before.
 #
-# Until it is, `pp git verify` is a check whose *soundness* is argued rather
-# than proved -- which is still stronger than trusting the traversal, because
-# a tampered closure is caught either way (tests.bend rejects both an extra
-# member and a missing one).
+# So `pp git verify` is a check whose soundness is proved rather than argued.
+# What the checker does not itself re-derive is carried as hypotheses: the
+# ordinals on the levels and in the roots are the universe's, the candidate is
+# a set the store would accept, and the fuel is at least the universe's size.
 # ===========================================================================
-
-law an_accepted_certificate_means_an_exact_closure:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +sd: Nat
-  for +roots: List<&2, U32>
-  for +levels: R.Levels
-  for +c: S.PSet
-  for +x: U32
-  for ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{} : Bool}
-  {S.PSet.member(sd, c, x)
-    == S.PSet.member(sd,
-        Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
-        x) : Bool}
 
 # ===========================================================================
 # E-01 -- the reachability witness.

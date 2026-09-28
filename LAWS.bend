@@ -49,6 +49,7 @@ import ./spec/closure.bend as Sp2
 import ./proofs/graphrange.bend as Gi
 import ./proofs/rwpass.bend as Rp
 import ./proofs/traversal.bend as Tl
+import ./proofs/certsound.bend as Cs
 import ./closure/reach.bend as Re
 import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
@@ -2780,3 +2781,47 @@ law a_finished_traversal_is_edge_closed:
   {Sp2.Spec.closed(td, g, sd,
     Re.Reach.seen(sd, Re.Reach.closure(n, td, g, sd, roots)))
     == True{} : Bool}
+
+# ---------------------------------------------------------------------------
+# The certificate's own soundness.
+#
+# SPEC 4.4's four conditions split into two halves, and each half gives one
+# inclusion. Conditions 1 and 2 -- the roots are inside the candidate, and the
+# candidate is edge-closed -- make it an edge-closed set containing the roots,
+# and the closure is the least such set. Condition 3 -- every member of a
+# level has a predecessor in the level before, and level 0 is inside the roots
+# -- walks the other way: level 0 is inside the closure because the closure
+# holds the roots, and every later level because the closure is edge-closed.
+#
+# That is why acceptance establishes *exactness* rather than an
+# overapproximation, and why a cached or externally produced answer can be
+# reused without trusting how it was computed.
+#
+# The conditions the checker does not itself re-derive are hypotheses: the
+# ordinals on the levels and in the roots are the universe's, the candidate is
+# a set the store would accept, and the fuel is at least the universe's size.
+# ---------------------------------------------------------------------------
+
+law an_accepted_certificate_means_an_exact_closure:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +roots: List<&2, U32>
+  for +levels: Re.Levels
+  for +c: S.PSet
+  for +x: U32
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
+  for +lfit: {Cs.Cert.levels_fit(levels, 12n+sd) == True{} : Bool}
+  for +vc: {S.PSet.valid(sd, c, True{}) == True{} : Bool}
+  for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
+  for +fuel: {C.Nat.upto(
+    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
+    : Bool}
+  for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{}
+    : Bool}
+  {S.PSet.member(sd, c, x)
+    == S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd,
+         S.PSet.from_list(sd, roots)), x) : Bool}

@@ -91,6 +91,7 @@
 #   proofs/fixpoint.bend  what the fixed point gives
 #   proofs/rwpass.bend    the optimizer pass, whole
 #   proofs/traversal.bend the traversal refines the specification
+#   proofs/certsound.bend an accepted certificate is exact
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -154,6 +155,7 @@ import ./proofs/settle.bend as PSet2
 import ./proofs/fixpoint.bend as PFx
 import ./proofs/rwpass.bend as PRp
 import ./proofs/traversal.bend as PTl
+import ./proofs/certsound.bend as PCs2
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -797,3 +799,8 @@ def Laws.the_traversal_returns_the_specification_closure(n, td, sd,
 def Laws.a_finished_traversal_is_edge_closed(n, td, sd, g, roots, gf,
   lt, rfit, done):
   PTl.Reach.closure_closed(n, td, sd, g, roots, gf, lt, rfit, done)
+
+def Laws.an_accepted_certificate_means_an_exact_closure(n, td, sd, g,
+  roots, levels, c, x, gf, lt, rfit, lfit, vc, inv, fuel, ok):
+  PCs2.Cert.exact(n, td, sd, g, roots, levels, c, x, gf, lt, rfit,
+    lfit, vc, inv, fuel, ok)
