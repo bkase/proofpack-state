@@ -46,6 +46,7 @@ import ./proofs/enum.bend as En
 import ./proofs/collapse.bend as Co
 import ./closure/graph.bend as Gr
 import ./spec/closure.bend as Sp2
+import ./proofs/graphrange.bend as Gi
 import ./closure/reach.bend as Re
 import ./closure/cert.bend as Ct
 import ./closure/explain.bend as Ex
@@ -2412,3 +2413,38 @@ law a_set_built_from_a_list_is_valid:
   for +fits: {Sh2.Ords.all_fit(xs, 12n+d) == True{} : Bool}
   {S.PSet.valid(d, S.PSet.from_list(d, xs), True{}) == True{}
     : Bool}
+
+# ---------------------------------------------------------------------------
+# The successor step.
+#
+# One round of the closure is "gather every successor of every member, and
+# fold the result into a set". Two things have to be true of it before the
+# fixed-point laws can be stated: the result is a well-formed set, and a
+# bigger frontier gives a bigger image. Both hold under the range invariant
+# the importer already enforces -- a successor pointing outside the universe
+# is a corrupt index, and `Graph.succs_fit` is that condition as a predicate.
+# ---------------------------------------------------------------------------
+
+law the_image_of_a_frontier_is_a_valid_set:
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +a: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  {S.PSet.valid(sd, Sp2.Spec.post(td, g, sd, a), True{}) == True{}
+    : Bool}
+
+law a_bigger_frontier_has_a_bigger_image:
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +a: S.PSet
+  for +b: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +va: {S.PSet.valid(sd, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(sd, b, True{}) == True{} : Bool}
+  for +ab: {S.PSet.is_subset(sd, a, b) == True{} : Bool}
+  {S.PSet.is_subset(sd, Sp2.Spec.post(td, g, sd, a),
+    Sp2.Spec.post(td, g, sd, b)) == True{} : Bool}

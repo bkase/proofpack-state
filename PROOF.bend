@@ -80,6 +80,7 @@
 #   proofs/insertvalid.bend  insertion keeps it too
 #   proofs/listset.bend   building a set from a list, at any depth
 #   proofs/graphrange.bend  a graph whose successors are ordinals
+#   proofs/postmono.bend  the successor step is monotone
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -132,6 +133,7 @@ import ./proofs/validkeep.bend as PVk
 import ./proofs/insertvalid.bend as PIvd
 import ./proofs/listset.bend as PLs
 import ./proofs/graphrange.bend as PGr
+import ./proofs/postmono.bend as PPm
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -700,3 +702,10 @@ def Laws.inserting_keeps_a_set_valid(d, s, x, dok, inv, v):
 
 def Laws.a_set_built_from_a_list_is_valid(xs, d, dok, fits):
   PIvd.PSet.valid_from_list(xs, d, dok, fits)
+
+def Laws.the_image_of_a_frontier_is_a_valid_set(td, sd, g, a, gf, lt):
+  PPm.Spec.post_valid(td, sd, g, a, gf, lt)
+
+def Laws.a_bigger_frontier_has_a_bigger_image(td, sd, g, a, b, gf,
+  lt, va, vb, ab):
+  PPm.Spec.post_mono(td, sd, g, a, b, gf, lt, va, vb, ab)
