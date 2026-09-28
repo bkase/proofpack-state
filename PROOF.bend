@@ -75,6 +75,7 @@
 #   proofs/leaffit.bend   everything the fused leaf emits fits in a leaf
 #   proofs/treediff.bend  the fused difference walk, over a tree
 #   proofs/subsetconv.bend  the converse of the subset bridge
+#   proofs/subsetalg.bend the subset relation is transitive
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -122,6 +123,7 @@ import ./proofs/leafdiff.bend as PLf2
 import ./proofs/leaffit.bend as PLf3
 import ./proofs/treediff.bend as PTd
 import ./proofs/subsetconv.bend as PSc2
+import ./proofs/subsetalg.bend as PSa2
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -663,3 +665,11 @@ def Laws.the_fused_difference_lists_exactly_what_it_should(d, a, b, x,
 def Laws.a_set_whose_members_are_all_in_another_is_a_subset(d, a, b,
   va, vb, lt, am):
   PSc2.PSet.subset_of_members(d, a, b, va, vb, lt, am)
+
+def Laws.an_ordinal_a_set_lists_is_one_of_its_members(d, a, y, va, lt,
+  c):
+  PSa2.PSet.member_of_to_list(d, a, y, va, lt, c)
+
+def Laws.a_subset_of_a_subset_is_a_subset(d, a, b, c, va, vb, vc, lt,
+  ab, bc):
+  PSa2.PSet.subset_trans(d, a, b, c, va, vb, vc, lt, ab, bc)

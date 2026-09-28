@@ -2335,3 +2335,26 @@ law a_set_whose_members_are_all_in_another_is_a_subset:
   for +am: {Sc2.Ords.all_mem(S.PSet.to_list(d, a), d, b) == True{}
     : Bool}
   {S.PSet.is_subset(d, a, b) == True{} : Bool}
+
+law an_ordinal_a_set_lists_is_one_of_its_members:
+  for +d: Nat
+  for +a: S.PSet
+  for +y: U32
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +c: {List.contains(~U32, ~U32.is_eq, S.PSet.to_list(d, a), y)
+    == True{} : Bool}
+  {S.PSet.member(d, a, y) == True{} : Bool}
+
+law a_subset_of_a_subset_is_a_subset:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +c: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +vc: {S.PSet.valid(d, c, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +ab: {S.PSet.is_subset(d, a, b) == True{} : Bool}
+  for +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool}
+  {S.PSet.is_subset(d, a, c) == True{} : Bool}
