@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "project": "ProofPack State",
- "status": "Per-obligation status as of this release. 17 proved and discharged by `bend PROOF.bend` (and re-checked by the BendTT kernel under `--verdict`); 10 proved in part, with the proved half in LAWS.bend and the remaining half stated precisely in LAWS.pending.bend; 5 not applicable until the milestone named in `reason`. Every obligation the release is subject to now has something proved about it. TRUST.md is the boundary this table summarises.",
+ "status": "Per-obligation status as of this release. 24 proved and discharged by `bend PROOF.bend` (and re-checked by the Lean-proved BendTT kernel under `--verdict`); 3 proved in part, with the proved half in LAWS.bend and the remaining half recorded in LAWS.pending.bend as prose, since none of the three is a statement about this tree's algebra; 5 not applicable until the milestone named in `reason`. LAWS.pending.bend holds no open law. TRUST.md is the boundary this table summarises.",
  "laws": [
   {
    "id": "U-01",
@@ -10,13 +10,13 @@
    "statement": "identify is injective; lookup round-trips within one universe.",
    "unlocks": "Dense ordinals without identity confusion",
    "depends_on": [],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Uni.intern_round_trip (proofs/intern.bend), on Trie.at_set (proofs/trie.bend)",
-   "stated_in": "LAWS.bend (the round trip) and LAWS.pending.bend (injectivity)",
+   "proof_symbol": "Uni.intern_round_trip (proofs/intern.bend); Uni.inj (proofs/interninj.bend), on Trie.get_put_other and Trie.get_same_path (proofs/trieput.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "by construction in adapters/git/intern.bend: one ordinal per distinct complete key, compared on the complete key.",
-   "proved_part": "Interning an object id and then looking it up in the table interning returned gives the ordinal interning returned -- for any universe and any id, with no well-formedness hypothesis. Both branches: a known id leaves the table alone, and a first mention writes a slot the next read sees, because a trie reads back what was written and Oid.eq holds of an id and itself.",
-   "gap": "Injectivity: that two different ids never share an ordinal. That is a statement about the whole table -- every slot ever written -- rather than about one write, so it needs an invariant carried across every intern (no ordinal appears twice, and next is above all of them), not a lemma about a single step."
+   "proved_part": "Both halves. The round trip: interning an object id and then looking it up in the table interning returned gives the ordinal interning returned, for any universe and any id, with no well-formedness hypothesis. And injectivity: over a universe built by interning a list (Uni.of_list, which is what the importer does), two ids that share an ordinal are the same id. The induction carries a decidable bound -- every ordinal in the table is below the counter -- so the hypothesis is data and can be used as often as the argument needs, which a pointwise one could not be under the affine discipline. Reading back the one write is settled by casing on whether two keys descend the trie the same way (Trie.path_ne), not on whether the keys are equal: key injectivity is never needed.",
+   "gap": "None, under the stated hypothesis. Injectivity needs Uni.room(os, f): that the U32 counter strictly grew at every step of the run. That is not decoration -- intern hands out next and then increments it as a machine word, so a wrapped counter really would give two different objects the same ordinal. A source of fewer than 2^32 objects satisfies it."
   },
   {
    "id": "U-02",
@@ -129,13 +129,13 @@
    "depends_on": [
     "S-01"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Spec.stable_is_closed (proofs/extensive.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
-   "stated_in": "LAWS.bend (extensivity, and what stability gives) and LAWS.pending.bend (the fixed point and leastness)",
+   "proof_symbol": "Spec.closure_contains_roots, Spec.closure_least (proofs/lfp.bend); Spec.closure_is_closed (proofs/settle.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "spec/closure.bend is the definition operationally; the fixed point is reached within the universe size by construction of the fuel.",
-   "proved_part": "Two of the three things \"least fixed point\" says. C(R) contains R, pointwise. And a round that changes nothing has reached an edge-closed set: if Spec.step returns the operand it was given, then every successor of a member is a member -- no counting, and the hypothesis is a value equality, which is what a check can observe.",
-   "gap": "That the iteration is stable after n rounds -- the pigeonhole argument over the universe -- and leastness, that C(R) is inside every edge-closed superset of R. Leastness needs the induction to carry \"this round is still inside X\" from round to round, and that has to be a reusable hypothesis, so it has to be PSet.is_subset; proving is_subset of the next round needs the converse of the bridge this release proves (membership to a zero count), which quantifies over ordinals and so cannot be used twice under Bend affine discipline. Both shared blockers are now closed: the enumeration agrees with membership, and the converse of the subset bridge is proved -- a set whose members are all in another is a subset -- with transitivity of PSet.is_subset proved on top of it. What remains here is the union of two subsets and the monotonicity of post, and then this obligation is an induction over the rounds using those."
+   "proved_part": "All three things \"least fixed point\" says. C(R) contains R. C(R) is edge-closed -- by a pigeonhole over the rounds: a round that is not edge-closed exhibits a witness through the fused difference list and so is strictly bigger than the one before, every set is inside a bounding set the graph respects, and that bounds how many rounds can change. And leastness: C(R) is inside every edge-closed set containing R, by induction over the rounds carrying PSet.is_subset, which is decidable data rather than a quantified hypothesis.",
+   "gap": "None. The fuel hypothesis is that the number of rounds exceeds the bounding set's cardinality, which is what the production fuel is derived from."
   },
   {
    "id": "C-02",
@@ -147,13 +147,13 @@
     "C-01",
     "S-01"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Reach.go_keeps and Reach.closure_keeps_its_roots (proofs/traverse.bend)",
-   "stated_in": "LAWS.bend (the traversal keeps what it has seen) and LAWS.pending.bend (the refinement)",
+   "proof_symbol": "Reach.closure_same, Reach.closure_closed (proofs/traversal.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "the closure certificate (C-04) per query, plus the five-graph differential against the specification closure in tests.bend, plus tools/differential.sh against `git rev-list --objects`.",
-   "proved_part": "The traversal never loses a vertex: whatever is in `seen` stays in `seen`, through the frontier push and through every level rotation -- so every root it was given is in the answer it returns. That is the invariant the whole refinement argument rests on, and it rules out the failure that matters: reporting an object unreachable that is reachable by definition.",
-   "gap": "That the traversal returns exactly the specification closure. The induction has to carry \"this round is inside the specification round\" from round to round, so that hypothesis must be reusable, so it must be PSet.is_subset -- and establishing is_subset of the next round needs the converse of the bridge this release proves, which quantifies over ordinals and cannot be used twice under Bend affine discipline. The closure certificate (C-04) establishes exactness per query instead, which is why it exists. Both shared blockers are now closed, but this obligation does not route through them: relating the frontier traversal to the specification iteration is about the traversal, not about sets."
+   "proved_part": "The frontier traversal returns exactly the specification closure. The traversal never leaves the closure, because every vertex it adds is one edge from something it had already accepted and the closure is edge-closed; and the closure never leaves the traversal, because a finished traversal is itself edge-closed and holds the roots, so leastness (C-01) puts the closure inside it. What makes a finished traversal edge-closed is a decidable invariant on the frontier -- Reach.settled -- carried across every level rotation.",
+   "gap": "None."
   },
   {
    "id": "C-03",
@@ -164,13 +164,13 @@
    "depends_on": [
     "C-01"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Spec.closure_empty (proofs/closure.bend), Spec.closure_of_empty (proofs/nothing.bend), Spec.closure_contains_its_roots (proofs/extensive.bend)",
-   "stated_in": "LAWS.bend (empty preservation) and LAWS.pending.bend (the rest)",
+   "proof_symbol": "Spec.closure_mono, Spec.closure_union (proofs/closalg.bend); Spec.closure_idem (proofs/fixpoint.bend); Spec.closure_contains_roots (proofs/lfp.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "tests.bend: union preservation, extensivity, idempotence and closure-of-empty on the counterexample graph.",
-   "proved_part": "Two of the five. Closing the empty set gives the empty set -- at PZero itself and, pointwise, for any set the emptiness test accepts, which is what the optimizer actually holds. And extensivity, stated pointwise: every member of the roots is a member of the closure, proved by one round plus induction on the fuel, since a round is X u post(X) and union is pointwise.",
-   "gap": "Monotonicity, idempotence and union preservation, and extensivity in the is_subset form. The is_subset forms need PSet.is_subset related to membership -- it is a count, so it needs the set-level fused count and the fact that a zero count means no members; the tile-level fused count is proved (Q-02), the set-level one is not. The other three need more than that: they are statements about the fixed point rather than about a round, so they wait on C-01 -- that the iteration is stable after n rounds, which needs a pigeonhole argument over the universe. Both shared blockers are now closed: the enumeration agrees with membership, and the converse of the subset bridge is proved -- a set whose members are all in another is a subset -- with transitivity of PSet.is_subset proved on top of it. What remains here is the union of two subsets and the monotonicity of post, and then this obligation is an induction over the rounds using those."
+   "proved_part": "All five. Empty preservation and extensivity were proved earlier. Monotonicity in the roots, union preservation and idempotence follow from C-01: each round is monotone and commutes with union because the successor image does, and idempotence is leastness applied to a set that is already edge-closed.",
+   "gap": "None."
   },
   {
    "id": "C-04",
@@ -181,13 +181,13 @@
    "depends_on": [
     "C-01"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Cert.accepts_roots, Cert.accepts_closed, Cert.accepts_levels, Cert.accepts_layers (proofs/cert.bend)",
-   "stated_in": "LAWS.bend (what acceptance means) and LAWS.pending.bend (what it implies)",
+   "proof_symbol": "Cert.exact (proofs/certsound.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "closure/cert.bend Cert.check, run by `pp git verify`; soundness argued in closure/cert.bend and TRUST.md, not mechanised. tests.bend checks it accepts a real closure and rejects both a tampered-up and a tampered-down one.",
-   "proved_part": "Acceptance establishes each of SPEC 4.4's four conditions, not some weaker conjunction -- so a reader of `pp git verify`'s output can read four laws instead of the checker.",
-   "gap": "That the four conditions imply exactness: conditions 1 and 2 put Reach(R) inside C, and condition 3's well-founded predecessor chains put C inside Reach(R). That argument is written out in closure/cert.bend and TRUST.md and stays argued. Both shared blockers are now closed: the enumeration agrees with membership, and the converse of the subset bridge is proved -- a set whose members are all in another is a subset -- with transitivity of PSet.is_subset proved on top of it. What remains here is the union of two subsets and the monotonicity of post, and then this obligation is an induction over the rounds using those."
+   "proved_part": "Acceptance implies exactness, not just the four conditions separately. Conditions 1 and 2 make the candidate an edge-closed set containing the roots, so leastness (C-01) puts the closure inside it; condition 3's well-founded predecessor chains walk every member back to a root, which puts it inside the closure because the closure is edge-closed and each member is one edge from its predecessor.",
+   "gap": "Completeness -- that every finite exact closure admits such a certificate -- is not mechanised. It is the direction a checker does not need: the checker's job is to reject a wrong closure, and soundness is what rules that out."
   },
   {
    "id": "C-05",
@@ -292,13 +292,13 @@
     "S-04",
     "C-03"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Simp.union_sound, Simp.inter_sound, Simp.diff_sound, Simp.reach_sound (proofs/rewrite.bend); Eval.wf (proofs/denote.bend)",
-   "stated_in": "LAWS.bend (every rewrite) and LAWS.pending.bend (the whole pass)",
+   "proof_symbol": "Rw.simplify_member (proofs/rwpass.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "tests.bend counterexamples; the rewrites are instances of Boolean laws proved at the tile level.",
-   "gap": "The whole pass. Rw.simplify also recurses inside Reach and Filter, and the induction there needs that a subexpression simplified to a set with the same members -- not the same representation -- closes and filters to a set with the same members. That is closure respecting pointwise equality, and it needs a set equality a proof can carry: PSet.is_subset is the decidable one and relating it to membership needs the set-level fused count, the same missing piece C-03 names. An equality stated pointwise cannot be used, because it is quantified over ordinals and an affine hypothesis cannot be used twice. The enumeration bridge this waited on is now proved and published -- a_valid_set_lists_exactly_its_members -- for any set that passed the store's own validity check, so nothing of that piece is open. What remains is closure respecting pointwise equality, which needs the converse of the subset bridge.",
-   "proved_part": "Every rewrite the optimizer performs keeps the denotation: the expression it produces has exactly the members the expression it replaced had, at the production depth, for every ordinal, stated over the emptiness decision as the rewriter computes it. Four laws, one per rewrite family, plus every_denotation_is_well_shaped, which discharges their shape hypothesis for any expression whose literals are well shaped."
+   "gap": "None.",
+   "proved_part": "The whole pass. Rw.simplify, recursion into Reach and Filter included, produces an expression with exactly the members of the one it replaced, at the production depth, for every ordinal. The induction carries PSet.same -- the decidable two-way subset -- rather than a pointwise equality, which under the affine discipline could not be used twice; closure, filtering and the three set operations are each proved to respect it."
   },
   {
    "id": "Q-02",
@@ -330,13 +330,13 @@
     "B-03",
     "C-02"
    ],
-   "status": "partially_proved",
+   "status": "proved",
    "production_symbol": null,
-   "proof_symbol": "Mach.set_computes and Mach.failure_is_reported (proofs/machine.bend)",
-   "stated_in": "LAWS.bend (the machine) and LAWS.pending.bend (the contract)",
+   "proof_symbol": "Ev.run_member (proofs/evalmach.bend)",
+   "stated_in": "LAWS.bend",
    "backed_by": "tests.bend differential and tools/differential.sh.",
-   "proved_part": "The evaluator machine computes the fold. Evaluation is a control word, a stack of frames and one tail call per step because two non-tail self-calls in one def overrun this runtime frame limit; Ev.direct is the fold that could not be written, and the machine agrees with it whenever it reports success. And a failure it notices is one it reports: once the completion flag is False, no continuation of the machine reports ok.",
-   "gap": "The other two steps of the contract: the rewrite pass in front of the machine (Q-01 whole pass) and reachability being computed by the frontier traversal rather than the specification iteration (C-02)."
+   "proved_part": "The evaluator computes the denotation: for a well-formed expression over a valid source, running the machine gives a set with exactly the members the specification evaluator's denotation has. The machine is a control word, a stack of frames and one tail call per step, because two non-tail self-calls in one def overrun this runtime's frame limit; the invariant relating its stack to the remaining denotation is decidable data (Ev.stack_ok), which is what lets the induction use it at every frame.",
+   "gap": "None."
   },
   {
    "id": "Q-04",
@@ -416,11 +416,12 @@
    ],
    "status": "proved",
    "production_symbol": "Explain.path / Explain.valid",
-   "proof_symbol": "Explain.path_steps, Explain.walk_ends_at_target, Explain.accepts_root_head, Explain.accepts_last, Explain.checked_edge, Explain.checked_rest, Explain.accepts_steps (proofs/witness.bend)",
+   "proof_symbol": "Explain.path_steps, Explain.walk_ends_at_target, Explain.accepts_root_head, Explain.accepts_last, Explain.checked_edge, Explain.checked_rest, Explain.accepts_steps (proofs/witness.bend); Ex.path_root (proofs/layering.bend), Lv.closure_chain and Lv.witness_root (proofs/levels.bend)",
    "stated_in": "LAWS.bend",
    "backed_by": "closure/explain.bend Explain.valid checks all three parts on every witness `pp git explain` emits, not trusting the producer; tests.bend checks it rejects a path that skips an edge and one that starts off-root.",
-   "proved_part": "All three parts, in the form the product guarantees them. Of a produced witness, with no hypothesis: every step is a real policy edge, and it ends at the object asked about. Of a returned witness -- pp git explain runs Explain.valid and exits non-zero when it fails -- all three, including that it starts at a requested root. The step fold is unfolded into a per-step law, so \"every step is a policy edge\" follows by walking the list rather than by trusting the checker.",
-   "note": "That the producer alone always starts at a root is a different claim: it depends on the levels being a genuine breadth-first layering, which is C-02. It is stated in LAWS.pending.bend and nothing pp prints rests on it, because the check gates the exit."
+   "proved_part": "All three parts, twice over. Of a returned witness -- pp git explain runs Explain.valid and exits non-zero when it fails -- all three, with the step fold unfolded into a per-step law so \"every step is a policy edge\" follows by walking the list rather than by trusting the checker. And of a produced one: two with no hypothesis at all, and the third, that it starts at a requested root, from the traversal's levels being a genuine breadth-first layering, which is now proved of Reach.closure rather than assumed.",
+   "note": "The check is kept and still gates the exit. A cached or heuristically produced witness is not this producer's, and SPEC 4.4's stance is that a witness is accepted on its own terms.",
+   "gap": "None. The producer-side law has one hypothesis: that the target appears in some level, which is what \"the object is reachable\" means and what \"a witness was produced at all\" means. Explain.path answers the empty list for an object no level holds, and the empty list starts nowhere, so the law is false without it rather than merely unproved."
   },
   {
    "id": "B-01",

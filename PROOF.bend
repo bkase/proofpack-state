@@ -166,6 +166,10 @@ import ./proofs/inventory.bend as PIv
 import ./proofs/policylift.bend as PPl
 import ./proofs/trie.bend as PTr
 import ./proofs/intern.bend as PIn
+import ./proofs/trieput.bend as PTp
+import ./proofs/interninj.bend as PIji
+import ./proofs/layering.bend as PLy
+import ./proofs/levels.bend as PLv
 import ./proofs/nat.bend as N
 import ./proofs/word.bend as PW
 import ./proofs/popcount.bend as PP
@@ -448,6 +452,17 @@ def Laws.comparing_two_ordinals_compares_their_values(a, b):
 
 def Laws.interning_an_id_then_finding_it_gives_the_same_ordinal(u, o):
   PIn.Uni.intern_round_trip(u, o)
+
+def Laws.interning_gives_different_ids_different_ordinals(f, os, x, y, a, b,
+  room, same, fx, fy):
+  PIji.Uni.inj(f, os, x, y, a, b, room, same, fx, fy)
+
+def Laws.the_traversal_records_a_breadth_first_layering(n, td, g, sd, roots):
+  PLv.Lv.closure_chain(n, td, g, sd, roots)
+
+def Laws.a_produced_witness_starts_at_a_requested_root(n, td, g, sd, roots,
+  target, sw):
+  PLv.Lv.witness_root(n, td, g, sd, roots, target, sw)
 
 def Laws.reading_a_trie_at_the_key_just_written_gives_that_value(A, d, t,
   x, v):

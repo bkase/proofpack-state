@@ -57,7 +57,7 @@ and four injected corruptions.
 | M3 query compiler | mostly done: typed AST, validated rewrites, fused statistics, explanations, `matrix` with inventory deduplication. Not done: leaf-operand pair reuse across cells, tiling of very large matrices |
 | M4 accelerated v0.1 | partly done: production native executor, a real Metal leaf path with honest backend reporting, cross-checked on every query. Not done: an automatic cost threshold that ever chooses Metal, incremental graph append |
 
-**What is proved.** 173 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
+**What is proved.** 176 laws in `LAWS.bend`, discharged by `PROOF.bend`. They
 cover the word and tile kernels, the fused count, the statistics monoid, the
 least-missing theorem and the checked accumulator, and -- as of this release --
 the set algebra itself:
@@ -72,13 +72,23 @@ the set algebra itself:
   is present, nothing already there is lost, and nothing else is added -- so a
   set folded up from a list has exactly the ordinals on that list, which is
   how the universe, a filter's result and a projected inventory all get built.
-* `U-01` (round trip): interning an object id and then looking it up finds
-  the ordinal that interning returned -- resting on the trie reading back
-  what was written, which needs no hypothesis at all.
-* `Q-01`: every rewrite the query optimizer performs keeps the denotation,
-  stated over the emptiness decision as the rewriter computes it. The set
-  operations keep a set in the shape the pointwise laws need, so every
-  denotation is well shaped and the rewrites' hypothesis discharges itself.
+* `U-01`, both halves: interning an object id and then looking it up finds
+  the ordinal that interning returned, resting on the trie reading back what
+  was written; and injectivity -- over a universe built by interning a list,
+  which is what the importer does, two ids that share an ordinal are the same
+  id. Injectivity's hypothesis is that the `U32` counter never wrapped, which
+  is load-bearing rather than decorative.
+* `C-01`, `C-02`, `C-03`, `C-04`: the closure, in full. `C(R)` is the least
+  edge-closed set containing `R`; the production frontier traversal returns
+  exactly that set; closure is extensive, monotone, idempotent, empty- and
+  union-preserving; and an accepted certificate means an exact closure.
+* `Q-03`: the evaluator computes the denotation -- the stack machine `pp`
+  actually runs agrees with the specification evaluator, member for member.
+* `Q-01`: the whole rewrite pass keeps the denotation -- not just each
+  rewrite family, but `Rw.simplify` including its recursion into `Reach` and
+  `Filter`. The set operations keep a set in the shape the pointwise laws
+  need, so every denotation is well shaped and the hypothesis discharges
+  itself.
 * the enumeration: `PSet.to_list` lists exactly the ordinals `PSet.member`
   accepts, for an ordinal inside the universe and any set that passed
   `PSet.valid` -- the check a decoded set is already put through. The leaf
@@ -102,18 +112,18 @@ tree-data filter at a row, and the lift to `Graph.edge` over the two
 assembled adjacency tables. `G-03`: the inventory projection contains the
 ordinal of every reported id the universe names, and nothing else.
 
-`E-01` is closed in the form the product guarantees it: two parts hold of any
-produced witness, and all three hold of a *returned* one, because
-`pp git explain` runs the checker and exits non-zero when it fails.
+`E-01` is closed twice over: all three parts of a *returned* witness, because
+`pp git explain` runs the checker and exits non-zero when it fails, and all
+three of a *produced* one -- the third resting on the traversal's levels being
+a genuine breadth-first layering, which is proved of `Reach.closure` rather
+than assumed.
 
-Partly proved, with the remaining half stated precisely: `C-01` (the closure
-contains its roots, and a round that changes nothing has reached an
-edge-closed set), `C-03` (closing nothing gives nothing -- pointwise as well
-as at `PZero`), `C-04` (what an accepted certificate means), `U-01` (the
-lookup round trip; injectivity is open), `Q-01` (every rewrite the optimizer
-performs; the whole pass is open), `Q-04` (the matrix restores the caller's
-positions, and what a reused answer is), `D-01` (what structural validity
-rules out). Section 4 below lists each law with the optimization it
+Partly proved, with the remaining half stated precisely: `Q-04` (the matrix
+restores the caller's positions, and what a reused answer is), `D-01` (what
+structural validity rules out; that decode inverts encode is a round trip
+through text), `G-01` (the parser never reads short; soundness for Git's
+grammar as a whole would need a grammar predicate faithful to Git rather than
+read off the parser). Section 4 below lists each law with the optimization it
 unlocks.
 
 Four of the laws in `LAWS.pending.bend` turned out to be **false** as first
@@ -123,15 +133,16 @@ hypothesis they need, and `P-01` was then proved outright. `TRUST.md` §1 has
 the list.
 
 Every obligation this release is subject to now has something proved about
-it: 17 discharged in full, 10 in part with the remaining half stated
-precisely in `LAWS.pending.bend`, and 5 not applicable until a later
-milestone.
+it: 24 discharged in full, 3 in part with the remaining half stated precisely
+in `LAWS.pending.bend`, and 5 not applicable until a later milestone.
 
-**What is checked at run time instead.** The closure traversal (by the
-certificate `pp git verify` runs), dependency witnesses (by an independent
-checker), and the whole pipeline (by differential tests against a slow
-specification evaluator and against Git itself). These are stated as open
-laws in `LAWS.pending.bend`.
+**What is still checked at run time rather than proved.** That decode inverts
+encode, and that the metadata parser is complete for Git's grammar -- neither
+is a statement about this tree's algebra, and both are recorded in
+`LAWS.pending.bend` with what backs them. And the pipeline end to end, by
+differential tests against the slow specification evaluator and against Git
+itself. `LAWS.pending.bend` holds no open law: everything ever written there
+as a statement is now proved and lives in `LAWS.bend`.
 
 **What is measured.** `docs/evidence/T06.md` measures the acceptance workload
 (one requirement against many inventories) on a 31,516-object repository.

@@ -1,25 +1,31 @@
 # LAWS.pending.bend -- specified, not proved.
 #
 # These are the obligations from `law-registry.json` that this release states
-# precisely but has **not** discharged. They are written in the same syntax
-# and over the same production symbols as `LAWS.bend`, because a precise open
-# claim is worth more than a paragraph of prose -- but they are open claims,
-# and this file is deliberately *not* imported by `PROOF.bend`.
+# but has **not** discharged as a law. Everything that was ever written here
+# as a statement is now proved and lives in `LAWS.bend`: as of this release
+# the file holds **no open law**, and `bend LAWS.pending.bend --check-only`
+# reports no TODO. What is left is the record of how each one closed, and
+# three obligations whose remaining halves are not statements about this tree
+# -- D-01's text round trip, G-01's fidelity to Git's grammar, and Q-04's
+# remaining half -- kept here as prose with what backs them instead.
 #
-# `bend LAWS.pending.bend --check-only` typechecks every statement against the
-# production symbols it names and then reports one TODO per unproved law --
-# currently 2. That count is the point of the file, so the command "failing"
-# is the expected result, and `tools/gate.sh` does not run it as a gate.
+# The file is still deliberately not imported by `PROOF.bend`, and the
+# closure notes are kept rather than deleted: a record of what an obligation
+# needed, and which hypothesis it gained on the way, is worth more than a
+# clean file.
 #
-# What backs each of these instead is recorded next to it, and in `TRUST.md`:
-# mostly the closure certificate of SPEC 4.4, which `pp git verify` runs per
-# query and which establishes *exactness* rather than an overapproximation,
-# and the differential tests of SPEC 11.1.
+# What backs the prose-only obligations is recorded next to each, and in
+# `TRUST.md`: mostly the closure certificate of SPEC 4.4, which `pp git
+# verify` runs per query and which establishes *exactness* rather than an
+# overapproximation, and the differential tests of SPEC 11.1.
 #
-# Closing one of these means moving it into `LAWS.bend` with a proof in
-# `PROOF.bend`, and flipping its `status` in `law-registry.json`. Nothing
-# here should be closed by weakening it: SPEC 10.3 forbids making a law
-# vacuous by rejecting previously supported valid inputs.
+# Closing one means moving it into `LAWS.bend` with a proof in `PROOF.bend`,
+# and flipping its `status` in `law-registry.json`. Nothing here should be
+# closed by weakening it: SPEC 10.3 forbids making a law vacuous by rejecting
+# previously supported valid inputs. Two laws did gain a hypothesis on the way
+# in -- U-01's no-wrap counter and E-01's reachable target -- and in both
+# cases the statement was *false* without it, which is the one honest reason
+# to add one; each is written out where it closed.
 
 import Base
 import ./core/count.bend as C
@@ -43,10 +49,10 @@ import ./proofs/intern.bend as PIn
 import ./proofs/denote.bend as PDn
 
 # ===========================================================================
-# What the remaining gaps have in common.
+# What the gaps had in common, and what closed them.
 #
-# Ten obligations are proved in part. Their open halves routed through two
-# pieces, and both are now closed.
+# Ten obligations were proved in part when this file was written. Their open
+# halves routed through two pieces, and both closed first.
 #
 #   1. The converse of the subset bridge -- from "every member of a is a
 #      member of b" back to `PSet.is_subset` -- is proved, as
@@ -61,30 +67,30 @@ import ./proofs/denote.bend as PDn
 #
 #      The hypothesis is data rather than a function -- every ordinal on a
 #      list is a member of `b` -- which is the form a caller can build out of
-#      laws, one ordinal at a time. `a_subset_of_a_subset_is_a_subset` is the
-#      first proof written that way, and it is the shape the rest will have.
+#      laws, one ordinal at a time.
 #
 #   2. That a set's enumeration agrees with its membership is proved twice:
 #      for a tree of the shape the enumeration names, and for any set that
 #      passed `PSet.valid`, the check a decoded set is already put through.
 #
-# So what the closure obligations need now is not a technique but a short
-# list of set facts, each of which the bridge makes reachable:
+# That turned out to be the whole technique, and it generalised: *every*
+# obligation that closed after those two closed the same way, by replacing a
+# quantified hypothesis with decidable data the induction may read as often
+# as it likes -- `PSet.is_subset` and `PSet.same` for the closure and the
+# rewrite pass, `Reach.settled` for the traversal, `Cert.levels_fit` for the
+# certificate, `Ev.stack_ok` for the evaluator, `Uni.bounded` for interning,
+# `Ex.ladder` for the witness. The affine discipline is not an obstacle to
+# these proofs; it is a standing instruction to make the invariant checkable,
+# which is also what makes it runnable.
 #
-#   * the union of two subsets of C is a subset of C (the union is pointwise,
-#     which is proved, so this is the same walk as transitivity);
-#   * `post` is monotone -- a subset's successors are a subset of the
-#     successors -- which is the one that has to look at the graph;
-#   * and then C-01's leastness is an induction over the rounds using those
-#     two, C-03's monotonicity and idempotence are the same, and C-04's
-#     exactness argument is conditions 1 and 2 giving `Reach(R) <= C` by that
-#     induction and condition 3 giving the other inclusion by its chains.
-#
-# C-02 stays its own problem: relating the frontier traversal to the
-# specification iteration is about the traversal, not about sets. So do
-# D-01's text round trip, G-01's grammar predicate, and U-01's injectivity,
-# which is an invariant over every key of a trie with no count to produce a
-# witness from.
+# The one place that needed something else was the fixed point. Leastness is
+# an induction over the rounds, but *reaching* the fixed point is a counting
+# argument: a round that is not edge-closed exhibits a witness through the
+# fused difference list and so is strictly bigger than the round before, and
+# every set is inside a bounding set the graph respects, so only so many
+# rounds can change. Making that bound the source rather than the depth is
+# what makes the fuel hypothesis satisfiable -- 2^32 ordinals at production
+# depth is not a number of rounds anyone can supply.
 # ===========================================================================
 
 # ===========================================================================
@@ -259,58 +265,28 @@ import ./proofs/denote.bend as PDn
 # ===========================================================================
 
 # ===========================================================================
-# E-01 -- the reachability witness.
+# E-01 -- closed.
 #
-# Closed, in the form the product guarantees it. Two of the three parts hold
-# of a produced path with no hypothesis and are proved in LAWS.bend; the
-# third -- that it starts at a requested root -- does not hold of the
-# producer alone, because it depends on the levels being a genuine
-# breadth-first layering, which is C-02.
+# All three parts are in LAWS.bend now. Two hold of a produced path with no
+# hypothesis at all. The third -- that it starts at a requested root -- held
+# only of a *returned* path when this file was written, because it depends on
+# the levels being a genuine breadth-first layering, which was obligation
+# C-02. C-02 is closed, and so is this: `the_traversal_records_a_breadth_
+# first_layering` says `Reach.closure`'s levels are a ladder, and
+# `a_produced_witness_starts_at_a_requested_root` walks one back to a root.
 #
-# That is why `closure/explain.bend` checks rather than trusts, and why
-# `pp git explain` runs `Explain.valid` on the witness it is about to print
-# and exits non-zero when it fails. So the obligation is stated about a
-# witness that is *returned* -- `an_accepted_witness_starts_at_a_requested_
-# root` and its three siblings say what passing the check means, part by
-# part, with the step fold unfolded so that "every step is a policy edge"
-# follows by walking the list rather than by trusting the checker.
+# It gained one hypothesis on the way: that the target appears in some level.
+# That is not a weakening. It is what "the object is reachable" means, and
+# what "a witness was produced at all" means -- `Explain.path` answers the
+# empty list for an object no level holds, which is how `pp` reports
+# unreachable, and the empty list starts nowhere. Stated without it the law
+# was false, not open.
 #
-# The law below is the producer-side claim -- that the path the walk builds
-# always passes without being checked. It stays open, and it is not what any
-# `pp` output rests on.
+# `closure/explain.bend` still checks rather than trusts, and `pp git explain`
+# still runs `Explain.valid` before printing. A cached or heuristically
+# produced witness is not this producer's, and the check is what makes that
+# safe.
 # ===========================================================================
-
-# ===========================================================================
-# E-01 -- the third part of a dependency witness.
-#
-# Two of SPEC 4.4's three parts are proved and live in LAWS.bend: every step
-# of a produced witness is a real policy edge, and the witness ends at the
-# object asked about. What is left is that it *starts* at a requested root,
-# and that is not a fact about the walk -- the walk is correct. It is a fact
-# about the levels it walks: a breadth-first layering from the roots has its
-# level 0 inside the roots and every later level reachable in one edge from
-# the one before, and only then does walking back from the target land on a
-# root rather than stopping early.
-#
-# So this is C-02 wearing a different hat, and it is stated here with the
-# layering as an explicit hypothesis rather than as a claim about
-# `Reach.closure`'s output.
-#
-# Backed by: `Explain.valid` checks all three parts on every witness
-# `pp git explain` emits, so a witness that does not start at a root is
-# rejected rather than returned; tests.bend runs one.
-# ===========================================================================
-
-law a_produced_witness_starts_at_a_requested_root:
-  for +td: Nat
-  for +g: G.Graph()
-  for +n: Nat
-  for +sd: Nat
-  for +roots: List<&2, U32>
-  for +target: U32
-  {Ex.Explain.first_in(
-    Ex.Explain.path(td, g, R.Reach.levels(sd, R.Reach.closure(n, td, g, sd,
-      roots)), target), roots) == True{} : Bool}
 
 # ===========================================================================
 # Q-01, Q-03 -- the query compiler.
@@ -481,44 +457,22 @@ law a_produced_witness_starts_at_a_requested_root:
 # ===========================================================================
 
 # ===========================================================================
-# U-01 -- the half that is still open.
+# U-01 -- closed.
 #
-# The round trip is proved and lives in LAWS.bend: interning an id and then
-# looking it up in the table interning handed back finds the ordinal
-# interning handed back, for any universe and any id.
+# The round trip was already in LAWS.bend. Injectivity is now there too, as
+# `interning_gives_different_ids_different_ordinals`, with one hypothesis this
+# file did not have: `Uni.room(os, f)`, saying the `U32` counter strictly grew
+# at every step of the run. That is not a convenience. `intern` hands out
+# `next` and then increments it as a machine word, so a wrapped counter really
+# would give two different objects the same ordinal, and the law as stated
+# here was false without it. A source of fewer than 2^32 objects satisfies it,
+# and it is decidable data, so the induction can use it freely.
 #
-# Injectivity is the other direction, and it is not a property of one write:
-# it says that across every write ever made into this table, no two different
-# ids ended up sharing an ordinal. So it is stated over a universe that was
-# *built* by interning -- `Uni.of_list`, interning a list of ids into a fresh
-# universe, which is what the importer does as it discovers objects -- rather
-# than over an arbitrary `Universe`, because an arbitrary hand-built table can
-# obviously repeat an ordinal and nothing in the type rules that out.
-#
-# Proving it needs an invariant carried across every step -- every ordinal in
-# the table is below `next`, and no two slots share one -- and that invariant
-# quantifies over all keys of a trie. A function-typed hypothesis cannot be
-# used twice under Bend's affine discipline, and this proof needs it twice,
-# once for each of the two ids. The route that would work is to make the
-# invariant a decidable predicate over the table, so the hypothesis is data
-# and reusable, and then prove extraction from it by induction on the trie.
-# That is a development on its own and this release does not have it.
-#
-# Backed by: construction. `Uni.intern` assigns `next` and then increments it,
-# and the only writer of a slot is that branch, so a repeated ordinal would
-# require the same `next` to be handed out twice.
+# The route this file predicted -- make the invariant a decidable predicate
+# over the table, so the hypothesis is reusable under the affine discipline --
+# is the one that worked (`Uni.bounded`, in proofs/interninj.bend). What it
+# did not predict is that trie *key* injectivity is never needed: the write is
+# read back by casing on whether two keys descend the trie the same way
+# (`Trie.path_ne`, proofs/trieput.bend), which is all the structure can see,
+# and the object ids settle the rest.
 # ===========================================================================
-
-law interning_gives_different_ids_different_ordinals:
-  for +f: Od.Fmt
-  for +os: List<&2, Od.Oid>
-  for +x: Od.Oid
-  for +y: Od.Oid
-  for +a: U32
-  for +b: U32
-  for +fx: {Ui.Uni.find(Ui.Uni.table(PIn.Uni.of_list(f, os)), x) == Some{a}
-    : Maybe<&2, U32>}
-  for +fy: {Ui.Uni.find(Ui.Uni.table(PIn.Uni.of_list(f, os)), y) == Some{b}
-    : Maybe<&2, U32>}
-  for +same: {a == b : U32}
-  {Od.Oid.eq(x, y) == True{} : Bool}

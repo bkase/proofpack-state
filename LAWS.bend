@@ -97,6 +97,11 @@ import ./proofs/inventory.bend as Iv2
 import ./adapters/git/inventory.bend as Iv
 import ./adapters/git/intern.bend as Ui2
 import ./proofs/missing.bend as M
+import ./proofs/intern.bend as Pin
+import ./proofs/interninj.bend as Ij
+import ./proofs/layering.bend as Ly
+import ./proofs/levels.bend as Lv
+import ./closure/reach.bend as Rh
 
 # ===========================================================================
 # B-01 -- the word kernel.
@@ -1121,8 +1126,7 @@ law comparing_two_ordinals_compares_their_values:
 # back what was written and `Oid.eq` holds of an id and itself.
 #
 # The other half of U-01 -- that two *different* ids never share an ordinal
-# -- is a statement about the whole table rather than about one write, and it
-# is still open; it is stated in LAWS.pending.bend.
+# -- follows it.
 # ===========================================================================
 
 law interning_an_id_then_finding_it_gives_the_same_ordinal:
@@ -1130,6 +1134,51 @@ law interning_an_id_then_finding_it_gives_the_same_ordinal:
   for +o: Od.Oid
   {Ui.Uni.find(Ui.Uni.table(Ui.Interned.uni(Ui.Uni.intern(u, o))), o)
     == Some{Ui.Interned.ord(Ui.Uni.intern(u, o))} : Maybe<&2, U32>}
+
+# ===========================================================================
+# U-01 (injectivity) -- two ids that share an ordinal are the same id.
+#
+# The round trip above is about one write. This is about every write ever
+# made into a table, so it is stated over a universe that was *built* by
+# interning: `Uni.of_list` interns a list of ids into a fresh universe, which
+# is what the importer does as it discovers objects. An arbitrary hand-built
+# `Universe` can obviously repeat an ordinal, and nothing in the type rules
+# that out, so there is nothing to prove about one.
+#
+# `Uni.room` is the honest hypothesis, and it is not decoration. `intern`
+# hands out `next` and then increments it as a `U32`. If that counter wrapped,
+# two genuinely different objects *would* share an ordinal and the law would
+# be false. `Uni.room(os, f)` says the counter strictly grew at every step of
+# this run -- so, no wrap -- which is exactly the condition a source of fewer
+# than 2^32 objects meets, and is decidable data rather than a quantified
+# hypothesis, so the induction can use it as often as it likes.
+#
+# The proof is an induction on the list, and the interesting step is a fresh
+# id `o` being written in. Reading any key back out of the new table splits on
+# whether that key descends the trie the way `o`'s key does -- not on whether
+# the keys are equal, which the trie cannot see. Both roads then lead back to
+# the old table unless the id itself matched, so each of the two lookups is
+# either "the slot just written", with ordinal exactly the old counter, or
+# "what the old table said", with an ordinal strictly below that counter
+# (which is the bound `Uni.bounded` carries along the run). Both new: the ids
+# are both `o`. Both old: the induction hypothesis. One of each: the counter
+# would have to be strictly below itself.
+# ===========================================================================
+
+law interning_gives_different_ids_different_ordinals:
+  for +f: Od.Fmt
+  for +os: List<&2, Od.Oid>
+  for +x: Od.Oid
+  for +y: Od.Oid
+  for +a: U32
+  for +b: U32
+  for +room: {Ij.Uni.room(os, f) == True{} : Bool}
+  for +same: {a == b : U32}
+  for fx: {Ui.Uni.find(Ui.Uni.table(Pin.Uni.of_list(f, os)), x)
+    == Some{a} : Maybe<&2, U32>}
+  for fy: {Ui.Uni.find(Ui.Uni.table(Pin.Uni.of_list(f, os)), y)
+    == Some{b} : Maybe<&2, U32>}
+  {Od.Oid.eq(x, y) == True{} : Bool}
 
 # ===========================================================================
 # A trie reads back what was written.
@@ -1575,16 +1624,16 @@ law the_projection_contains_only_ordinals_the_table_named:
 # on, and the path ends at the object asked about, because the walk starts
 # there and only prepends.
 #
-# The third -- that it *starts* at a requested root -- does not hold of the
-# producer alone: it depends on the levels being a genuine breadth-first
-# layering, which is obligation C-02, and a walk over levels that are not
-# such a layering can stop early. That is exactly why `closure/explain.bend`
-# checks rather than trusts, and why `pp git explain` runs `Explain.valid` on
-# the witness it is about to print and exits non-zero when it fails.
+# The third -- that it *starts* at a requested root -- is proved of the
+# producer too, below, but it needs the levels to be a genuine breadth-first
+# layering: a walk over levels that are not one can stop early. That is why
+# `closure/explain.bend` checks rather than trusts, and why `pp git explain`
+# runs `Explain.valid` on the witness it is about to print and exits non-zero
+# when it fails.
 #
-# So E-01 is stated here the way the product guarantees it: about a witness
-# that is *returned*, not about the producer. A returned witness passed the
-# check, and these laws say what passing means, part by part.
+# So E-01 is stated here first the way the product guarantees it: about a
+# witness that is *returned*, not about the producer. A returned witness
+# passed the check, and these laws say what passing means, part by part.
 #
 # The last two are not the checker restated. `Explain.steps_ok` folds over
 # the path with an accumulator; they unfold that fold into what a reader
@@ -1640,6 +1689,57 @@ law an_accepted_witness_is_checked_end_to_end:
   for +target: U32
   for +ok: {Ex.Explain.valid(td, g, roots, path, target) == True{} : Bool}
   {Ex.Explain.steps_ok(td, g, path, True{}) == True{} : Bool}
+
+# ===========================================================================
+# E-01, part three -- a produced witness starts at a requested root.
+#
+# Now about the producer, not the checker. `Explain.walk` climbs back down the
+# traversal's levels, taking a predecessor in the level below at each step,
+# and it stops on whatever vertex it is at if some level has no predecessor
+# for it. So "starts at a root" is not a fact about the walk. It is a fact
+# about the levels: level 0 is inside the roots, and every vertex of every
+# later level has an edge from the level before. That is `Ex.ladder`, read
+# oldest-first as `Ex.chain`, and the first law says the traversal produces
+# one.
+#
+# The invariant that gets it there is carried through `Reach.go` as decidable
+# data: the levels so far are a ladder, every vertex still on the frontier
+# belongs to the head level, and every vertex collected for the next level has
+# a predecessor in the head level. A vertex only enters the next level as a
+# successor of the vertex being expanded, and that vertex is in the head
+# level, which is what keeps the third true across the frontier fold.
+#
+# The hypothesis of the second law is that the target appears in some level.
+# That is exactly "the object is reachable", and exactly the case in which a
+# witness is produced at all: `Explain.path` answers the empty list for an
+# object no level holds, which is how `pp` reports unreachable. The law is
+# false without it rather than merely unproved, because the empty path starts
+# nowhere -- so the hypothesis is the statement's content, not a weakening of
+# it.
+# ===========================================================================
+
+law the_traversal_records_a_breadth_first_layering:
+  for +n: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  {Ly.Ex.chain(td, g,
+    Rh.Reach.levels(sd, Rh.Reach.closure(n, td, g, sd, roots)), roots)
+    == True{} : Bool}
+
+law a_produced_witness_starts_at_a_requested_root:
+  for +n: Nat
+  for +td: Nat
+  for +g: Gr.Graph()
+  for +sd: Nat
+  for +roots: List<&2, U32>
+  for +target: U32
+  for +sw: {Ly.Ex.somewhere(Rh.Reach.levels(sd,
+    Rh.Reach.closure(n, td, g, sd, roots)), target) == True{} : Bool}
+  {Ex.Explain.first_in(Ex.Explain.path(td, g,
+    Rh.Reach.levels(sd, Rh.Reach.closure(n, td, g, sd, roots)), target),
+    roots) == True{} : Bool}
 
 # ===========================================================================
 # The subset test, related to membership.
