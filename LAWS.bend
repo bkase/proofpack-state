@@ -2448,3 +2448,60 @@ law a_bigger_frontier_has_a_bigger_image:
   for +ab: {S.PSet.is_subset(sd, a, b) == True{} : Bool}
   {S.PSet.is_subset(sd, Sp2.Spec.post(td, g, sd, a),
     Sp2.Spec.post(td, g, sd, b)) == True{} : Bool}
+
+# ---------------------------------------------------------------------------
+# The closure, as a least fixed point.
+#
+# `Spec.closure` runs rounds of `x u post(x)`. Three things about that chain
+# are proved here, each with the conditions the product establishes rather
+# than assumes: the graph's successors are ordinals of the universe (a
+# generation whose successors are not is `CorruptIndex`, rejected at load),
+# the set depth is the production depth or less, and the roots passed
+# `PSet.valid`.
+#
+# The roots claim below is the counted form of
+# `the_closure_contains_every_member_of_its_roots` -- `PSet.is_subset` rather
+# than one ordinal -- and leastness is the half that makes "least fixed
+# point" mean something: the closure is inside *every* edge-closed set that
+# holds the roots, so it adds nothing a fixed point would not have to.
+# ---------------------------------------------------------------------------
+
+law every_round_of_the_closure_is_a_valid_set:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  {S.PSet.valid(sd, Sp2.Spec.closure(n, td, g, sd, r), True{})
+    == True{} : Bool}
+
+law closure_contains_its_roots:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  {S.PSet.is_subset(sd, r, Sp2.Spec.closure(n, td, g, sd, r))
+    == True{} : Bool}
+
+law the_closure_is_inside_every_edge_closed_set_holding_its_roots:
+  for +n: Nat
+  for +td: Nat
+  for +sd: Nat
+  for +g: Gr.Graph()
+  for +r: S.PSet
+  for +xx: S.PSet
+  for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +vx: {S.PSet.valid(sd, xx, True{}) == True{} : Bool}
+  for +cl: {Sp2.Spec.closed(td, g, sd, xx) == True{} : Bool}
+  for +rx: {S.PSet.is_subset(sd, r, xx) == True{} : Bool}
+  {S.PSet.is_subset(sd, Sp2.Spec.closure(n, td, g, sd, r), xx)
+    == True{} : Bool}

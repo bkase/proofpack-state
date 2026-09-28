@@ -81,6 +81,7 @@
 #   proofs/listset.bend   building a set from a list, at any depth
 #   proofs/graphrange.bend  a graph whose successors are ordinals
 #   proofs/postmono.bend  the successor step is monotone
+#   proofs/lfp.bend       the closure iteration, as a growing chain
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -134,6 +135,7 @@ import ./proofs/insertvalid.bend as PIvd
 import ./proofs/listset.bend as PLs
 import ./proofs/graphrange.bend as PGr
 import ./proofs/postmono.bend as PPm
+import ./proofs/lfp.bend as PLp
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -709,3 +711,14 @@ def Laws.the_image_of_a_frontier_is_a_valid_set(td, sd, g, a, gf, lt):
 def Laws.a_bigger_frontier_has_a_bigger_image(td, sd, g, a, b, gf,
   lt, va, vb, ab):
   PPm.Spec.post_mono(td, sd, g, a, b, gf, lt, va, vb, ab)
+
+def Laws.every_round_of_the_closure_is_a_valid_set(n, td, sd, g, r,
+  gf, lt, vr):
+  PLp.Spec.closure_valid(n, td, sd, g, r, gf, lt, vr)
+
+def Laws.closure_contains_its_roots(n, td, sd, g, r, gf, lt, vr):
+  PLp.Spec.closure_contains_roots(n, td, sd, g, r, gf, lt, vr)
+
+def Laws.the_closure_is_inside_every_edge_closed_set_holding_its_roots(
+  n, td, sd, g, r, xx, gf, lt, vr, vx, cl, rx):
+  PLp.Spec.closure_least(n, td, sd, g, r, xx, gf, lt, vr, vx, cl, rx)

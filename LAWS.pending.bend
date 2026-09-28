@@ -8,7 +8,7 @@
 #
 # `bend LAWS.pending.bend --check-only` typechecks every statement against the
 # production symbols it names and then reports one TODO per unproved law --
-# currently 11. That count is the point of the file, so the command "failing"
+# currently 10. That count is the point of the file, so the command "failing"
 # is the expected result, and `tools/gate.sh` does not run it as a gate.
 #
 # What backs each of these instead is recorded next to it, and in `TRUST.md`:
@@ -210,19 +210,18 @@ law the_traversal_returns_the_specification_closure:
         Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
         x) : Bool}
 
-# Extensivity is proved, pointwise, and lives in LAWS.bend as
-# `the_closure_contains_every_member_of_its_roots`. The `is_subset` form
-# below is the same claim counted rather than tested, and it stays open for
-# the reason C-03's remaining properties do: `PSet.is_subset` is a count, and
-# relating a count to membership needs the set-level fused-count theorem.
-law closure_contains_its_roots:
-  for +n: Nat
-  for +td: Nat
-  for +g: G.Graph()
-  for +sd: Nat
-  for +r: S.PSet
-  {S.PSet.is_subset(sd, r, Sp.Spec.closure(n, td, g, sd, r))
-    == True{} : Bool}
+# Extensivity is closed in both forms. The pointwise one is
+# `the_closure_contains_every_member_of_its_roots`; the counted one is
+# `closure_contains_its_roots` in LAWS.bend, with the conditions the product
+# establishes -- the graph's successors are ordinals of the universe, the
+# depth is the production depth or less, and the roots passed `PSet.valid`.
+# Leastness is closed too, as
+# `the_closure_is_inside_every_edge_closed_set_holding_its_roots`: the chain
+# never leaves an edge-closed set that holds the roots, by induction over the
+# rounds using the monotonicity of `post` and the union of two subsets.
+#
+# What is left of C-01 is the fixed point itself: that the iteration is
+# stable after `n` rounds, which is the pigeonhole argument over the universe.
 
 # Edge-closure, in the pointwise form the rest of LAWS.bend is written in --
 # no `is_subset`, so this one is not waiting on the count. It is waiting on
