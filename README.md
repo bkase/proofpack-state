@@ -85,6 +85,12 @@ the set algebra itself:
   being the node's interval, and the branch arm is the two walks -- one
   comparing against the half, one masking one bit narrower -- arriving at the
   same ordinal.
+* the subset relation, both ways: a subset contains every member, and a set
+  whose members are all in another is a subset -- the second was the
+  release's first named blocker, and `PSet.is_subset` is now proved
+  transitive on top of it. The fused reductions that decide it are proved
+  too: the count is the length of the list, and the list holds exactly the
+  ordinals the first set has and the second does not.
 * plus the addressing arithmetic all of that rests on -- that `U32` addition
   adds, that a word is determined by the number it reads as, that the tile
   address is injective, and that the enumeration walk and the tile address

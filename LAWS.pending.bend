@@ -46,74 +46,45 @@ import ./proofs/denote.bend as PDn
 # What the remaining gaps have in common.
 #
 # Ten obligations are proved in part. Their open halves routed through two
-# pieces; the second is now closed, and what is left of them routes through
-# the first.
+# pieces, and both are now closed.
 #
-#   1. The converse of the subset bridge. `a_subset_contains_every_member`
-#      turns a zero fused-difference count into a statement about an ordinal.
-#      The converse -- from "every member of a is a member of b" back to a
-#      zero count -- is what C-01's leastness and C-02's refinement need, so
-#      that an induction can carry "still inside" from round to round in a
-#      form it can reuse.
+#   1. The converse of the subset bridge -- from "every member of a is a
+#      member of b" back to `PSet.is_subset` -- is proved, as
+#      `a_set_whose_members_are_all_in_another_is_a_subset`.
 #
-#      The affine obstruction to it is gone. It was that the hypothesis
-#      quantifies over ordinals and a hypothesis quantified over ordinals
-#      cannot be used twice -- but a proof by contradiction uses it exactly
-#      once, at a single ordinal, provided something produces that ordinal.
-#      `a_set_with_a_nonzero_count_has_a_member` now does: a count that is
-#      not zero exhibits the first ordinal of the set's enumeration, and the
-#      enumeration law says that ordinal is a member.
+#      The obstruction was that the hypothesis quantifies over ordinals and
+#      an ordinal-quantified hypothesis cannot be used twice under Bend's
+#      affine discipline. It is used once, at one ordinal, and what produces
+#      that ordinal is the counting work: the fused count is the length of
+#      the fused list, so a count that is not zero means the list has a first
+#      ordinal, and the fused walk is right about what it emits.
 #
-#      What is left is that the fused walk is right about what it emits. The
-#      counting half of it is now proved -- the fused count is the length of
-#      the fused list (`the_fused_count_is_the_length_of_the_fused_list`) --
-#      so a nonzero count means the list has a first ordinal. The converse
-#      then reads: that ordinal is a member of `a` and not of `b`, and the
-#      hypothesis applied at that one ordinal contradicts it.
+#      The hypothesis is data rather than a function -- every ordinal on a
+#      list is a member of `b` -- which is the form a caller can build out of
+#      laws, one ordinal at a time. `a_subset_of_a_subset_is_a_subset` is the
+#      first proof written that way, and it is the shape the rest will have.
 #
-#      So the remaining obligation is exactly:
+#   2. That a set's enumeration agrees with its membership is proved twice:
+#      for a tree of the shape the enumeration names, and for any set that
+#      passed `PSet.valid`, the check a decoded set is already put through.
 #
-#        List.contains(PSet.missing(d, a, b), x)
-#          ==  and(PSet.member(d, a, x), not(PSet.member(d, b, x)))
+# So what the closure obligations need now is not a technique but a short
+# list of set facts, each of which the bridge makes reachable:
 #
-#      the fused analogue of `enumerating_a_set_lists_exactly_its_members`.
-#      Its tree arms are the ones that law already has. Its leaf has an arm
-#      per pair of shapes, and the arms where a sparse operand is merged as a
-#      list need something this release does not have: `Ords.diff` is a merge
-#      and is only right on ascending lists, so those arms need the walk's
-#      output to be ascending -- for a sparse leaf `PSet.valid` says so, but
-#      for a tile it is a statement about `Words.members` that has to be
-#      proved.
+#   * the union of two subsets of C is a subset of C (the union is pointwise,
+#     which is proved, so this is the same walk as transitivity);
+#   * `post` is monotone -- a subset's successors are a subset of the
+#     successors -- which is the one that has to look at the graph;
+#   * and then C-01's leastness is an induction over the rounds using those
+#     two, C-03's monotonicity and idempotence are the same, and C-04's
+#     exactness argument is conditions 1 and 2 giving `Reach(R) <= C` by that
+#     induction and condition 3 giving the other inclusion by its chains.
 #
-#      U-01's injectivity is a different shape: an invariant over every key
-#      of a trie, needed at two different keys at once, with no count to
-#      produce a witness from. Making that invariant a decidable predicate,
-#      so the hypothesis is data rather than a function, is still the route
-#      there -- and it is a development, not a lemma.
-#
-#   2. That a set's enumeration agrees with its membership:
-#
-#        List.contains(PSet.to_list(d, s), x)  ==  PSet.member(d, s, x)
-#
-#      Q-01's whole pass needs it (closure and filter both go through
-#      `to_list`, so they respect pointwise equality only if enumeration
-#      does), Q-04's reuse needs it (equal members must give equal
-#      statistics), and Q-03's contract needs Q-01.
-#
-#      This is closed. It is proved and published twice: once as
-#      `enumerating_a_set_lists_exactly_its_members`, for a tree of the shape
-#      `PSet.ok` and an ordinal inside the universe, and once as
-#      `a_valid_set_lists_exactly_its_members`, for any set that passed
-#      `PSet.valid` -- the check a decoded set is already put through -- so a
-#      caller proves nothing about the set's shape to use it.
-#
-#      What the three obligations above still need is not the enumeration but
-#      the first piece: an equality between sets that a proof can carry from
-#      one round to the next without using an ordinal-quantified hypothesis
-#      twice.
-#
-# The rest are their own problems: C-01's pigeonhole, C-04's exactness
-# argument, D-01's text round trip, and G-01's grammar predicate.
+# C-02 stays its own problem: relating the frontier traversal to the
+# specification iteration is about the traversal, not about sets. So do
+# D-01's text round trip, G-01's grammar predicate, and U-01's injectivity,
+# which is an invariant over every key of a trie with no count to produce a
+# witness from.
 # ===========================================================================
 
 # ===========================================================================
