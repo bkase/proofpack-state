@@ -76,6 +76,7 @@
 #   proofs/treediff.bend  the fused difference walk, over a tree
 #   proofs/subsetconv.bend  the converse of the subset bridge
 #   proofs/subsetalg.bend the subset relation is transitive
+#   proofs/validkeep.bend the algebra keeps the shape the store checks
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -124,6 +125,7 @@ import ./proofs/leaffit.bend as PLf3
 import ./proofs/treediff.bend as PTd
 import ./proofs/subsetconv.bend as PSc2
 import ./proofs/subsetalg.bend as PSa2
+import ./proofs/validkeep.bend as PVk
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -673,3 +675,12 @@ def Laws.an_ordinal_a_set_lists_is_one_of_its_members(d, a, y, va, lt,
 def Laws.a_subset_of_a_subset_is_a_subset(d, a, b, c, va, vb, vc, lt,
   ab, bc):
   PSa2.PSet.subset_trans(d, a, b, c, va, vb, vc, lt, ab, bc)
+
+def Laws.union_keeps_a_set_valid(d, a, b, va, vb):
+  PVk.PSet.valid_union(d, a, b, va, vb)
+
+def Laws.intersection_keeps_a_set_valid(d, a, b, va, vb):
+  PVk.PSet.valid_inter(d, a, b, va, vb)
+
+def Laws.difference_keeps_a_set_valid(d, a, b, va, vb):
+  PVk.PSet.valid_diff(d, a, b, va, vb)

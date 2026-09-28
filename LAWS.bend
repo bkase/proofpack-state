@@ -2358,3 +2358,27 @@ law a_subset_of_a_subset_is_a_subset:
   for +ab: {S.PSet.is_subset(d, a, b) == True{} : Bool}
   for +bc: {S.PSet.is_subset(d, b, c) == True{} : Bool}
   {S.PSet.is_subset(d, a, c) == True{} : Bool}
+
+law union_keeps_a_set_valid:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  {S.PSet.valid(d, S.PSet.union(d, a, b), True{}) == True{} : Bool}
+
+law intersection_keeps_a_set_valid:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  {S.PSet.valid(d, S.PSet.inter(d, a, b), True{}) == True{} : Bool}
+
+law difference_keeps_a_set_valid:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  {S.PSet.valid(d, S.PSet.diff(d, a, b), True{}) == True{} : Bool}
