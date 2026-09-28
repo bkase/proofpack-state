@@ -72,6 +72,9 @@
 #   proofs/tileorder.bend the tile walk emits ordinals in order
 #   proofs/merge.bend     what the merge-based difference contains
 #   proofs/leafdiff.bend  what the fused leaf difference emits
+#   proofs/leaffit.bend   everything the fused leaf emits fits in a leaf
+#   proofs/treediff.bend  the fused difference walk, over a tree
+#   proofs/subsetconv.bend  the converse of the subset bridge
 #   proofs/nonempty.bend  a nonzero count exhibits a member
 #   proofs/validshape.bend  validity gives the enumeration the shape it needs
 #   proofs/sum.bend       addition that does not overflow is addition
@@ -116,6 +119,9 @@ import ./proofs/orderlist.bend as POl
 import ./proofs/tileorder.bend as PTo
 import ./proofs/merge.bend as PMg
 import ./proofs/leafdiff.bend as PLf2
+import ./proofs/leaffit.bend as PLf3
+import ./proofs/treediff.bend as PTd
+import ./proofs/subsetconv.bend as PSc2
 import ./proofs/nonempty.bend as PNe2
 import ./proofs/sum.bend as PSm
 import ./proofs/inventory.bend as PIv
@@ -649,3 +655,11 @@ def Laws.the_merge_difference_holds_exactly_what_it_should(a, b, x, aa,
 def Laws.the_fused_leaf_difference_lists_exactly_what_it_should(a, b,
   y, va, vb, inr):
   PLf2.PSet.leaf_diff_members_mem(a, b, y, va, vb, inr)
+
+def Laws.the_fused_difference_lists_exactly_what_it_should(d, a, b, x,
+  va, vb, lt):
+  PSc2.PSet.missing_contains(d, a, b, x, va, vb, lt)
+
+def Laws.a_set_whose_members_are_all_in_another_is_a_subset(d, a, b,
+  va, vb, lt, am):
+  PSc2.PSet.subset_of_members(d, a, b, va, vb, lt, am)

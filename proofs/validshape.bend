@@ -212,3 +212,27 @@ law PSet.to_list_member_of_valid:
 
 def PSet.to_list_member_of_valid(d, s, x, v, lt, inr):
   Te.PSet.to_list_member(d, s, x, PSet.ok_of_valid(d, s, v), lt, inr)
+
+law PSet.valid_full:
+  for +d: Nat
+  {S.PSet.valid(d, S.PFull{}, True{}) == True{} : Bool}
+
+def PSet.valid_full(d):
+  match d:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+law PSet.mem_full:
+  for +d: Nat
+  for +h: U32
+  for +x: U32
+  {S.PSet.mem(d, S.PFull{}, h, x) == True{} : Bool}
+
+def PSet.mem_full(d, h, x):
+  match d:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}

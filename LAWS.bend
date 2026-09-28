@@ -80,6 +80,7 @@ import ./proofs/treeenum.bend as Te
 import ./proofs/validshape.bend as Vs
 import ./proofs/nonempty.bend as Wt
 import ./proofs/orderlist.bend as Ol
+import ./proofs/subsetconv.bend as Sc2
 import ./core/ords.bend as Or3
 import ./proofs/shift.bend as Sh2
 import ./proofs/shift.bend as Sf
@@ -2308,3 +2309,29 @@ law the_fused_leaf_difference_lists_exactly_what_it_should:
   {List.contains(~U32, ~U32.is_eq, S.PSet.leaf_diff_members(a, b), y)
     == Bool.and(S.PSet.mem.leaf(a, y),
          Bool.not(S.PSet.mem.leaf(b, y))) : Bool}
+
+law the_fused_difference_lists_exactly_what_it_should:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +x: U32
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  {List.contains(~U32, ~U32.is_eq, S.PSet.missing(d, a, b), x)
+    == Bool.and(U32.is_eq(0, W.U32.diff(x, W.U32.mask(12n+d))),
+         Bool.and(S.PSet.mem(d, a, S.PSet.half(d),
+           U32.and(x, W.U32.mask(12n+d))),
+           Bool.not(S.PSet.mem(d, b, S.PSet.half(d),
+             U32.and(x, W.U32.mask(12n+d)))))) : Bool}
+
+law a_set_whose_members_are_all_in_another_is_a_subset:
+  for +d: Nat
+  for +a: S.PSet
+  for +b: S.PSet
+  for +va: {S.PSet.valid(d, a, True{}) == True{} : Bool}
+  for +vb: {S.PSet.valid(d, b, True{}) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+d) == True{} : Bool}
+  for +am: {Sc2.Ords.all_mem(S.PSet.to_list(d, a), d, b) == True{}
+    : Bool}
+  {S.PSet.is_subset(d, a, b) == True{} : Bool}

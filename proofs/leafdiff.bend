@@ -25,6 +25,10 @@ import ./validshape.bend as Vs
 import ./words.bend as Wd
 import ./faithful.bend as Fa
 import ./split_add.bend as Sa
+import ./shift.bend as Sf
+import ./tilefit.bend as Tf
+import ./interval.bend as It
+import ./split.bend as Sp2
 import ../core/count.bend as C
 import ../core/ords.bend as O
 import ../core/word.bend as W
