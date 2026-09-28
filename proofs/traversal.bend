@@ -1678,12 +1678,16 @@ law Reach.closure_same:
   for +sd: Nat
   for +g: G.Graph()
   for +roots: List<&2, U32>
+  for +uu: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
   for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, S.PSet.from_list(sd, roots), uu)
+    == True{} : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +done: {R.Reach.done(sd, R.Reach.closure(n, td, g, sd, roots))
     == True{} : Bool}
   {Ca.PSet.same(sd,
@@ -1691,8 +1695,8 @@ law Reach.closure_same:
     Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)))
     == True{} : Bool}
 
-def Reach.closure_same(n, td, sd, g, roots, gf, lt, rfit, fuel,
-  done):
+def Reach.closure_same(n, td, sd, g, roots, uu, gf, su, lt, rfit, vu,
+  ru, fuel, done):
   E.Bool.and_both(S.PSet.is_subset(sd,
     R.Reach.seen(sd, R.Reach.closure(n, td, g, sd, roots)),
     Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots))),
@@ -1707,9 +1711,9 @@ def Reach.closure_same(n, td, sd, g, roots, gf, lt, rfit, fuel,
         S.PSet.from_list(sd, roots), gf, lt,
         Iv.PSet.valid_from_list(roots, sd, lt, rfit)),
       Iv.PSet.valid_from_list(roots, sd, lt, rfit),
-      St.Spec.closure_is_closed(n, td, sd, g,
-        S.PSet.from_list(sd, roots), gf, lt,
-        Iv.PSet.valid_from_list(roots, sd, lt, rfit), fuel),
+      St.Spec.closure_is_closed(n, td, sd, g, uu,
+        S.PSet.from_list(sd, roots), gf, su, lt, vu,
+        Iv.PSet.valid_from_list(roots, sd, lt, rfit), ru, fuel),
       Lp.Spec.closure_contains_roots(n, td, sd, g,
         S.PSet.from_list(sd, roots), gf, lt,
         Iv.PSet.valid_from_list(roots, sd, lt, rfit)),
@@ -1752,13 +1756,17 @@ law Reach.closure_member:
   for +g: G.Graph()
   for +roots: List<&2, U32>
   for +x: U32
+  for +uu: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
   for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, S.PSet.from_list(sd, roots), uu)
+    == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +done: {R.Reach.done(sd, R.Reach.closure(n, td, g, sd, roots))
     == True{} : Bool}
   {S.PSet.member(sd,
@@ -1767,8 +1775,8 @@ law Reach.closure_member:
         Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
         x) : Bool}
 
-def Reach.closure_member(n, td, sd, g, roots, x, gf, lt, rfit, inv,
-  fuel, done):
+def Reach.closure_member(n, td, sd, g, roots, x, uu, gf, su, lt,
+  rfit, vu, ru, inv, fuel, done):
   Ca.PSet.member_same(sd,
     R.Reach.seen(sd, R.Reach.closure(n, td, g, sd, roots)),
     Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)), x,
@@ -1778,8 +1786,8 @@ def Reach.closure_member(n, td, sd, g, roots, x, gf, lt, rfit, inv,
       {==}),
     Lp.Spec.closure_valid(n, td, sd, g, S.PSet.from_list(sd, roots),
       gf, lt, Iv.PSet.valid_from_list(roots, sd, lt, rfit)), lt, inv,
-    Reach.closure_same(n, td, sd, g, roots, gf, lt, rfit, fuel,
-      done))
+    Reach.closure_same(n, td, sd, g, roots, uu, gf, su, lt, rfit, vu,
+      ru, fuel, done))
 
 law Reach.closure_closed:
   for +n: Nat

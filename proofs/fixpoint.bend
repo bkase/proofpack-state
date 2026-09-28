@@ -67,13 +67,16 @@ law Spec.closure_edge:
   for +r: S.PSet
   for +u: U32
   for +v: U32
+  for +uu: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, r, uu) == True{} : Bool}
   for +invu: {Dc.U32.hi_zero(u, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +mu: {S.PSet.member(sd, Sp.Spec.closure(n, td, g, sd, r), u)
     == True{} : Bool}
   for +e: {G.Graph.edge(td, g, u, v) == True{} : Bool}
@@ -88,8 +91,8 @@ def Spec.closure_edge.fits(+td: Nat, +sd: Nat, +g: G.Graph(),
   Ords.fit_of_contains(G.Graph.succ(td, g, u), 12n+sd, v,
     Gr.Graph.succ_fits(td, sd, g, u, gf), e)
 
-def Spec.closure_edge(n, td, sd, g, r, u, v, gf, lt, vr, invu, fuel,
-  mu, e):
+def Spec.closure_edge(n, td, sd, g, r, u, v, uu, gf, su, lt, vu, vr,
+  ru, invu, fuel, mu, e):
   Sa.PSet.subset_member_at(sd,
     Sp.Spec.post(td, g, sd, Sp.Spec.closure(n, td, g, sd, r)),
     Sp.Spec.closure(n, td, g, sd, r), v,
@@ -97,7 +100,8 @@ def Spec.closure_edge(n, td, sd, g, r, u, v, gf, lt, vr, invu, fuel,
       Sp.Spec.closure(n, td, g, sd, r), gf, lt),
     Lp.Spec.closure_valid(n, td, sd, g, r, gf, lt, vr), lt,
     Spec.closure_edge.fits(td, sd, g, u, v, gf, e),
-    St.Spec.closure_is_closed(n, td, sd, g, r, gf, lt, vr, fuel),
+    St.Spec.closure_is_closed(n, td, sd, g, uu, r, gf, su, lt, vu,
+      vr, ru, fuel),
     Pm.Spec.post_of_any(td, sd, g,
       Sp.Spec.closure(n, td, g, sd, r), v, lt,
       Spec.closure_edge.fits(td, sd, g, u, v, gf, e),
@@ -119,18 +123,22 @@ law Spec.closure_idem:
   for +g: G.Graph()
   for +r: S.PSet
   for +x: U32
+  for +uu: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, r, uu) == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   {S.PSet.member(sd, Sp.Spec.closure(n, td, g, sd,
       Sp.Spec.closure(n, td, g, sd, r)), x)
     == S.PSet.member(sd, Sp.Spec.closure(n, td, g, sd, r), x) : Bool}
 
-def Spec.closure_idem(n, td, sd, g, r, x, gf, lt, vr, inv, fuel):
+def Spec.closure_idem(n, td, sd, g, r, x, uu, gf, su, lt, vu, vr, ru,
+  inv, fuel):
   Ca.PSet.member_same(sd,
     Sp.Spec.closure(n, td, g, sd, Sp.Spec.closure(n, td, g, sd, r)),
     Sp.Spec.closure(n, td, g, sd, r), x,
@@ -150,7 +158,8 @@ def Spec.closure_idem(n, td, sd, g, r, x, gf, lt, vr, inv, fuel):
         Sp.Spec.closure(n, td, g, sd, r), gf, lt,
         Lp.Spec.closure_valid(n, td, sd, g, r, gf, lt, vr),
         Lp.Spec.closure_valid(n, td, sd, g, r, gf, lt, vr),
-        St.Spec.closure_is_closed(n, td, sd, g, r, gf, lt, vr, fuel),
+        St.Spec.closure_is_closed(n, td, sd, g, uu, r, gf, su, lt,
+          vu, vr, ru, fuel),
         Lp.PSet.subset_refl(sd, Sp.Spec.closure(n, td, g, sd, r),
           Lp.Spec.closure_valid(n, td, sd, g, r, gf, lt, vr), lt)),
       Lp.Spec.closure_contains_roots(n, td, sd, g,

@@ -25,6 +25,7 @@ import ./subsetalg.bend as Sa
 import ./listset.bend as Ls
 import ./insertvalid.bend as Iv
 import ./graphrange.bend as Gr
+import ./listsub.bend as Lb
 import ../core/count.bend as C
 import ../core/set.bend as S
 import ../closure/graph.bend as G
@@ -272,3 +273,28 @@ def Spec.post_mono(td, sd, g, a, b, gf, lt, va, vb, ab):
       b, gf, lt, va, vb, ab,
       Sa.Ords.all_in_self(
         S.PSet.to_list(sd, Sp.Spec.post(td, g, sd, a)))))
+
+# ---------------------------------------------------------------------------
+# The image stays inside a bounding set the graph respects.
+# ---------------------------------------------------------------------------
+
+law Spec.post_in:
+  for +td: Nat
+  for +sd: Nat
+  for +g: G.Graph()
+  for +uu: S.PSet
+  for +a: S.PSet
+  for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
+  {S.PSet.is_subset(sd, Sp.Spec.post(td, g, sd, a), uu) == True{}
+    : Bool}
+
+def Spec.post_in(td, sd, g, uu, a, gf, su, lt, vu):
+  Lb.PSet.subset_of_list_mem(
+    G.Graph.gather(td, g, S.PSet.to_list(sd, a), Nil{}), sd, uu, lt,
+    Gr.Graph.gather_fit(S.PSet.to_list(sd, a), td, sd, g, Nil{}, gf,
+      {==}), vu,
+    Gr.Graph.gather_in(S.PSet.to_list(sd, a), td, sd, uu, g, Nil{},
+      su, {==}))

@@ -773,17 +773,20 @@ def Laws.every_set_is_inside_the_universe_of_its_own_depth(d, a, va,
 def Laws.a_tile_is_its_subset_plus_the_difference(a, b, sub):
   PCsp.Words.count_split(a, b, sub)
 
-def Laws.closure_is_edge_closed(n, td, sd, g, r, gf, lt, vr, fuel):
-  PSet2.Spec.closure_is_closed(n, td, sd, g, r, gf, lt, vr, fuel)
+def Laws.closure_is_edge_closed(n, td, sd, g, uu, r, gf, su, lt, vu,
+  vr, ru, fuel):
+  PSet2.Spec.closure_is_closed(n, td, sd, g, uu, r, gf, su, lt, vu,
+    vr, ru, fuel)
 
 def Laws.closure_is_edge_closed_at_every_edge(n, td, sd, g, r, u, v,
-  gf, lt, vr, invu, fuel, mu, e):
-  PFx.Spec.closure_edge(n, td, sd, g, r, u, v, gf, lt, vr, invu,
-    fuel, mu, e)
+  uu, gf, su, lt, vu, vr, ru, invu, fuel, mu, e):
+  PFx.Spec.closure_edge(n, td, sd, g, r, u, v, uu, gf, su, lt, vu,
+    vr, ru, invu, fuel, mu, e)
 
-def Laws.closure_is_idempotent(n, td, sd, g, r, x, gf, lt, vr, inv,
-  fuel):
-  PFx.Spec.closure_idem(n, td, sd, g, r, x, gf, lt, vr, inv, fuel)
+def Laws.closure_is_idempotent(n, td, sd, g, r, x, uu, gf, su, lt,
+  vu, vr, ru, inv, fuel):
+  PFx.Spec.closure_idem(n, td, sd, g, r, x, uu, gf, su, lt, vu, vr,
+    ru, inv, fuel)
 
 def Laws.rewriting_preserves_denotation(src, e, x, vl, gf):
   PRp.Rw.simplify_member(src, e, x, vl, gf)
@@ -792,15 +795,16 @@ def Laws.every_denotation_is_a_valid_set(e, src, vl, gf):
   PRp.Eval.valid(e, src, vl, gf)
 
 def Laws.the_traversal_returns_the_specification_closure(n, td, sd,
-  g, roots, x, gf, lt, rfit, inv, fuel, done):
-  PTl.Reach.closure_member(n, td, sd, g, roots, x, gf, lt, rfit, inv,
-    fuel, done)
+  g, roots, x, uu, gf, su, lt, rfit, vu, ru, inv, fuel, done):
+  PTl.Reach.closure_member(n, td, sd, g, roots, x, uu, gf, su, lt,
+    rfit, vu, ru, inv, fuel, done)
 
 def Laws.a_finished_traversal_is_edge_closed(n, td, sd, g, roots, gf,
   lt, rfit, done):
   PTl.Reach.closure_closed(n, td, sd, g, roots, gf, lt, rfit, done)
 
 def Laws.an_accepted_certificate_means_an_exact_closure(n, td, sd, g,
-  roots, levels, c, x, gf, lt, rfit, lfit, vc, inv, fuel, ok):
-  PCs2.Cert.exact(n, td, sd, g, roots, levels, c, x, gf, lt, rfit,
-    lfit, vc, inv, fuel, ok)
+  roots, levels, c, x, uu, gf, su, lt, rfit, lfit, vu, vc, ru, inv,
+  fuel, ok):
+  PCs2.Cert.exact(n, td, sd, g, roots, levels, c, x, uu, gf, su, lt,
+    rfit, lfit, vu, vc, ru, inv, fuel, ok)

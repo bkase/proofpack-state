@@ -120,6 +120,26 @@ def Spec.settle.nil(+td: Nat, +sd: Nat, +g: G.Graph(), +x: S.PSet,
 # A round that is not edge-closed is strictly bigger than the one before.
 # ---------------------------------------------------------------------------
 
+law Spec.step_in:
+  for +td: Nat
+  for +sd: Nat
+  for +g: G.Graph()
+  for +uu: S.PSet
+  for +x: S.PSet
+  for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
+  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
+  for +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool}
+  for +xu: {S.PSet.is_subset(sd, x, uu) == True{} : Bool}
+  {S.PSet.is_subset(sd, Sp.Spec.step(td, g, sd, x), uu) == True{}
+    : Bool}
+
+def Spec.step_in(td, sd, g, uu, x, gf, su, lt, vu, vx, xu):
+  Sa.PSet.subset_union(sd, x, Sp.Spec.post(td, g, sd, x), uu, vx,
+    Pm.Spec.post_valid(td, sd, g, x, gf, lt), vu, lt, xu,
+    Pm.Spec.post_in(td, sd, g, uu, x, gf, su, lt, vu))
+
 law Spec.round_grows:
   for +td: Nat
   for +sd: Nat
@@ -142,51 +162,56 @@ def Spec.round_grows(td, sd, g, x, h, t, gf, lt, vx, el):
     Lp.Spec.step_valid(td, sd, g, x, gf, lt, vx), vx, lt, el,
     Ca.Spec.sub_step(td, sd, g, x, gf, lt, vx))
 
-def Spec.settle.base(+td: Nat, +sd: Nat, +g: G.Graph(), +x: S.PSet,
-  +h: U32, +t: List<&2, U32>,
+def Spec.settle.base(+td: Nat, +sd: Nat, +g: G.Graph(),
+  +uu: S.PSet, +x: S.PSet, +h: U32, +t: List<&2, U32>,
   +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool},
+  +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool},
   +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool},
+  +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool},
   +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool},
+  +xu: {S.PSet.is_subset(sd, x, uu) == True{} : Bool},
   +el: {Con{h, t}
     == S.PSet.missing(sd, Sp.Spec.step(td, g, sd, x), x)
     : List<&2, U32>},
-  +bnd: {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  +bnd: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
     S.PSet.count(sd, x, S.PSet.half(sd))) == True{} : Bool})
   -> {Empty : Type}:
   Ct.Nat.upto_succ_absurd(S.PSet.count(sd, x, S.PSet.half(sd)),
     Ct2.Nat.le_trans(1n+S.PSet.count(sd, x, S.PSet.half(sd)),
-      S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+      S.PSet.count(sd, uu, S.PSet.half(sd)),
       S.PSet.count(sd, x, S.PSet.half(sd)),
       Ct2.Nat.le_trans(1n+S.PSet.count(sd, x, S.PSet.half(sd)),
         S.PSet.count(sd, Sp.Spec.step(td, g, sd, x),
           S.PSet.half(sd)),
-        S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+        S.PSet.count(sd, uu, S.PSet.half(sd)),
         Spec.round_grows(td, sd, g, x, h, t, gf, lt, vx, el),
-        Sd.PSet.count_bound(sd, Sp.Spec.step(td, g, sd, x),
-          Lp.Spec.step_valid(td, sd, g, x, gf, lt, vx), lt)), bnd))
+        Sd.PSet.count_le(sd, uu, Sp.Spec.step(td, g, sd, x), vu,
+          Lp.Spec.step_valid(td, sd, g, x, gf, lt, vx), lt,
+          Spec.step_in(td, sd, g, uu, x, gf, su, lt, vu, vx, xu))),
+      bnd))
 
 def Spec.settle.bound(+q: Nat, +td: Nat, +sd: Nat, +g: G.Graph(),
-  +x: S.PSet, +h: U32, +t: List<&2, U32>,
+  +uu: S.PSet, +x: S.PSet, +h: U32, +t: List<&2, U32>,
   +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool},
   +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool},
   +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool},
   +el: {Con{h, t}
     == S.PSet.missing(sd, Sp.Spec.step(td, g, sd, x), x)
     : List<&2, U32>},
-  bnd: {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  bnd: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
     Nat.add(1n+q, S.PSet.count(sd, x, S.PSet.half(sd))))
     == True{} : Bool})
-  -> {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  -> {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
     Nat.add(q, S.PSet.count(sd, Sp.Spec.step(td, g, sd, x),
       S.PSet.half(sd)))) == True{} : Bool}:
-  Ct2.Nat.le_trans(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  Ct2.Nat.le_trans(S.PSet.count(sd, uu, S.PSet.half(sd)),
     Nat.add(q, 1n+S.PSet.count(sd, x, S.PSet.half(sd))),
     Nat.add(q, S.PSet.count(sd, Sp.Spec.step(td, g, sd, x),
       S.PSet.half(sd))),
     %E.Nat.sym(Nat.add(q, 1n+S.PSet.count(sd, x, S.PSet.half(sd))),
       1n+Nat.add(q, S.PSet.count(sd, x, S.PSet.half(sd))),
       N.Nat.add_succ(q, S.PSet.count(sd, x, S.PSet.half(sd))))
-      : {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), _)
+      : {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)), _)
         == True{} : Bool}
     bnd,
     Ne.Nat.le_add_mono_l(q,
@@ -204,11 +229,15 @@ law Spec.settle:
   for +td: Nat
   for +sd: Nat
   for +g: G.Graph()
+  for +uu: S.PSet
   for +x: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool}
-  for bnd: {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  for +xu: {S.PSet.is_subset(sd, x, uu) == True{} : Bool}
+  for bnd: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
     Nat.add(m, S.PSet.count(sd, x, S.PSet.half(sd)))) == True{}
     : Bool}
   for mf: {C.Nat.upto(m, f) == True{} : Bool}
@@ -216,15 +245,18 @@ law Spec.settle:
     == True{} : Bool}
 
 def Spec.settle.zero(+f: Nat, +td: Nat, +sd: Nat, +g: G.Graph(),
-  +x: S.PSet,
+  +uu: S.PSet, +x: S.PSet,
   +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool},
+  +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool},
   +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool},
+  +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool},
   +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool},
+  +xu: {S.PSet.is_subset(sd, x, uu) == True{} : Bool},
   +cd: Bool, +ecd: {cd == Sp.Spec.closed(td, g, sd, x) : Bool},
   +l: List<&2, U32>,
   +el: {l == S.PSet.missing(sd, Sp.Spec.step(td, g, sd, x), x)
     : List<&2, U32>},
-  bnd: {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  bnd: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
     S.PSet.count(sd, x, S.PSet.half(sd))) == True{} : Bool})
   -> {Sp.Spec.closed(td, g, sd, Sp.Spec.iter(f, td, g, sd, x))
     == True{} : Bool}:
@@ -241,23 +273,26 @@ def Spec.settle.zero(+f: Nat, +td: Nat, +sd: Nat, +g: G.Graph(),
         case Con{h, t}:
           Empty.absurd({Sp.Spec.closed(td, g, sd,
             Sp.Spec.iter(f, td, g, sd, x)) == True{} : Bool},
-            Spec.settle.base(td, sd, g, x, h, t, gf, lt, vx, el,
-              bnd))
+            Spec.settle.base(td, sd, g, uu, x, h, t, gf, su, lt, vu,
+              vx, xu, el, bnd))
 
 def Spec.settle.succ(+q: Nat, +e: Nat, +td: Nat, +sd: Nat,
-  +g: G.Graph(), +x: S.PSet,
+  +g: G.Graph(), +uu: S.PSet, +x: S.PSet,
   +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool},
+  +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool},
   +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool},
+  +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool},
   +vx: {S.PSet.valid(sd, x, True{}) == True{} : Bool},
+  +xu: {S.PSet.is_subset(sd, x, uu) == True{} : Bool},
   +cd: Bool, +ecd: {cd == Sp.Spec.closed(td, g, sd, x) : Bool},
   +l: List<&2, U32>,
   +el: {l == S.PSet.missing(sd, Sp.Spec.step(td, g, sd, x), x)
     : List<&2, U32>},
-  bnd: {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  bnd: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
     Nat.add(1n+q, S.PSet.count(sd, x, S.PSet.half(sd)))) == True{}
     : Bool},
   mf: {C.Nat.upto(q, e) == True{} : Bool},
-  ih: {C.Nat.upto(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+  ih: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
       Nat.add(q, S.PSet.count(sd, Sp.Spec.step(td, g, sd, x),
         S.PSet.half(sd)))) == True{} : Bool} ->
     {C.Nat.upto(q, e) == True{} : Bool} ->
@@ -276,13 +311,14 @@ def Spec.settle.succ(+q: Nat, +e: Nat, +td: Nat, +sd: Nat,
             Sp.Spec.iter(1n+e, td, g, sd, x)) == True{} : Bool},
             Spec.settle.nil(td, sd, g, x, gf, lt, vx, ecd, el))
         case Con{h, t}:
-          ih(Spec.settle.bound(q, td, sd, g, x, h, t, gf, lt, vx, el,
-            bnd), mf)
+          ih(Spec.settle.bound(q, td, sd, g, uu, x, h, t, gf, lt, vx,
+            el, bnd), mf)
 
-def Spec.settle(m, f, td, sd, g, x, gf, lt, vx, bnd, mf):
+def Spec.settle(m, f, td, sd, g, uu, x, gf, su, lt, vu, vx, xu, bnd,
+  mf):
   match m:
     case 0n:
-      Spec.settle.zero(f, td, sd, g, x, gf, lt, vx,
+      Spec.settle.zero(f, td, sd, g, uu, x, gf, su, lt, vu, vx, xu,
         Sp.Spec.closed(td, g, sd, x), {==},
         S.PSet.missing(sd, Sp.Spec.step(td, g, sd, x), x), {==}, bnd)
     case 1n+q:
@@ -291,32 +327,37 @@ def Spec.settle(m, f, td, sd, g, x, gf, lt, vx, bnd, mf):
           E.Bool.noconf({Sp.Spec.closed(td, g, sd,
             Sp.Spec.iter(0n, td, g, sd, x)) == True{} : Bool}, mf)
         case 1n+e:
-          Spec.settle.succ(q, e, td, sd, g, x, gf, lt, vx,
-            Sp.Spec.closed(td, g, sd, x), {==},
+          Spec.settle.succ(q, e, td, sd, g, uu, x, gf, su, lt, vu,
+            vx, xu, Sp.Spec.closed(td, g, sd, x), {==},
             S.PSet.missing(sd, Sp.Spec.step(td, g, sd, x), x), {==},
             bnd, mf,
-            Spec.settle(q, e, td, sd, g, Sp.Spec.step(td, g, sd, x),
-              gf, lt,
-              Lp.Spec.step_valid(td, sd, g, x, gf, lt, vx)))
+            Spec.settle(q, e, td, sd, g, uu,
+              Sp.Spec.step(td, g, sd, x), gf, su, lt, vu,
+              Lp.Spec.step_valid(td, sd, g, x, gf, lt, vx),
+              Spec.step_in(td, sd, g, uu, x, gf, su, lt, vu, vx,
+                xu)))
 
 law Spec.closure_is_closed:
   for +n: Nat
   for +td: Nat
   for +sd: Nat
   for +g: G.Graph()
+  for +uu: S.PSet
   for +r: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +ru: {S.PSet.is_subset(sd, r, uu) == True{} : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   {Sp.Spec.closed(td, g, sd, Sp.Spec.closure(n, td, g, sd, r))
     == True{} : Bool}
 
-def Spec.closure_is_closed(n, td, sd, g, r, gf, lt, vr, fuel):
-  Spec.settle(S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n, td,
-    sd, g, r, gf, lt, vr,
-    Ct2.Nat.le_add_right(
-      S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)),
+def Spec.closure_is_closed(n, td, sd, g, uu, r, gf, su, lt, vu, vr,
+  ru, fuel):
+  Spec.settle(S.PSet.count(sd, uu, S.PSet.half(sd)), 1n+n, td, sd, g,
+    uu, r, gf, su, lt, vu, vr, ru,
+    Ct2.Nat.le_add_right(S.PSet.count(sd, uu, S.PSet.half(sd)),
       S.PSet.count(sd, r, S.PSet.half(sd))), fuel)

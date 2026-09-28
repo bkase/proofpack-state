@@ -18,6 +18,7 @@ import ./leafenum.bend as Le
 import ./span.bend as Sn
 import ./subsetconv.bend as Sc
 import ./subsetalg.bend as Sa2
+import ../core/set.bend as S
 import ../core/count.bend as C
 import ../core/trie.bend as T
 import ../core/word.bend as W
@@ -295,3 +296,127 @@ def Graph.any_succ_mono(l1, l2, td, g, z, ai, any):
         Graph.any_succ_mono(t, l2, td, g, z,
           E.Bool.and_r(List.contains(~U32, ~U32.is_eq, l2, v),
             Sa2.Ords.all_in(t, l2), ai)))
+
+# ---------------------------------------------------------------------------
+# A graph whose successors stay inside a bounding set.
+# ---------------------------------------------------------------------------
+
+def Graph.succs_in(+sd: Nat, +uu: S.PSet,
+  t: T.Trie<List<&2, U32>>) -> Bool:
+  match t:
+    case T.TGap{}:
+      True{}
+    case T.TVal{v}:
+      Sc.Ords.all_mem(v, sd, uu)
+    case T.TBr{lo, hi}:
+      Bool.and(Graph.succs_in(sd, uu, lo),
+        Graph.succs_in(sd, uu, hi))
+
+law Graph.succs_in_get:
+  for +d: Nat
+  for +sd: Nat
+  for +uu: S.PSet
+  for +t: T.Trie<List<&2, U32>>
+  for +h: U32
+  for +x: U32
+  for +ok: {Graph.succs_in(sd, uu, t) == True{} : Bool}
+  {Sc.Ords.all_mem(G.Graph.succ.un(T.Trie.get(List<&2, U32>, d, t,
+    h, x)), sd, uu) == True{} : Bool}
+
+law Graph.succs_in_pick:
+  for +sd: Nat
+  for +uu: S.PSet
+  for +b: Bool
+  for +lo: T.Trie<List<&2, U32>>
+  for +hi: T.Trie<List<&2, U32>>
+  for +ok: {Graph.succs_in(sd, uu, T.TBr{lo, hi}) == True{} : Bool}
+  {Graph.succs_in(sd, uu, T.Trie.pick(List<&2, U32>, b, lo, hi))
+    == True{} : Bool}
+
+def Graph.succs_in_pick(sd, uu, b, lo, hi, ok):
+  match b:
+    case True{}:
+      E.Bool.and_l(Graph.succs_in(sd, uu, lo),
+        Graph.succs_in(sd, uu, hi), ok)
+    case False{}:
+      E.Bool.and_r(Graph.succs_in(sd, uu, lo),
+        Graph.succs_in(sd, uu, hi), ok)
+
+def Graph.succs_in_get(d, sd, uu, t, h, x, ok):
+  match d:
+    case 0n:
+      match t:
+        case T.TGap{}:
+          {==}
+        case T.TVal{v}:
+          ok
+        case T.TBr{lo, hi}:
+          {==}
+    case 1n+p:
+      match t:
+        case T.TGap{}:
+          {==}
+        case T.TVal{v}:
+          {==}
+        case T.TBr{lo, hi}:
+          Graph.succs_in_get(p, sd, uu,
+            T.Trie.pick(List<&2, U32>, U32.is_lt(x, h), lo, hi),
+            U32.shr(h), T.Trie.rebase(U32.is_lt(x, h), h, x),
+            Graph.succs_in_pick(sd, uu, U32.is_lt(x, h), lo, hi, ok))
+
+law Graph.succ_in:
+  for +td: Nat
+  for +sd: Nat
+  for +uu: S.PSet
+  for +g: G.Graph()
+  for +v: U32
+  for +ok: {Graph.succs_in(sd, uu, g) == True{} : Bool}
+  {Sc.Ords.all_mem(G.Graph.succ(td, g, v), sd, uu) == True{} : Bool}
+
+def Graph.succ_in(td, sd, uu, g, v, ok):
+  Graph.succs_in_get(td, sd, uu, g, T.Trie.half(td), v, ok)
+
+law Ords.all_mem_append:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +sd: Nat
+  for +xx: S.PSet
+  for +am: {Sc.Ords.all_mem(a, sd, xx) == True{} : Bool}
+  for +bm: {Sc.Ords.all_mem(b, sd, xx) == True{} : Bool}
+  {Sc.Ords.all_mem(List.append(&2, U32, a, b), sd, xx) == True{}
+    : Bool}
+
+def Ords.all_mem_append(a, b, sd, xx, am, bm):
+  match a:
+    case Nil{}:
+      bm
+    case Con{y, u}:
+      E.Bool.and_both(S.PSet.member(sd, xx, y),
+        Sc.Ords.all_mem(List.append(&2, U32, u, b), sd, xx),
+        E.Bool.and_l(S.PSet.member(sd, xx, y),
+          Sc.Ords.all_mem(u, sd, xx), am),
+        Ords.all_mem_append(u, b, sd, xx,
+          E.Bool.and_r(S.PSet.member(sd, xx, y),
+            Sc.Ords.all_mem(u, sd, xx), am), bm))
+
+law Graph.gather_in:
+  for +l: List<&2, U32>
+  for +td: Nat
+  for +sd: Nat
+  for +uu: S.PSet
+  for +g: G.Graph()
+  for +acc: List<&2, U32>
+  for +ok: {Graph.succs_in(sd, uu, g) == True{} : Bool}
+  for +am: {Sc.Ords.all_mem(acc, sd, uu) == True{} : Bool}
+  {Sc.Ords.all_mem(G.Graph.gather(td, g, l, acc), sd, uu) == True{}
+    : Bool}
+
+def Graph.gather_in(l, td, sd, uu, g, acc, ok, am):
+  match l:
+    case Nil{}:
+      am
+    case Con{v, t}:
+      Graph.gather_in(t, td, sd, uu, g,
+        List.append(&2, U32, G.Graph.succ(td, g, v), acc), ok,
+        Ords.all_mem_append(G.Graph.succ(td, g, v), acc, sd, uu,
+          Graph.succ_in(td, sd, uu, g, v, ok), am))

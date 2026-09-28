@@ -26,6 +26,7 @@ import ./shift.bend as Sf
 import ./subsetconv.bend as Sc
 import ./subsetalg.bend as Sa
 import ./listset.bend as Ls
+import ./listsub.bend as Lb
 import ./insertvalid.bend as Iv
 import ./graphrange.bend as Gr
 import ./postmono.bend as Pm
@@ -48,29 +49,6 @@ def Cert.levels_fit(+levels: R.Levels, +k: Nat) -> Bool:
       True{}
     case Con{l, t}:
       Bool.and(Sf.Ords.all_fit(l, k), Cert.levels_fit(t, k))
-
-law Ords.all_mem_append:
-  for +a: List<&2, U32>
-  for +b: List<&2, U32>
-  for +sd: Nat
-  for +xx: S.PSet
-  for +am: {Sc.Ords.all_mem(a, sd, xx) == True{} : Bool}
-  for +bm: {Sc.Ords.all_mem(b, sd, xx) == True{} : Bool}
-  {Sc.Ords.all_mem(List.append(&2, U32, a, b), sd, xx) == True{}
-    : Bool}
-
-def Ords.all_mem_append(a, b, sd, xx, am, bm):
-  match a:
-    case Nil{}:
-      bm
-    case Con{y, u}:
-      E.Bool.and_both(S.PSet.member(sd, xx, y),
-        Sc.Ords.all_mem(List.append(&2, U32, u, b), sd, xx),
-        E.Bool.and_l(S.PSet.member(sd, xx, y),
-          Sc.Ords.all_mem(u, sd, xx), am),
-        Ords.all_mem_append(u, b, sd, xx,
-          E.Bool.and_r(S.PSet.member(sd, xx, y),
-            Sc.Ords.all_mem(u, sd, xx), am), bm))
 
 # ---------------------------------------------------------------------------
 # Condition 3, one vertex.
@@ -257,7 +235,7 @@ def Cert.layers_inside(levels, acc, prev, td, sd, g, xx, gf, lt, vx,
             Ct.Cert.preds_ok(td, g, prev, l, True{}), lok)),
         E.Bool.and_l(Sf.Ords.all_fit(l, 12n+sd),
           Cert.levels_fit(t, 12n+sd), lfit),
-        Ords.all_mem_append(l, acc, sd, xx,
+        Gr.Ords.all_mem_append(l, acc, sd, xx,
           Cert.preds_inside(l, td, sd, g, xx, prev, gf, lt, vx, cl,
             pin, pfit,
             Cert.layers_acc(t, td, g, l,
@@ -288,66 +266,6 @@ def Cert.concat_fit(levels, acc, k, lfit, afit):
         Gr.Ords.all_fit_append(l, acc, k,
           E.Bool.and_l(Sf.Ords.all_fit(l, k), Cert.levels_fit(t, k),
             lfit), afit))
-
-law Ords.all_mem_of_from_list:
-  for +l2: List<&2, U32>
-  for +l: List<&2, U32>
-  for +sd: Nat
-  for +xx: S.PSet
-  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
-  for +lfit: {Sf.Ords.all_fit(l, 12n+sd) == True{} : Bool}
-  for +am: {Sc.Ords.all_mem(l, sd, xx) == True{} : Bool}
-  for +ai: {Sa.Ords.all_in(l2,
-    S.PSet.to_list(sd, S.PSet.from_list(sd, l))) == True{} : Bool}
-  {Sc.Ords.all_mem(l2, sd, xx) == True{} : Bool}
-
-def Ords.all_mem_of_from_list(l2, l, sd, xx, lt, lfit, am, ai):
-  match l2:
-    case Nil{}:
-      {==}
-    case Con{u, rest}:
-      E.Bool.and_both(S.PSet.member(sd, xx, u),
-        Sc.Ords.all_mem(rest, sd, xx),
-        Sc.Ords.all_mem_at(l, sd, xx, u, Sc.Ords.head_eq(l, u),
-          {==}, am,
-          Ls.PSet.from_list_only_at(l, sd, u, lt,
-            Sa.PSet.in_range_of_to_list(sd, S.PSet.from_list(sd, l),
-              u, Iv.PSet.valid_from_list(l, sd, lt, lfit), lt,
-              E.Bool.and_l(List.contains(~U32, ~U32.is_eq,
-                S.PSet.to_list(sd, S.PSet.from_list(sd, l)), u),
-                Sa.Ords.all_in(rest, S.PSet.to_list(sd,
-                  S.PSet.from_list(sd, l))), ai)), lfit,
-            Sa.PSet.member_of_to_list(sd, S.PSet.from_list(sd, l), u,
-              Iv.PSet.valid_from_list(l, sd, lt, lfit), lt,
-              E.Bool.and_l(List.contains(~U32, ~U32.is_eq,
-                S.PSet.to_list(sd, S.PSet.from_list(sd, l)), u),
-                Sa.Ords.all_in(rest, S.PSet.to_list(sd,
-                  S.PSet.from_list(sd, l))), ai)))),
-        Ords.all_mem_of_from_list(rest, l, sd, xx, lt, lfit, am,
-          E.Bool.and_r(List.contains(~U32, ~U32.is_eq,
-            S.PSet.to_list(sd, S.PSet.from_list(sd, l)), u),
-            Sa.Ords.all_in(rest, S.PSet.to_list(sd,
-              S.PSet.from_list(sd, l))), ai)))
-
-law PSet.subset_of_list_mem:
-  for +l: List<&2, U32>
-  for +sd: Nat
-  for +xx: S.PSet
-  for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
-  for +lfit: {Sf.Ords.all_fit(l, 12n+sd) == True{} : Bool}
-  for +vx: {S.PSet.valid(sd, xx, True{}) == True{} : Bool}
-  for +am: {Sc.Ords.all_mem(l, sd, xx) == True{} : Bool}
-  {S.PSet.is_subset(sd, S.PSet.from_list(sd, l), xx) == True{}
-    : Bool}
-
-def PSet.subset_of_list_mem(l, sd, xx, lt, lfit, vx, am):
-  Sc.PSet.subset_of_members(sd, S.PSet.from_list(sd, l), xx,
-    Iv.PSet.valid_from_list(l, sd, lt, lfit), vx, lt,
-    Ords.all_mem_of_from_list(
-      S.PSet.to_list(sd, S.PSet.from_list(sd, l)), l, sd, xx, lt,
-      lfit, am,
-      Sa.Ords.all_in_self(
-        S.PSet.to_list(sd, S.PSet.from_list(sd, l)))))
 
 # ---------------------------------------------------------------------------
 # The union of the levels is inside the closure.
@@ -388,7 +306,7 @@ def Cert.concat_inside(levels, roots, td, sd, g, xx, gf, lt, vx, cl,
           Sa.Ords.all_in_self(l0)),
         E.Bool.and_l(Sf.Ords.all_fit(l0, 12n+sd),
           Cert.levels_fit(t, 12n+sd), lfit),
-        Ords.all_mem_append(l0, Nil{}, sd, xx,
+        Gr.Ords.all_mem_append(l0, Nil{}, sd, xx,
           Tl.Ords.all_mem_roots(l0, sd, xx, l0, lt,
             E.Bool.and_l(Sf.Ords.all_fit(l0, 12n+sd),
               Cert.levels_fit(t, 12n+sd), lfit), vx, z0,
@@ -550,23 +468,27 @@ law Cert.exact:
   for +levels: R.Levels
   for +c: S.PSet
   for +x: U32
+  for +uu: S.PSet
   for +gf: {Gr.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gr.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
   for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
   for +lfit: {Cert.levels_fit(levels, 12n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vc: {S.PSet.valid(sd, c, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, S.PSet.from_list(sd, roots), uu)
+    == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{}
     : Bool}
   {S.PSet.member(sd, c, x)
     == S.PSet.member(sd, Sp.Spec.closure(n, td, g, sd,
          S.PSet.from_list(sd, roots)), x) : Bool}
 
-def Cert.exact(n, td, sd, g, roots, levels, c, x, gf, lt, rfit,
-  lfit, vc, inv, fuel, ok):
+def Cert.exact(n, td, sd, g, roots, levels, c, x, uu, gf, su, lt,
+  rfit, lfit, vu, vc, ru, inv, fuel, ok):
   Ca.PSet.member_same(sd, c,
     Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)), x,
     vc,
@@ -586,7 +508,7 @@ def Cert.exact(n, td, sd, g, roots, levels, c, x, gf, lt, rfit,
           S.PSet.from_list(sd, roots), gf, lt,
           Iv.PSet.valid_from_list(roots, sd, lt, rfit)), lt,
         Cert.cond3(td, sd, g, roots, levels, c, ok),
-        PSet.subset_of_list_mem(Ct.Cert.concat(levels, Nil{}), sd,
+        Lb.PSet.subset_of_list_mem(Ct.Cert.concat(levels, Nil{}), sd,
           Sp.Spec.closure(n, td, g, sd, S.PSet.from_list(sd, roots)),
           lt, Cert.concat_fit(levels, Nil{}, 12n+sd, lfit, {==}),
           Lp.Spec.closure_valid(n, td, sd, g,
@@ -598,9 +520,10 @@ def Cert.exact(n, td, sd, g, roots, levels, c, x, gf, lt, rfit,
             Lp.Spec.closure_valid(n, td, sd, g,
               S.PSet.from_list(sd, roots), gf, lt,
               Iv.PSet.valid_from_list(roots, sd, lt, rfit)),
-            St.Spec.closure_is_closed(n, td, sd, g,
-              S.PSet.from_list(sd, roots), gf, lt,
-              Iv.PSet.valid_from_list(roots, sd, lt, rfit), fuel),
+            St.Spec.closure_is_closed(n, td, sd, g, uu,
+              S.PSet.from_list(sd, roots), gf, su, lt, vu,
+              Iv.PSet.valid_from_list(roots, sd, lt, rfit), ru,
+              fuel),
             rfit, lfit,
             Sa.PSet.subset_trans(sd,
               S.PSet.from_list(sd, Ct.Cert.first(levels, roots)),

@@ -2584,9 +2584,13 @@ law the_successor_image_of_a_union_is_the_union_of_the_images:
 #
 # That is the pigeonhole, and with it `Spec.closure` is a fixed point rather
 # than a chain that has run for a while: edge-closed at every edge, and
-# unchanged by closing it again. The fuel condition is the one SPEC 3.3
-# states -- at least as many rounds as the universe has ordinals -- and
-# `Spec.closure` passes exactly that plus one.
+# unchanged by closing it again.
+#
+# The bound is a set `uu` the graph respects -- every successor list is inside
+# it -- rather than the whole depth's universe, because the depth's universe
+# at the production depth is 2^32 ordinals while a source has `n`. The fuel
+# condition is then the one SPEC 3.3 states: at least as many rounds as that
+# set has members, and `Spec.closure` passes exactly that plus one.
 # ---------------------------------------------------------------------------
 
 law the_enumeration_of_a_valid_set_ascends:
@@ -2641,13 +2645,16 @@ law closure_is_edge_closed:
   for +td: Nat
   for +sd: Nat
   for +g: Gr.Graph()
+  for +uu: S.PSet
   for +r: S.PSet
   for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gi.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +ru: {S.PSet.is_subset(sd, r, uu) == True{} : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   {Sp2.Spec.closed(td, g, sd, Sp2.Spec.closure(n, td, g, sd, r))
     == True{} : Bool}
 
@@ -2659,13 +2666,16 @@ law closure_is_edge_closed_at_every_edge:
   for +r: S.PSet
   for +u: U32
   for +v: U32
+  for +uu: S.PSet
   for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gi.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, r, uu) == True{} : Bool}
   for +invu: {Dc.U32.hi_zero(u, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +mu: {S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd, r), u)
     == True{} : Bool}
   for +e: {Gr.Graph.edge(td, g, u, v) == True{} : Bool}
@@ -2679,13 +2689,16 @@ law closure_is_idempotent:
   for +g: Gr.Graph()
   for +r: S.PSet
   for +x: U32
+  for +uu: S.PSet
   for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gi.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vr: {S.PSet.valid(sd, r, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, r, uu) == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   {S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd,
       Sp2.Spec.closure(n, td, g, sd, r)), x)
     == S.PSet.member(sd, Sp2.Spec.closure(n, td, g, sd, r), x)
@@ -2752,13 +2765,17 @@ law the_traversal_returns_the_specification_closure:
   for +g: Gr.Graph()
   for +roots: List<&2, U32>
   for +x: U32
+  for +uu: S.PSet
   for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gi.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
   for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, S.PSet.from_list(sd, roots), uu)
+    == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +done: {Re.Reach.done(sd, Re.Reach.closure(n, td, g, sd,
     roots)) == True{} : Bool}
   {S.PSet.member(sd,
@@ -2811,15 +2828,19 @@ law an_accepted_certificate_means_an_exact_closure:
   for +levels: Re.Levels
   for +c: S.PSet
   for +x: U32
+  for +uu: S.PSet
   for +gf: {Gi.Graph.succs_fit(sd, g) == True{} : Bool}
+  for +su: {Gi.Graph.succs_in(sd, uu, g) == True{} : Bool}
   for +lt: {C.Nat.gt(32n, 11n+sd) == True{} : Bool}
   for +rfit: {Sf.Ords.all_fit(roots, 12n+sd) == True{} : Bool}
   for +lfit: {Cs.Cert.levels_fit(levels, 12n+sd) == True{} : Bool}
+  for +vu: {S.PSet.valid(sd, uu, True{}) == True{} : Bool}
   for +vc: {S.PSet.valid(sd, c, True{}) == True{} : Bool}
+  for +ru: {S.PSet.is_subset(sd, S.PSet.from_list(sd, roots), uu)
+    == True{} : Bool}
   for +inv: {Dc.U32.hi_zero(x, 12n+sd) == True{} : Bool}
-  for +fuel: {C.Nat.upto(
-    S.PSet.count(sd, S.PFull{}, S.PSet.half(sd)), 1n+n) == True{}
-    : Bool}
+  for +fuel: {C.Nat.upto(S.PSet.count(sd, uu, S.PSet.half(sd)),
+    1n+n) == True{} : Bool}
   for +ok: {Ct.Cert.check(td, g, sd, roots, levels, c) == True{}
     : Bool}
   {S.PSet.member(sd, c, x)
